@@ -14,6 +14,7 @@ import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import javax.inject.Inject;
@@ -436,6 +437,27 @@ class SlayerGearPanel extends PluginPanel
 			content.add(buildSlotCard(slotName(slot) + suffix, choices));
 			content.add(Box.createVerticalStrut(5));
 		}
+
+		// A dwarf multicannon is ground equipment rather than wearable equipment, but
+		// when the selected method calls for one it is still part of the Tier 1
+		// loadout. Keep all four required components beside the recommended gear
+		// instead of burying them among optional consumables.
+		List<SupplyRecommendation> cannonSet = new ArrayList<>();
+		for (SupplyRecommendation supply : recommendations.getSupplies())
+		{
+			if ("Cannon setup".equals(supply.getCategory())) cannonSet.add(supply);
+		}
+		if (!cannonSet.isEmpty())
+		{
+			content.add(Box.createVerticalStrut(2));
+			content.add(sectionHeading("CANNON SET", "Tier 1 utility · all 4 required"));
+			content.add(Box.createVerticalStrut(4));
+			for (SupplyRecommendation part : cannonSet)
+			{
+				content.add(buildSupplyRow(part));
+				content.add(Box.createVerticalStrut(4));
+			}
+		}
 		content.add(Box.createVerticalStrut(5));
 	}
 
@@ -546,13 +568,20 @@ class SlayerGearPanel extends PluginPanel
 
 	private void addSupplies(GearRecommendations recommendations)
 	{
-		if (recommendations.getSupplies().isEmpty())
+		List<SupplyRecommendation> tripSupplies = new ArrayList<>();
+		int packed = 0;
+		for (SupplyRecommendation supply : recommendations.getSupplies())
+		{
+			if ("Cannon setup".equals(supply.getCategory())) continue;
+			tripSupplies.add(supply);
+			if (supply.getStatus().isPacked()) packed++;
+		}
+		if (tripSupplies.isEmpty())
 		{
 			return;
 		}
 
-		ReadinessReport ready = recommendations.getReadiness();
-		content.add(sectionHeading("TRIP SUPPLIES", ready.getSuppliesPacked() + "/" + ready.getSuppliesTotal() + " packed"));
+		content.add(sectionHeading("TRIP SUPPLIES", packed + "/" + tripSupplies.size() + " packed"));
 		content.add(Box.createVerticalStrut(5));
 
 		RoundedPanel card = card(SURFACE);
@@ -560,7 +589,7 @@ class SlayerGearPanel extends PluginPanel
 		card.setBorder(new EmptyBorder(5, 7, 5, 7));
 
 		boolean first = true;
-		for (SupplyRecommendation supply : recommendations.getSupplies())
+		for (SupplyRecommendation supply : tripSupplies)
 		{
 			if (!first)
 			{

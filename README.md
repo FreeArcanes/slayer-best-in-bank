@@ -66,6 +66,19 @@ Where a ranged multi-target approach is appropriate, Best-in-Bank can build arou
 
 The method card tells you what strategy is currently selected, and eligible curated tasks can expose alternate methods through **Change method**.
 
+### Cannon-aware task routing
+
+Best-in-Bank maintains a location-aware cannon catalog instead of assuming that a monster is cannonable everywhere it appears. The beta.3 catalog contains **81 verified cannon routes** across low-level, high-level, Wilderness, Venator, and barrage-oriented Slayer tasks.
+
+- **Smoke devils** use a **Barrage + cannon lure** method: the cannon pulls the room while Burst/Barrage clears the stack.
+- Location-locked tasks only offer cannon when the assigned area supports it. For example, Dagannoth in the Lighthouse, Jormungand's Prison, or Waterbirth Island Dungeon can show cannon, while Catacombs Dagannoth will not.
+- Mixed-location tasks such as Bloodveld, Dust devils, Waterfiends, Wyrms, Shades, and Metal dragons use explicit allowed routes instead of a blanket yes/no flag.
+- When cannon is selected, the **Cannon base, stand, barrels, and furnace become Tier 1 loadout gear**. Cannonballs stay in Trip Supplies.
+- The GEAR readiness counter includes all four cannon parts, so the trip cannot appear gear-complete while part of the cannon is still banked.
+- Regular and ornamented cannon components are treated as separate complete sets; Best-in-Bank will not mix them.
+
+See [CANNON-TASK-COVERAGE.md](CANNON-TASK-COVERAGE.md) for the full embedded route catalog.
+
 ## Tiered owned gear
 
 Best-in-Bank builds **coherent Tier 1 / Tier 2 / Tier 3 choices**, instead of scoring every equipment slot in isolation.

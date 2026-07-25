@@ -230,12 +230,26 @@ class GearScorer
 		}
 		int packedGear = 0;
 		for (GearRecommendation r : selected.values()) if (r.isPacked()) packedGear++;
+		int gearTotal = selected.size();
 		int suppliesPacked = 0, suppliesTotal = 0;
 		boolean dragonfireShieldReady = hasDragonfireProtection(selected);
 		for (SupplyRecommendation s : supplies)
 		{
-			suppliesTotal++;
-			if (s.getStatus().isPacked()) suppliesPacked++;
+			// Cannon components are ground equipment and are rendered inside the Tier 1
+			// loadout. Count the four required parts as gear readiness; cannonballs
+			// remain a trip supply. This keeps the readiness strip consistent with
+			// what the player sees in the loadout section.
+			if ("Cannon setup".equals(s.getCategory()))
+			{
+				gearTotal++;
+				if (s.getStatus().isPacked()) packedGear++;
+			}
+			else
+			{
+				suppliesTotal++;
+				if (s.getStatus().isPacked()) suppliesPacked++;
+			}
+
 			boolean requiredHere = s.isRequired()
 				&& !("Antifire".equals(s.getCategory()) && dragonfireShieldReady);
 			if (requiredHere && !s.getStatus().isPacked())
@@ -264,7 +278,7 @@ class GearScorer
 				spell = highest + " • spellbook ready";
 			}
 		}
-		return new ReadinessReport(packedGear, selected.size(), protection, ammoReady, spell,
+		return new ReadinessReport(packedGear, gearTotal, protection, ammoReady, spell,
 			suppliesPacked, suppliesTotal, missing);
 	}
 

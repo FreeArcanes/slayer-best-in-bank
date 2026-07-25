@@ -153,6 +153,8 @@ class TieredBankLayout
 		List<TierWidget> tierOne = byTier.getOrDefault(1, Collections.emptyList());
 		tierOne.sort(slotOrder);
 		int primaryCount = tierOne.size() + supplies.size();
+		boolean cannonSetupIncluded = supplies.stream().anyMatch(value ->
+			"Cannon setup".equals(value.recommendation.getCategory()) || "Cannon ammo".equals(value.recommendation.getCategory()));
 		if (primaryCount > 0)
 		{
 			int itemStartY = cursorY + HEADER_HEIGHT;
@@ -176,11 +178,20 @@ class TieredBankLayout
 				positionWidget(widget,
 					ITEM_START_X + (index % ITEMS_PER_ROW) * (ITEM_WIDTH + ITEM_X_PADDING),
 					itemStartY + (index / ITEMS_PER_ROW) * (ITEM_HEIGHT + ITEM_Y_PADDING));
+				// Cannon parts/ammo are part of the actual Tier 1 trip setup, not
+				// merely optional consumables. Give them the same Tier 1 bank treatment.
+				String category = supplyWidget.recommendation.getCategory();
+				if ("Cannon setup".equals(category) || "Cannon ammo".equals(category))
+				{
+					tiersByWidget.put(widget, 1);
+				}
 				index++;
 			}
 			if (firstWidget != null)
 			{
-				headingsByWidget.put(firstWidget, "Tier 1 - Best equipment + task supplies");
+				headingsByWidget.put(firstWidget, cannonSetupIncluded
+					? "Tier 1 - Best equipment + cannon + task supplies"
+					: "Tier 1 - Best equipment + task supplies");
 			}
 			int rows = (primaryCount + ITEMS_PER_ROW - 1) / ITEMS_PER_ROW;
 			cursorY = itemStartY

@@ -45,6 +45,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 {
 	private static final String SLAYER_CONFIG_GROUP = "slayer";
 	private static final String SLAYER_TASK_KEY = "taskName";
+	private static final String SLAYER_LOCATION_KEY = "taskLocation";
 	private static final String SLAYER_AMOUNT_KEY = "amount";
 	private static final Item[] EMPTY_ITEMS = new Item[0];
 
@@ -96,6 +97,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private Item[] lastInventoryItems = EMPTY_ITEMS;
 	private Item[] lastWornItems = EMPTY_ITEMS;
 	private String lastTaskName;
+	private String lastTaskLocation = "";
 	private int lastTaskAmount = -1;
 	private boolean highlightsActive;
 	private boolean bankFilterActive;
@@ -117,22 +119,23 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		panel.updateHighlights(highlightsActive);
 
 		AsyncBufferedImage icon = itemManager.getImage(ItemID.SLAYER_HELM);
-final NavigationButton nav = NavigationButton.builder()
-.tooltip("Slayer Best-in-Bank")
-.icon(icon)
-.priority(6)
-.panel(panel)
-.build();
+		final NavigationButton nav = NavigationButton.builder()
+			.tooltip("Slayer Best-in-Bank")
+			.icon(icon)
+			.priority(6)
+			.panel(panel)
+			.build();
+		navigationButton = nav;
 
-navigationButton = nav;
-
-icon.onLoaded(() ->
-{
-if (navigationButton == nav)
-{
-clientToolbar.addNavigation(nav);
-}
-});
+		// RuneLite snapshots/resizes navigation icons as soon as they are added.
+		// Wait for the async item sprite so the toolbar does not cache a blank 16x16 icon.
+		icon.onLoaded(() ->
+		{
+			if (navigationButton == nav)
+			{
+				clientToolbar.addNavigation(nav);
+			}
+		});
 		overlayManager.add(bankOverlay);
 		overlayManager.add(prepReminderOverlay);
 
@@ -158,17 +161,17 @@ clientToolbar.addNavigation(nav);
 		overlayManager.remove(prepReminderOverlay);
 		prepReminderOverlay.hide();
 		NavigationButton nav = navigationButton;
-navigationButton = null;
-
-if (nav != null)
-{
-clientToolbar.removeNavigation(nav);
-}
+		navigationButton = null;
+		if (nav != null)
+		{
+			clientToolbar.removeNavigation(nav);
+		}
 		clientThread.invoke(bankButton::hide);
 		lastBankItems = null;
 		lastInventoryItems = EMPTY_ITEMS;
 		lastWornItems = EMPTY_ITEMS;
 		lastTaskName = null;
+		lastTaskLocation = "";
 		lastTaskAmount = -1;
 		recalculateQueued = false;
 		recommendations = GearRecommendations.noTask();
@@ -187,6 +190,7 @@ clientToolbar.removeNavigation(nav);
 			lastInventoryItems = EMPTY_ITEMS;
 			lastWornItems = EMPTY_ITEMS;
 			lastTaskName = null;
+			lastTaskLocation = "";
 			lastTaskAmount = -1;
 			recalculateQueued = false;
 			recommendations = GearRecommendations.noTask();
@@ -414,17 +418,22 @@ clientToolbar.removeNavigation(nav);
 		String taskName = configManager.getRSProfileConfiguration(
 			SLAYER_CONFIG_GROUP, SLAYER_TASK_KEY);
 		taskName = taskName == null ? "" : taskName.trim();
+		String taskLocation = configManager.getRSProfileConfiguration(
+			SLAYER_CONFIG_GROUP, SLAYER_LOCATION_KEY);
+		taskLocation = taskLocation == null ? "" : taskLocation.trim();
 		int taskAmount = parseAmount(configManager.getRSProfileConfiguration(
 			SLAYER_CONFIG_GROUP, SLAYER_AMOUNT_KEY));
 
 		if (!force
 			&& taskName.equals(lastTaskName)
+			&& taskLocation.equals(lastTaskLocation)
 			&& taskAmount == lastTaskAmount)
 		{
 			return;
 		}
 
 		lastTaskName = taskName;
+		lastTaskLocation = taskLocation;
 		lastTaskAmount = taskAmount;
 		recalculate();
 	}
@@ -462,7 +471,7 @@ clientToolbar.removeNavigation(nav);
 			return;
 		}
 
-		Optional<SlayerTaskProfile> profile = TaskProfiles.find(lastTaskName);
+		Optional<SlayerTaskProfile> profile = TaskProfiles.find(lastTaskName, lastTaskLocation);
 		if (!profile.isPresent())
 		{
 			closeBankFilter();
@@ -619,5 +628,3 @@ clientToolbar.removeNavigation(nav);
 		}
 	}
 }
-
-

@@ -1,48 +1,93 @@
-# Slayer Best-in-Bank 1.0.0-beta.2 Validation
+# Slayer Best-in-Bank 1.0.0-beta.3 Validation
+
+Validation date: 2026-07-25
 
 ## Scope
 
-Beta 2 is primarily a sidebar UI overhaul on top of the already smoke-tested RC2 bank interaction fixes. The release gates therefore verify that the UI refactor still compiles against RuneLite and that the existing recommendation/safety regression suite remains intact.
+Beta 3 changes were validated around:
 
-## Environment
+- location-aware cannon task routing;
+- Smoke Devil barrage + cannon behavior;
+- correct suppression in known no-cannon locations;
+- Dagannoth Jormungand/Lighthouse/Waterbirth handling;
+- Shade and Metal dragon location corrections;
+- existing curated cannon strategy location overrides;
+- full four-part cannon Tier 1 presentation/readiness integration;
+- cannon ammunition requirements;
+- preservation of Java 11 / RuneLite API compatibility.
 
-- Java source level: 11
-- RuneLite client/API: bundled 1.12.34 shaded client from the uploaded development checkout
-- Shipped main source compiled with `-Xlint:deprecation -Werror`
+## Compile gate
 
-## Four final-code validation passes
-
-Each pass used a fresh output directory and performed:
-
-1. Full main-source compile with Java 11 and deprecation warnings treated as errors.
-2. Compile of the existing `GearScorerTest` regression suite.
-3. Execution of all 24 regression methods through a standalone test harness.
-4. UI source invariants verifying the modern scrollbar, collapsed backups, collapsed task details, trip-supply section, and removal of the old overlapping loadout-heading implementation.
-
-Results:
+All main Java source was rebuilt with:
 
 ```text
-PASS_1: main_compile=WERROR_OK FUNCTIONALITY_HARNESS_OK pass=24 fail=0 ui_invariants=OK
-PASS_2: main_compile=WERROR_OK FUNCTIONALITY_HARNESS_OK pass=24 fail=0 ui_invariants=OK
-PASS_3: main_compile=WERROR_OK FUNCTIONALITY_HARNESS_OK pass=24 fail=0 ui_invariants=OK
-PASS_4: main_compile=WERROR_OK FUNCTIONALITY_HARNESS_OK pass=24 fail=0 ui_invariants=OK
+--release 11
+-Xlint:deprecation
+-Werror
 ```
 
-## Regression coverage retained
+against the bundled RuneLite 1.12.34 shaded client/API.
 
-The 24-method harness covers task/profile coverage, current Slayer-master pools, Ancient AoE thresholds, mandatory protection, 2H/off-hand safety, ranged ammo behavior, stable Tier 1 withdrawals, smart consumable states, dragonfire/antifire behavior, and unsafe food filtering.
-
-## Live-client gate
-
-Swing compilation and logic regression tests cannot fully reproduce RuneLite's actual side-panel rendering at every Windows DPI/font scale. The recommended live check is to open the plugin panel at normal RuneLite width and verify task text, readiness, loadout rows, backup expansion, item-reason expansion, supplies, task-note expansion, and scrollbar appearance.
-
-## Package verification
-
-After the four final-code passes, the source directory was zipped, extracted into a clean directory, and validated again. The extracted package also reported:
+Result:
 
 ```text
-PASS_package: main_compile=WERROR_OK FUNCTIONALITY_HARNESS_OK pass=24 fail=0 ui_invariants=OK
-PACKAGE_TREE_MATCH_OK
+MAIN_COMPILE_WERROR_OK
 ```
 
-This verifies that the downloadable source package contains the same source tree that passed the release gates.
+No deprecation warning is present in the shipped main plugin source.
+
+## Cannon functionality harness
+
+The standalone regression harness checks 59 invariants, including:
+
+- Smoke Devils expose cannon and retain Ancient AoE;
+- Smoke Devils use cannon as the primary barrage lure strategy;
+- Bloodveld Catacombs suppress cannon while Meiyerditch/Iorwerth allow it;
+- Dust Devil Catacombs suppress cannon while cannonable Smoke Dungeon routes remain available;
+- Dagannoth Catacombs suppress cannon;
+- Dagannoth Lighthouse, Jormungand's Prison, and Waterbirth Island Dungeon allow cannon;
+- location-locked existing cannon strategies display the assigned location;
+- Waterfiend Ancient Cavern vs Iorwerth behavior;
+- Wyrm Karuulm vs Neypotzli behavior;
+- Lizardmen Canyon behavior;
+- Lesser Nagua Tapoyauik vs Neypotzli behavior;
+- Shade Catacombs suppression and Sepulchre/Mort'ton route support;
+- Metal dragon Ancient Cavern/Catacombs suppression;
+- Brimhaven, Isle of Souls, and Lithkren metal-dragon cannon routes;
+- Drakes, Hydras, Skeletal Wyverns, Custodian Stalkers and newer task coverage;
+- known no-cannon categories remain excluded;
+- cannon strategy name detection.
+
+Final result, repeated four consecutive times:
+
+```text
+PASS_1 CANNON_HARNESS_OK pass=59 fail=0 routes=81
+PASS_2 CANNON_HARNESS_OK pass=59 fail=0 routes=81
+PASS_3 CANNON_HARNESS_OK pass=59 fail=0 routes=81
+PASS_4 CANNON_HARNESS_OK pass=59 fail=0 routes=81
+```
+
+## Project test-source gate
+
+The actual repository test sources (`GearScorerTest` and `CannonTaskCatalogTest`) were compiled and executed against the locally available RuneLite client/API using a minimal local JUnit-compatible runner (the temporary runner/stubs are not shipped).
+
+Result:
+
+```text
+TESTS_OK pass=30 fail=0
+```
+
+## Packaged-source gate
+
+The final `1.0.0-beta.3` source ZIP was extracted into a clean directory and rebuilt independently with the same Java 11 warnings-as-errors gate. The 59-check cannon harness was then executed against that extracted package.
+
+Result:
+
+```text
+PACKAGE_COMPILE_WERROR_OK
+CANNON_HARNESS_OK pass=59 fail=0 routes=81
+```
+
+## Full Gradle test
+
+The release/update helper runs the repository's normal `gradlew.bat clean test` suite on the Windows RuneLite development machine before launching or publishing the new commit. The sandbox validation uses the locally available RuneLite client/API because the Gradle wrapper cannot download its distribution when outbound access is unavailable.

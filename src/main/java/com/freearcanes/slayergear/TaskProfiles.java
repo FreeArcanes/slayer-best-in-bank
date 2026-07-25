@@ -14,7 +14,7 @@ final class TaskProfiles
 		register(profile("aberrant-spectres", "Aberrant spectres",
 				"Cannon-assisted melee is the practical default; magic defence reduces their spell damage.",
 				"A Slayer helmet or nose peg is required.",
-				melee("Cannon + melee", "Slayer Tower / Stronghold cave", AttackType.SLASH,
+				melee("Cannon + melee", "Stronghold Slayer Cave / Deepfin Mine", AttackType.SLASH,
 					"Fastest owned melee setup while a cannon supplies extra hits.", "slayer helm", "nose peg")),
 			"aberrant spectres", "aberrant spectre");
 
@@ -95,7 +95,7 @@ final class TaskProfiles
 		register(profile("bloodveld", "Bloodveld",
 				"Cannon and Venator bow at mutated Bloodvelds is prioritized for XP.",
 				"Protect from Melee prevents damage; otherwise favor magic defence.",
-				venator("Cannon + Venator", "Meiyerditch Laboratory / Catacombs",
+				venator("Cannon + Venator", "Meiyerditch Laboratory / Iorwerth Dungeon",
 					"Current top multi-target XP method when a Venator bow is owned."),
 				meleeMagicDef("Cannon + melee", "Meiyerditch Laboratory", AttackType.SLASH,
 					"Strong fallback using melee damage and magic-defence armour")),
@@ -260,7 +260,7 @@ final class TaskProfiles
 		register(profile("lizardmen", "Lizardmen",
 				"Ranged with a cannon is the practical fast-task setup.",
 				"Shayzien armour may be required against shaman poison attacks.",
-				ranged("Cannon + Ranged", "Lizardman Canyon / Temple",
+				ranged("Cannon + Ranged", "Lizardman Canyon",
 					"Ranks ranged damage while favoring Shayzien protection for shamans", "shayzien")),
 			"lizardmen", "lizardman");
 
@@ -313,10 +313,10 @@ final class TaskProfiles
 			"skeletal wyverns", "skeletal wyvern");
 
 		register(profile("smoke-devils", "Smoke devils",
-				"Barraging is the highest-XP Slayer method, with melee retained as a safe fallback.",
+				"Barraging with a cannon lure is the highest-XP Slayer method, with melee retained as a safe fallback.",
 				"A Slayer helmet or facemask is required.",
-				ancients("Barrage", "Smoke Devil Dungeon",
-					"Magic damage and prayer are prioritized over excess accuracy."),
+				ancients("Barrage + cannon lure", "Smoke Devil Dungeon",
+					"Use the cannon to pull/group smoke devils, then Burst/Barrage the stack for high Slayer XP."),
 				melee("Melee fallback", "Smoke Devil Dungeon", AttackType.SLASH,
 					"Budget fallback when Ancient Magicks is not the desired method", "slayer helm", "facemask")),
 			"smoke devils", "smoke devil");
@@ -507,6 +507,11 @@ final class TaskProfiles
 
 	static Optional<SlayerTaskProfile> find(String taskName)
 	{
+		return find(taskName, null);
+	}
+
+	static Optional<SlayerTaskProfile> find(String taskName, String assignedLocation)
+	{
 		if (taskName == null)
 		{
 			return Optional.empty();
@@ -514,14 +519,149 @@ final class TaskProfiles
 		SlayerTaskProfile exact = PROFILES.get(normalize(taskName));
 		if (exact != null)
 		{
-			return Optional.of(exact);
+			return Optional.of(withCannonOption(exact, taskName, assignedLocation));
 		}
-		return Optional.of(generic(taskName));
+		return Optional.of(withCannonOption(generic(taskName), taskName, assignedLocation));
 	}
 
 	static int profileCount()
 	{
 		return (int) PROFILES.values().stream().distinct().count();
+	}
+
+	private static SlayerTaskProfile withCannonOption(SlayerTaskProfile profile, String taskName, String assignedLocation)
+	{
+		Optional<CannonTaskCatalog.CannonRoute> knownRoute = CannonTaskCatalog.find(taskName);
+		if (!knownRoute.isPresent()) return profile;
+
+		// RuneLite stores a location for Konar/location-locked assignments. Cannon
+		// support is route-specific: a monster can be cannonable somewhere while the
+		// assigned area itself is prohibited or simply not one of its verified routes.
+		Optional<CannonTaskCatalog.CannonRoute> route = CannonTaskCatalog.find(taskName, assignedLocation);
+		if (!route.isPresent())
+		{
+			if (assignedLocation != null && !assignedLocation.trim().isEmpty())
+			{
+				return withoutCannonAtLocation(profile, assignedLocation);
+			}
+			return profile;
+		}
+
+		boolean alreadyHasCannon = profile.getStrategies().stream()
+			.anyMatch(strategy -> NameMatcher.normalize(strategy.getName()).contains("cannon"));
+		String cannonLocation = assignedLocation == null || assignedLocation.trim().isEmpty()
+			? route.get().getLocation()
+			: assignedLocation.trim();
+		String summary = profile.getSummary();
+		if (!NameMatcher.normalize(summary).contains("cannon"))
+		{
+			summary = summary + " Cannon route available at " + cannonLocation + ".";
+		}
+
+		SlayerTaskProfile.Builder builder = SlayerTaskProfile.builder()
+			.key(profile.getKey())
+			.displayName(profile.getDisplayName())
+			.summary(summary)
+			.protectionAdvice(profile.getProtectionAdvice());
+		for (GearStrategy strategy : profile.getStrategies())
+		{
+			// When RuneLite provides a location-locked assignment, keep curated
+			// cannon methods but point them at the actual assigned cannonable area.
+			// This avoids a Dagannoth task in Jormungand's Prison still telling the
+			// player to go to the Lighthouse, for example.
+			if (alreadyHasCannon && SmartSupplyAdvisor.isCannon(strategy)
+				&& assignedLocation != null && !assignedLocation.trim().isEmpty())
+			{
+				builder.strategy(copyStrategyAtLocation(strategy, cannonLocation));
+			}
+			else
+			{
+				builder.strategy(strategy);
+			}
+		}
+
+		if (!alreadyHasCannon)
+		{
+			CannonTaskCatalog.CannonRoute cannon = route.get();
+			GearStrategy.Builder cannonStrategy = GearStrategy.builder()
+				.name("Cannon + " + cannon.getCombatStyle().name().toLowerCase(Locale.ENGLISH))
+				.location(cannonLocation)
+				.rationale(cannon.getRationale())
+				.combatStyle(cannon.getCombatStyle())
+				.attackType(cannon.getAttackType());
+			if (cannon.getCombatStyle() == CombatStyle.MAGIC)
+			{
+				cannonStrategy.preferredItem("kodai wand").preferredItem("nightmare staff")
+					.preferredItem("ancient sceptre").preferredItem("ancient staff");
+			}
+			builder.strategy(cannonStrategy.build());
+		}
+		return builder.build();
+	}
+
+	private static GearStrategy copyStrategyAtLocation(GearStrategy source, String location)
+	{
+		GearStrategy.Builder copy = GearStrategy.builder()
+			.name(source.getName())
+			.location(location)
+			.rationale(source.getRationale())
+			.combatStyle(source.getCombatStyle())
+			.attackType(source.getAttackType())
+			.weaponRule(source.getWeaponRule())
+			.minimumMagic(source.getMinimumMagic())
+			.minimumRanged(source.getMinimumRanged())
+			.magicDefenceWeight(source.getMagicDefenceWeight())
+			.prayerWeight(source.getPrayerWeight())
+			.ancientAoe(source.isAncientAoe());
+		if (source.getRequiredWeapon() != null) copy.requiredWeapon(source.getRequiredWeapon());
+		if (source.getRequiredOffhand() != null) copy.requiredOffhand(source.getRequiredOffhand());
+		for (String preferred : source.getPreferredItems()) copy.preferredItem(preferred);
+		return copy.build();
+	}
+
+	private static SlayerTaskProfile withoutCannonAtLocation(SlayerTaskProfile profile, String assignedLocation)
+	{
+		String location = assignedLocation == null || assignedLocation.trim().isEmpty() ? "assigned area" : assignedLocation.trim();
+		SlayerTaskProfile.Builder builder = SlayerTaskProfile.builder()
+			.key(profile.getKey())
+			.displayName(profile.getDisplayName())
+			.summary("Location-locked at " + location + ": dwarf multicannon use is unavailable here. Best non-cannon owned method shown.")
+			.protectionAdvice(profile.getProtectionAdvice());
+
+		boolean added = false;
+		for (GearStrategy strategy : profile.getStrategies())
+		{
+			if (!SmartSupplyAdvisor.isCannon(strategy))
+			{
+				builder.strategy(strategy);
+				added = true;
+			}
+		}
+
+		// Some curated profiles were originally cannon-only (for example the
+		// Bloodveld fast method). Preserve the underlying combat plan, but remove the
+		// cannon label so supplies/readiness no longer demand cannon gear.
+		if (!added && !profile.getStrategies().isEmpty())
+		{
+			GearStrategy source = profile.getStrategies().get(0);
+			GearStrategy.Builder fallback = GearStrategy.builder()
+				.name(source.getName().replace("Cannon + ", "").replace(" + cannon", "").replace("cannon + ", ""))
+				.location(location)
+				.rationale("Cannon is unavailable at this assigned location; " + source.getRationale())
+				.combatStyle(source.getCombatStyle())
+				.attackType(source.getAttackType())
+				.weaponRule(source.getWeaponRule())
+				.minimumMagic(source.getMinimumMagic())
+				.minimumRanged(source.getMinimumRanged())
+				.magicDefenceWeight(source.getMagicDefenceWeight())
+				.prayerWeight(source.getPrayerWeight())
+				.ancientAoe(source.isAncientAoe());
+			if (source.getRequiredWeapon() != null) fallback.requiredWeapon(source.getRequiredWeapon());
+			if (source.getRequiredOffhand() != null) fallback.requiredOffhand(source.getRequiredOffhand());
+			for (String preferred : source.getPreferredItems()) fallback.preferredItem(preferred);
+			builder.strategy(fallback.build());
+		}
+		return builder.build();
 	}
 
 	private static void register(

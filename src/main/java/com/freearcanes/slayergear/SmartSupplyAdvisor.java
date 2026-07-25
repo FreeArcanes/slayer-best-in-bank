@@ -39,8 +39,18 @@ class SmartSupplyAdvisor
 		List<SupplyRule> rules = buildRules(profile, strategy);
 		Map<Integer, OwnedItem> bank = collect(bankItems);
 		Map<Integer, OwnedItem> packed = collect(packedItems);
+		// Cannon cosmetics are not interchangeable: regular and ornamented parts
+		// cannot be mixed. Preserve exact item variants separately from the
+		// canonical map used by ordinary supply matching.
+		List<OwnedItem> exactBank = collectExact(bankItems);
+		List<OwnedItem> exactPacked = collectExact(packedItems);
 		List<SupplyRecommendation> recommendations = new ArrayList<>();
 		Set<Integer> usedCanonicalIds = new HashSet<>();
+
+		if (isCannon(strategy))
+		{
+			addCannonSetRecommendations(recommendations, exactBank, exactPacked, usedCanonicalIds);
+		}
 
 		for (SupplyRule rule : rules)
 		{
@@ -187,10 +197,10 @@ class SmartSupplyAdvisor
 			rules.add(0, rule("Task tool", "A Slayer bell dislodges Molanisks before combat", true,
 				"Slayer bell", "slayer bell"));
 		}
-		if (strategy != null && NameMatcher.normalize(strategy.getName()).contains("cannon"))
+		if (isCannon(strategy))
 		{
-			rules.add(rule("Cannon ammo", "Cannon-supported strategies need cannonballs", false,
-				"Cannonballs", "granite cannonball", "cannonball"));
+			rules.add(rule("Cannon ammo", "A cannon method needs ammunition before leaving the bank", true,
+				"Cannonballs", "granite cannonball", "steel cannonball", "cannonball"));
 		}
 		if (contains(key, "blue-dragons", "black-dragons", "red-dragons", "metal-dragons", "frost-dragons"))
 		{
@@ -219,6 +229,100 @@ class SmartSupplyAdvisor
 		rules.add(rule("Run energy", "Optional travel and repositioning sustain", false,
 			"Stamina potion", "stamina potion", "super energy potion", "energy potion"));
 		return rules;
+	}
+
+	private static void addCannonSetRecommendations(
+		List<SupplyRecommendation> recommendations,
+		Iterable<OwnedItem> bank,
+		Iterable<OwnedItem> packed,
+		Set<Integer> usedCanonicalIds)
+	{
+		String[] parts = {"cannon base", "cannon stand", "cannon barrels", "cannon furnace"};
+		int regularOwned = cannonPartsOwned(parts, false, bank, packed);
+		int ornamentOwned = cannonPartsOwned(parts, true, bank, packed);
+		boolean ornamented = ornamentOwned > regularOwned;
+
+		for (String part : parts)
+		{
+			String expected = ornamented ? part + " (or)" : part;
+			OwnedItem packedMatch = findExact(expected, packed);
+			OwnedItem bankMatch = findExact(expected, bank);
+			SupplyStatus status = resolveStatus(packedMatch != null, bankMatch != null);
+			OwnedItem display = bankMatch != null ? bankMatch : packedMatch;
+			if (display != null)
+			{
+				usedCanonicalIds.add(display.canonicalItemId);
+				recommendations.add(new SupplyRecommendation(
+					display.itemId,
+					display.canonicalItemId,
+					display.name,
+					"Cannon setup",
+					"Required part of the Dwarf multicannon for the selected cannon method",
+					status,
+					true));
+			}
+			else
+			{
+				recommendations.add(new SupplyRecommendation(
+					0,
+					0,
+					formatCannonPart(expected),
+					"Cannon setup",
+					"Required part of the Dwarf multicannon for the selected cannon method",
+					SupplyStatus.MISSING,
+					true));
+			}
+		}
+	}
+
+	private static int cannonPartsOwned(String[] parts, boolean ornamented, Iterable<OwnedItem> bank, Iterable<OwnedItem> packed)
+	{
+		int count = 0;
+		for (String part : parts)
+		{
+			String expected = ornamented ? part + " (or)" : part;
+			if (findExact(expected, packed) != null || findExact(expected, bank) != null) count++;
+		}
+		return count;
+	}
+
+	private static OwnedItem findExact(String expectedName, Iterable<OwnedItem> items)
+	{
+		String expected = NameMatcher.normalize(expectedName);
+		for (OwnedItem item : items)
+		{
+			if (expected.equals(NameMatcher.normalize(item.name))) return item;
+		}
+		return null;
+	}
+
+	private static String formatCannonPart(String normalized)
+	{
+		if (normalized == null || normalized.isEmpty()) return "Cannon part";
+		String[] words = normalized.split(" ");
+		StringBuilder result = new StringBuilder();
+		for (String word : words)
+		{
+			if (word.isEmpty()) continue;
+			if (result.length() > 0) result.append(' ');
+			if ("(or)".equals(word)) result.append(word);
+			else result.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+		}
+		return result.toString();
+	}
+
+	private List<OwnedItem> collectExact(Item[] items)
+	{
+		List<OwnedItem> result = new ArrayList<>();
+		if (items == null) return result;
+		for (Item item : items)
+		{
+			if (item == null || item.getId() <= 0 || item.getQuantity() <= 0) continue;
+			ItemComposition composition = itemManager.getItemComposition(item.getId());
+			if (composition == null || composition.getPlaceholderTemplateId() != -1 || invalidName(composition.getName())) continue;
+			result.add(new OwnedItem(item.getId(), itemManager.canonicalize(item.getId()), composition.getName()));
+		}
+		return result;
 	}
 
 	private Map<Integer, OwnedItem> collect(Item[] items)
@@ -278,6 +382,11 @@ class SmartSupplyAdvisor
 	static boolean isVenator(GearStrategy strategy)
 	{
 		return strategy != null && NameMatcher.normalize(strategy.getName()).contains("venator");
+	}
+
+	static boolean isCannon(GearStrategy strategy)
+	{
+		return strategy != null && NameMatcher.normalize(strategy.getName()).contains("cannon");
 	}
 
 	static int doseScore(String name)
