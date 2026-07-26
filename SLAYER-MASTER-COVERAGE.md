@@ -1,6 +1,6 @@
 # Slayer Master Coverage
 
-Embedded assignment catalog for **Slayer Best in Bank 1.0.0-beta.2**.
+Embedded assignment catalog for the current **Slayer Best in Bank** release candidate.
 
 The catalog is used for task context in the panel; specialized task profiles still provide the strategy/safety logic, and safe generic profiles cover recognized tasks without a specialized profile.
 

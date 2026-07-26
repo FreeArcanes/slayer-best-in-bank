@@ -1,264 +1,239 @@
-# Slayer Best in Bank
-
-**Stop looking at theoretical BiS. Gear for the Slayer task with what you actually own.**
-
-Slayer Best in Bank is a task-aware RuneLite loadout assistant that reads your current Slayer task and the gear/supplies available to your account, then builds a coherent setup you can actually take out of the bank.
-
-It is designed around one question:
-
-> **What is the best Slayer setup I can make from my bank right now?**
-
 <p align="center">
-  <img src="images/01-side-panel.png" alt="Slayer Best in Bank side panel" width="330">
+  <img src="icon.png" alt="Slayer Best in Bank icon" width="72">
 </p>
 
-> **Beta:** This repository contains the public beta being prepared for RuneLite Plugin Hub review. Recommendations are advisory only. The plugin never withdraws, equips, clicks, attacks, or performs gameplay actions for the player.
+<h1 align="center">Slayer Best in Bank</h1>
 
-## Why Best-in-Bank?
+<p align="center">
+  <strong>Turn your current Slayer assignment and the items you own into a complete, bank-ready trip.</strong>
+</p>
 
-Traditional gear guides are useful when you own everything on the list. Slayer Best in Bank solves a different problem: it works from **your bank, your account, and your current task**.
+<p align="center">
+  Task-aware gear · Coherent loadout tiers · Supply estimates · Fast manual bank prep
+</p>
 
-The plugin combines:
+Slayer Best in Bank is a RuneLite loadout assistant built for the question every
+Slayer task starts with: **what should I bring from my bank?**
 
-- current Slayer assignment;
-- combat style and eligible task methods;
-- bank, inventory, and equipped items;
-- combat levels;
-- mandatory Slayer protection;
-- weapon/off-hand/ammo compatibility;
-- relevant diary state;
-- owned consumables and utility supplies;
-- user gear preferences and optional risk limits.
+It reads the active assignment, evaluates the gear and supplies currently known
+to the client, and builds a practical setup for the selected combat method. You
+still make every withdrawal, equipment change, and gameplay decision yourself.
 
-The result is a practical **Tier 1 loadout**, owned alternatives, supplies, and a clear answer to whether you're ready to leave the bank.
+<p align="center">
+  <img src="images/09-withdraw-and-equip.gif" alt="Withdrawing and equipping a Slayer loadout through the stable zigzag bank view" width="960">
+</p>
 
-## Task-aware smart logic
+<p align="center">
+  <em>A stable four-column path keeps equipment in a predictable click order from bank to inventory.</em>
+</p>
 
-Best-in-Bank does not use one generic equipment formula for every monster. Curated tasks can select the method that makes sense for the assignment.
+## Why use it?
 
-| Ancient Magicks / AoE task | Cannon + Venator task |
-| --- | --- |
-| ![TzHaar barrage bank loadout](images/02-barrage-bank-loadout.png) | ![Bloodveld Venator bank loadout](images/03-venator-bank-loadout.png) |
+| | |
+|---|---|
+| **Built from your bank** | Recommends valid gear you actually own across the bank, inventory, and worn equipment instead of handing you a generic shopping list. |
+| **Aware of the task** | Accounts for the assigned monster, location, selected method, required protection, useful attack styles, and supported special weapon families. |
+| **A complete setup** | Builds coherent equipment, ammunition, task tools, potions, food, Prayer support, cannon supplies, and other trip essentials together. |
+| **Fast to prepare** | Offers a stable manual bank view, quantity badges, readiness tracking, optional highlights, and a reminder when useful supplies were left behind. |
 
-### Barrage / Burst logic
+## From assignment to ready
 
-For eligible multi-target Magic tasks, the plugin can:
+### 1. Get a task
 
-- recognize the Ancient Magicks strategy;
-- check the active spellbook and usable AoE spell tier;
-- build a Magic-focused owned loadout;
-- validate the resulting weapon/off-hand setup;
-- surface rune-pouch and rune-related preparation;
-- recommend useful task supplies such as **Goading potions**, **Prayer regeneration potions**, prayer/restores, food, and run-energy support when applicable;
-- track those supplies as they move from the bank into your inventory.
+The sidebar wakes up when RuneLite detects an active Slayer assignment. It shows
+the target, remaining amount, selected method, and the task-specific reasoning
+behind that choice.
 
-### Cannon + Venator logic
+<p align="center">
+  <img src="images/11-task-detected.png" alt="A newly detected Vampyre Slayer task before the first bank scan" width="736">
+</p>
 
-Where a ranged multi-target approach is appropriate, Best-in-Bank can build around:
+### 2. Open the bank once
 
-- **Venator bow** ownership;
-- compatible ammunition;
-- ranged offensive gear;
-- cannon/cannonball support where the task strategy calls for it;
-- ranged boosts;
-- prayer sustain;
-- food and utility supplies.
+Best in Bank needs one bank scan before it can evaluate account-specific gear.
+The sidebar clearly tells you when that scan is still needed—no silent guesswork.
 
-The method card tells you what strategy is currently selected, and eligible curated tasks can expose alternate methods through **Change method**.
+<p align="center">
+  <img src="images/10-bank-scan-needed.png" alt="Bank scan needed message in the Slayer Best in Bank sidebar" width="240">
+</p>
 
-### Cannon-aware task routing
+### 3. Review the loadout and supplies
 
-Best-in-Bank maintains a location-aware cannon catalog instead of assuming that a monster is cannonable everywhere it appears. The beta.3 catalog contains **81 verified cannon routes** across low-level, high-level, Wilderness, Venator, and barrage-oriented Slayer tasks.
+After the scan, the sidebar presents the selected equipment, where each item is
+currently located, preparation progress, and the supplies planned for the trip.
+Missing quantities are called out before you leave.
 
-- **Smoke devils** use a **Barrage + cannon lure** method: the cannon pulls the room while Burst/Barrage clears the stack.
-- Location-locked tasks only offer cannon when the assigned area supports it. For example, Dagannoth in the Lighthouse, Jormungand's Prison, or Waterbirth Island Dungeon can show cannon, while Catacombs Dagannoth will not.
-- Mixed-location tasks such as Bloodveld, Dust devils, Waterfiends, Wyrms, Shades, and Metal dragons use explicit allowed routes instead of a blanket yes/no flag.
-- When cannon is selected, the **Cannon base, stand, barrels, and furnace become Tier 1 loadout gear**. Cannonballs stay in Trip Supplies.
-- The GEAR readiness counter includes all four cannon parts, so the trip cannot appear gear-complete while part of the cannon is still banked.
-- Regular and ornamented cannon components are treated as separate complete sets; Best-in-Bank will not mix them.
+<p align="center">
+  <img src="images/12-recommended-loadout.png" alt="Recommended Vampyre equipment and trip supplies after a bank scan" width="246">
+</p>
 
-See [CANNON-TASK-COVERAGE.md](CANNON-TASK-COVERAGE.md) for the full embedded route catalog.
+### 4. Prepare at your pace
 
-## Monster-specific combat intelligence
+Open the Best-in-Bank bank view and withdraw the recommendation manually. Tier 1
+equipment and trip supplies use separate four-column paths. Once an item is
+withdrawn, its position stays reserved so the next target does not jump beneath
+your mouse.
 
-Best-in-Bank now evaluates **what the target is actually weak to**, not just which owned weapon has the largest raw item-sheet numbers. The beta.3 combat catalog explicitly audits all **116 unique Slayer-master assignment categories** embedded in the plugin.
+Every interaction remains a normal player click. The plugin does not withdraw,
+equip, move, attack, pray, or otherwise play the game for you.
 
-The solver can account for:
+## Recommendations that stay coherent
 
-- melee attack-type affinities such as **Crush / Stab / Slash** where the task has a stable preference;
-- **Golembane, Demonbane, Dragonbane, Kalphite/Scabarite, Leafbane, Ratbane, Shade, Vampyre, and Wilderness-weapon** effects;
-- current elemental weaknesses for Standard-spellbook alternatives;
-- target-locked weapons that should not be considered on unrelated monsters;
-- task families where a special passive is strong enough to remain valid even when the weapon does not use the generic preferred melee attack type.
+Tier 1 is the strongest complete setup the solver can build from the items you
+own. Tier 2 and Tier 3 begin with that setup and introduce useful fallback swaps
+instead of mixing unrelated per-slot rankings.
 
-### Gargoyle example
+- Changing a ranged weapon rebuilds compatible ammunition.
+- Changing between one-handed and two-handed weapons rebuilds the off-hand.
+- Mandatory Slayer protection remains in place.
+- `Always prefer` items remain protected when they are valid for the method.
+- `Never recommend` items are excluded.
+- Low-risk constraints continue to apply across alternative tiers.
+- Higher tiers display only the pieces that differ from the stronger setup.
 
-Gargoyles are a good example of why this matters. They favour **Crush**, have the **Golem** attribute, and Granite hammer receives its current **+30% accuracy and +30% damage Golembane effect** against them. Crystal halberd cannot use Crush and has no Gargoyle/Golem passive, so it can no longer win merely because its raw strength number is larger.
+Supported recommendations include melee, ranged, Magic, Ancient multi-target
+methods, Venator setups, and cannon-aware trips where the task profile supports
+them.
 
-The ranking order is effectively:
+## Trip planning that scales with the task
 
-1. task/method legality and mandatory constraints;
-2. monster-specific weapon effects and attack-type compatibility;
-3. real offensive stats and attack speed;
-4. utility / task preferences.
+Plan for the full remaining assignment, a shorter trip of up to 40 kills, or a
+custom kill count. The planner can estimate:
 
-This is still an owned-gear optimizer rather than a hardcoded gear guide. A stronger *valid* Crush weapon can beat Granite hammer; the plugin simply stops pretending an incompatible raw-stat weapon is automatically better.
-
-### Special-effect exceptions
-
-A preferred attack type is not treated as an absolute ban when the target has a real weapon passive. For example, Waterfiends normally favour Crush, but they are currently classified as Demons; an owned Emberlight can therefore remain a legitimate candidate because its Demonbane effect is real and substantial.
-
-See [COMBAT-TASK-COVERAGE.md](COMBAT-TASK-COVERAGE.md) for the complete 116-category combat audit.
-
-## Tiered owned gear
-
-Best-in-Bank builds **coherent Tier 1 / Tier 2 / Tier 3 choices**, instead of scoring every equipment slot in isolation.
-
-![Tiered gear withdrawal demo](images/09-tiered-withdrawal-demo.gif)
-
-Important behavior:
-
-- Tier 1 represents the preferred owned setup.
-- Withdrawing Tier 1 does **not** cause Tier 2 to steal the Tier 1 recommendation.
-- Inventory and equipped gear remain part of the active owned loadout while you gear.
-- Tier 2 / Tier 3 stay available as real fallback choices.
-- Two-handed weapons cannot be paired with an impossible off-hand.
-- Mandatory Slayer protection can override a higher raw-stat item when safety requires it.
-- Ranged recommendations validate common weapon/ammo relationships.
-- **Always prefer** and **Never recommend** let you influence the optimizer.
-- **Low-risk mode** can filter high-value equipment above a configurable GP cap.
-
-## Bank-integrated gearing
-
-The bank is part of the workflow rather than a separate checklist.
-
-![Best-in-Bank bank button and filtered bank](images/08-bank-button.png)
-
-Best-in-Bank can:
-
-- highlight recommended equipment in the normal bank;
-- color-code Tier 1 / Tier 2 / Tier 3;
-- open a dedicated **Slayer Best in Bank** filtered bank view;
-- keep task supplies together with the primary setup;
-- track whether each recommendation is **BANK**, **PACKED**, **PACKED+**, or **MISSING**;
-- keep stackable consumables visible while more remain in the bank;
-- avoid raw/burnt food when selecting trip food.
-
-The player remains fully in control: every withdrawal and equipment action is manual.
-
-## Smart trip supplies
-
-Gear is only part of Slayer preparation. Supply recommendations change with the selected task/method and what the account actually has available.
-
-Depending on the assignment, Best-in-Bank can consider:
-
+- Divine and regular combat boosts;
+- Bastion and ranging potions;
 - Goading potions;
 - Prayer regeneration potions;
-- Prayer potions / Super restores / Sanfew-style prayer support;
-- combat-style boosting potions;
+- Prayer potions, Super restores, and related sustain;
 - food;
-- stamina / run-energy support;
-- Rune pouch and rune preparation;
+- antifire and venom protection;
+- run-energy support;
+- Rune pouch preparation;
 - cannonballs;
-- antifire;
-- anti-venom;
-- Slayer finishing items and task tools;
-- task-specific protection or utility.
+- Slayer tools and finishing items.
 
-The goal is not to prescribe a fixed inventory for every player. It is to surface useful owned supplies that support the **selected method and efficient task uptime**.
+**Potion Estimate (BETA)** adds quantity targets based on the remaining kills,
+trip length, combat method, and supply preferences. Turning it off removes the
+estimated counts without removing useful potion recommendations.
 
-## Readiness tracking
+Real consumption varies with stats, gear, Prayer use, kill speed, incoming
+damage, and location. Treat all supply quantities as a starting point, not a
+guarantee.
 
-The sidebar continuously summarizes trip preparation:
+## Make it yours
 
-- **Gear** packed
-- **Supplies** packed
-- **Protection** valid
-- **Ammo** valid
-- spellbook / AoE spell readiness where applicable
+The plugin is designed to adapt to different accounts, budgets, and trip styles.
 
-![Prep reminder when a Slayer trip is incomplete](images/04-prep-reminder.png)
+| Setting | What it controls |
+|---|---|
+| **Loadout tiers** | Build one, two, or three coherent owned setups. |
+| **Gear priority** | Choose Balanced or Prayer First scoring. |
+| **Always prefer** | Strongly favor valid item-name matches. |
+| **Never recommend** | Exclude item-name matches from the solver. |
+| **Low-risk mode** | Cap the estimated combined value of the complete Tier 1 equipment setup. |
+| **Trip length** | Plan for the full assignment, a short trip, or a custom kill count. |
+| **Food / Prayer safety** | Use Light, Normal, or Extra automatic supply estimates. |
+| **Supply preferences** | Toggle Goading, Prayer regeneration, and Divine boost preferences. |
+| **Bank highlights** | Enable normal-bank markers and choose colors for each tier. |
+| **Prep reminder** | Show or hide the reminder after leaving the bank underprepared. |
 
-If the bank closes while important preparation is incomplete, Best-in-Bank can show a compact RuneScape-style reminder instead of letting the missing item silently disappear from the workflow.
+Each adjustable supply also has task-specific decrease, Auto, and increase
+controls in the sidebar. Optional supplies can be disabled for one task and
+restored later. RuneLite stores those preferences with the RuneScape profile.
 
-## Before the bank scan
+<table>
+  <tr>
+    <td width="75%" align="center" valign="top">
+      <img src="images/13-bank-layout.png" alt="Tier 1 equipment and supplies arranged in the Best-in-Bank bank view">
+    </td>
+    <td width="25%" align="center" valign="top">
+      <img src="images/14-settings.png" alt="Slayer Best in Bank settings panel">
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><em>Equipment first, supplies second, with predictable spacing.</em></td>
+    <td align="center"><em>Loadout, trip, highlight, and reminder controls.</em></td>
+  </tr>
+</table>
 
-The plugin can recognize the active task and intended method before it has inspected the current bank.
+## Low-risk mode
 
-| TzHaar — Ancient AoE | Bloodveld — Cannon + Venator |
-| --- | --- |
-| ![TzHaar task detected before bank scan](images/05-barrage-task-detection.png) | ![Bloodveld task detected before bank scan](images/06-venator-task-detection.png) |
+Low-risk mode limits the estimated combined GE guide value of the entire Tier 1
+equipment setup. It does not apply the configured cap to every item separately.
 
-Opening the bank gives Best-in-Bank the owned-item snapshot needed to build the account-specific setup.
+Required protection and explicitly preferred items are hard overrides. If an
+override exceeds the cap by itself, the remaining slots use the strongest
+lower-value choices available rather than silently dropping the requirement.
 
-## Safety and compatibility logic
+Guide prices are estimates and are not a guarantee of replacement cost or
+Wilderness safety.
 
-A statistically strong item is not useful when the resulting setup is invalid.
+## Installation
 
-Best-in-Bank includes guardrails for:
+1. Open RuneLite.
+2. Open **Configuration** and select **Plugin Hub**.
+3. Search for **Slayer Best in Bank**.
+4. Install the plugin and enable it.
+5. Get a Slayer assignment, then open your bank once to build the first
+   account-specific recommendation.
 
-- 2H weapon vs. off-hand conflicts;
-- common ranged weapon/ammo compatibility;
-- mandatory shields and protection equipment;
-- Slayer helmets/facemasks, earmuffs, spiny helmets, Slayer gloves, insulated boots, Witchwood icons and similar task requirements;
-- wyvern protection;
-- Karuulm heat protection, including Kourend Elite diary handling;
-- dragonfire protection interactions;
-- active Ancient Magicks spellbook and level requirements;
-- required task tools/supplies.
+The plugin also handles quiet states clearly: it waits when no assignment is
+detected and asks for a bank scan when it does not yet know what you own.
 
-When a mandatory requirement cannot be satisfied, the plugin is designed to mark the trip **not ready** rather than quietly presenting an unsafe setup as complete.
+<p align="center">
+  <img src="images/15-no-task.png" alt="Slayer Best in Bank waiting for a Slayer assignment" width="242">
+</p>
 
-## Slayer master coverage
+## Privacy and player control
 
-The embedded catalog includes task pools for the current master families used by the plugin:
+Task information, item state, equipment, recommendations, and settings are
+processed inside the RuneLite client. Slayer Best in Bank does not upload bank
+contents, task information, account names, chat, or generated loadouts to the
+plugin author.
 
-- Turael / Aya
-- Spria
-- Mazchna / Achtryn
-- Vannaka
-- Chaeldar
-- Konar quo Maten
-- Nieve / Steve
-- Duradel / Kuradal
-- Krystilia
+The Discord icon in the sidebar opens the
+[Slayer Best in Bank support community](https://discord.gg/hmGW7JGmRF) in your
+system browser only after you click it. The plugin does not contact Discord in
+the background.
 
-Specialized profiles provide richer method/safety behavior where available. Recognized assignments without a specialized profile fall back to a generic owned-gear optimizer instead of becoming unusable.
+Slayer Best in Bank is advisory only. It does not automate inputs or perform
+gameplay actions.
 
-See [SLAYER-MASTER-COVERAGE.md](SLAYER-MASTER-COVERAGE.md) for the embedded task mapping.
+## Known limitations
 
-## Configuration
+- Recommendations use curated combat rules and heuristics, not a full damage
+  simulator.
+- Not every niche set bonus, boss mechanic, inventory strategy, or unusual item
+  interaction is modeled.
+- Location-specific advice depends on the task location available through
+  RuneLite.
+- Potion and food quantities are estimates and may need personal adjustment.
+- A bank scan is required before account-specific recommendations are possible.
+- The plugin does not provide combat automation, prayer-switch instructions, or
+  boss-mechanic prediction.
 
-![Slayer Best in Bank settings](images/07-settings.png)
+Detailed task coverage is documented in:
 
-Available controls include:
+- [Combat task coverage](COMBAT-TASK-COVERAGE.md)
+- [Cannon task coverage](CANNON-TASK-COVERAGE.md)
+- [Slayer master coverage](SLAYER-MASTER-COVERAGE.md)
 
-- number of choices per equipment slot;
-- **Always prefer** item matching;
-- **Never recommend** item matching;
-- optional low-risk mode;
-- configurable risk cap;
-- bank highlighting toggle;
-- custom Tier 1 / Tier 2 / Tier 3 highlight colors;
-- bank-close preparation reminder.
+## Feedback and support
 
-## Design principles
+Found an odd recommendation or have an idea? Use the repository's
+[bug report template](.github/ISSUE_TEMPLATE/bug_report.md),
+[feature request template](.github/ISSUE_TEMPLATE/feature_request.md), or the
+[support Discord](https://discord.gg/hmGW7JGmRF).
 
-### Owned first
-Recommendations are based on what the account can actually use now, not a theoretical shopping list.
-
-### Coherent setup
-A loadout must work together as a set. Individual slot scores do not override weapon, ammo, shield, or mandatory-protection constraints.
-
-### Method aware
-Barrage/Burst, Venator, cannon-assisted, melee, ranged, and other curated methods can require different equipment and supplies.
-
-### Manual gameplay
-Best-in-Bank is a planning and UI plugin. It does not automate withdrawals, equipment changes, movement, combat, or other gameplay actions.
+For recommendation reports, include the task and location, selected method,
+relevant combat levels, expected setup, and actual setup. Crop screenshots to
+the relevant plugin area and do not share credentials or unrelated account
+information.
 
 ## Development
 
-This repository follows RuneLite's standalone external-plugin structure and targets Java 11.
+This repository uses RuneLite's standalone external-plugin structure, targets
+Java 11 bytecode, and uses the standard Plugin Hub build type.
 
 ```shell
 ./gradlew test
@@ -272,21 +247,11 @@ On Windows:
 .\gradlew.bat run
 ```
 
-The `run` task launches a RuneLite developer client with the plugin loaded.
-
-## Beta / bug reports
-
-This is a public beta. If you find a recommendation that looks wrong, please include:
-
-- Slayer task
-- selected method
-- relevant combat levels
-- expected item/setup
-- actual recommendation
-- screenshot of the sidebar/bank if possible
-
-Use the repository's **Bug report** issue template so task-specific edge cases can be reproduced and fixed quickly.
+The `run` task launches a RuneLite developer client with the plugin loaded. See
+the [validation checklist](VALIDATION.md) and
+[release notes](RELEASE-NOTES.md) for the current release-candidate details.
 
 ## License
 
-Slayer Best in Bank is licensed under the BSD 2-Clause License. See [LICENSE](LICENSE).
+Slayer Best in Bank is licensed under the
+[BSD 2-Clause License](LICENSE).

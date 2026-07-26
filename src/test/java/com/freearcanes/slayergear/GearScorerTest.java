@@ -1,7 +1,10 @@
 package com.freearcanes.slayergear;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.Item;
 import net.runelite.client.game.ItemEquipmentStats;
@@ -158,6 +161,144 @@ public class GearScorerTest
 		assertEquals(2002, combined[0].getId());
 		assertEquals(1001, combined[1].getId());
 		assertEquals(3003, combined[2].getId());
+	}
+
+	@Test
+	public void lowRiskModeCapsTheCombinedLoadoutInsteadOfEachItem()
+	{
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(EquipmentInventorySlot.HEAD, Arrays.asList(
+			riskItem(1, "Strong helmet", EquipmentInventorySlot.HEAD, 400, 100, false),
+			riskItem(2, "Budget helmet", EquipmentInventorySlot.HEAD, 100, 60, false)));
+		candidates.put(EquipmentInventorySlot.BODY, Arrays.asList(
+			riskItem(3, "Strong body", EquipmentInventorySlot.BODY, 400, 100, false),
+			riskItem(4, "Budget body", EquipmentInventorySlot.BODY, 100, 60, false)));
+
+		Map<EquipmentInventorySlot, GearScorer.BankEquipment> selected =
+			GearScorer.selectRiskBudgetItems(
+				1,
+				candidates,
+				GearStrategy.builder().combatStyle(CombatStyle.MELEE).build(),
+				500);
+
+		assertEquals(2, selected.size());
+		assertEquals(500, GearScorer.totalGuidePrice(selected));
+	}
+
+	@Test
+	public void pinnedGearRemainsAHardOverrideWhenItExceedsTheLoadoutCap()
+	{
+		GearScorer.BankEquipment pinned = riskItem(
+			10, "Pinned helmet", EquipmentInventorySlot.HEAD, 700, 100, true);
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(EquipmentInventorySlot.HEAD, Arrays.asList(
+			pinned,
+			riskItem(11, "Cheap helmet", EquipmentInventorySlot.HEAD, 100, 60, false)));
+		candidates.put(EquipmentInventorySlot.BODY, Arrays.asList(
+			riskItem(12, "Cheap body", EquipmentInventorySlot.BODY, 100, 50, false)));
+
+		Map<EquipmentInventorySlot, GearScorer.BankEquipment> selected =
+			GearScorer.selectRiskBudgetItems(
+				1,
+				candidates,
+				GearStrategy.builder().combatStyle(CombatStyle.MELEE).build(),
+				500);
+
+		assertEquals(pinned, selected.get(EquipmentInventorySlot.HEAD));
+		assertEquals(800, GearScorer.totalGuidePrice(selected));
+	}
+
+	@Test
+	public void minimumSafeSlotIsKeptWhenNoLoadoutCanFitTheCap()
+	{
+		GearScorer.BankEquipment requiredShield = riskItem(
+			20, "Required shield", EquipmentInventorySlot.SHIELD, 600, 50, false);
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(EquipmentInventorySlot.SHIELD, Arrays.asList(requiredShield));
+
+		Map<EquipmentInventorySlot, GearScorer.BankEquipment> selected =
+			GearScorer.selectRiskBudgetItems(
+				1,
+				candidates,
+				GearStrategy.builder().combatStyle(CombatStyle.MELEE).build(),
+				500);
+
+		assertEquals(requiredShield, selected.get(EquipmentInventorySlot.SHIELD));
+		assertEquals(600, GearScorer.totalGuidePrice(selected));
+	}
+
+	@Test
+	public void alternativeTiersAreCompleteLoadoutsWithSmallCoherentChanges()
+	{
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(EquipmentInventorySlot.WEAPON, Arrays.asList(
+			riskItem(30, "Main weapon", EquipmentInventorySlot.WEAPON, 0, 200, false)));
+		candidates.put(EquipmentInventorySlot.HEAD, Arrays.asList(
+			riskItem(31, "Best helmet", EquipmentInventorySlot.HEAD, 0, 100, false),
+			riskItem(32, "Next helmet", EquipmentInventorySlot.HEAD, 0, 90, false)));
+		candidates.put(EquipmentInventorySlot.BODY, Arrays.asList(
+			riskItem(33, "Best body", EquipmentInventorySlot.BODY, 0, 100, false),
+			riskItem(34, "Next body", EquipmentInventorySlot.BODY, 0, 1, false)));
+
+		List<Map<EquipmentInventorySlot, GearRecommendation>> tiers =
+			new GearScorer(null, null).buildCoherentLoadouts(
+				3,
+				candidates,
+				GearStrategy.builder().combatStyle(CombatStyle.MELEE).build(),
+				Collections.emptyList(),
+				Collections.emptySet(),
+				false,
+				0);
+
+		assertEquals(3, tiers.size());
+		assertEquals("Best helmet", tiers.get(0).get(EquipmentInventorySlot.HEAD).getItemName());
+		assertEquals("Best body", tiers.get(0).get(EquipmentInventorySlot.BODY).getItemName());
+		assertEquals("Next helmet", tiers.get(1).get(EquipmentInventorySlot.HEAD).getItemName());
+		assertEquals("Best body", tiers.get(1).get(EquipmentInventorySlot.BODY).getItemName());
+		assertEquals("Best helmet", tiers.get(2).get(EquipmentInventorySlot.HEAD).getItemName());
+		assertEquals("Next body", tiers.get(2).get(EquipmentInventorySlot.BODY).getItemName());
+	}
+
+	@Test
+	public void weaponFallbackRebuildsAmmoAndOffhandAsOneCoherentSwap()
+	{
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(EquipmentInventorySlot.WEAPON, Arrays.asList(
+			riskItem(40, "Magic shortbow", EquipmentInventorySlot.WEAPON, 0, 100, false, true),
+			riskItem(41, "Rune crossbow", EquipmentInventorySlot.WEAPON, 0, 90, false, false)));
+		candidates.put(EquipmentInventorySlot.AMMO, Arrays.asList(
+			riskItem(42, "Amethyst arrow", EquipmentInventorySlot.AMMO, 0, 20, false),
+			riskItem(43, "Dragon bolts", EquipmentInventorySlot.AMMO, 0, 19, false)));
+		candidates.put(EquipmentInventorySlot.SHIELD, Arrays.asList(
+			riskItem(44, "Odium ward", EquipmentInventorySlot.SHIELD, 0, 15, false)));
+
+		List<Map<EquipmentInventorySlot, GearRecommendation>> tiers =
+			new GearScorer(null, null).buildCoherentLoadouts(
+				2,
+				candidates,
+				GearStrategy.builder().combatStyle(CombatStyle.RANGED).build(),
+				Collections.emptyList(),
+				Collections.emptySet(),
+				false,
+				0);
+
+		assertEquals("Magic shortbow",
+			tiers.get(0).get(EquipmentInventorySlot.WEAPON).getItemName());
+		assertEquals("Amethyst arrow",
+			tiers.get(0).get(EquipmentInventorySlot.AMMO).getItemName());
+		assertFalse(tiers.get(0).containsKey(EquipmentInventorySlot.SHIELD));
+
+		assertEquals("Rune crossbow",
+			tiers.get(1).get(EquipmentInventorySlot.WEAPON).getItemName());
+		assertEquals("Dragon bolts",
+			tiers.get(1).get(EquipmentInventorySlot.AMMO).getItemName());
+		assertEquals("Odium ward",
+			tiers.get(1).get(EquipmentInventorySlot.SHIELD).getItemName());
 	}
 
 	@Test
@@ -487,6 +628,38 @@ public class GearScorerTest
 		assertTrue(SmartSupplyAdvisor.isUnsafeFoodName("burnt shark"));
 		assertFalse(SmartSupplyAdvisor.isUnsafeFoodName("anglerfish"));
 		assertFalse(SmartSupplyAdvisor.isUnsafeFoodName("cooked karambwan"));
+	}
+
+	private static GearScorer.BankEquipment riskItem(
+		int itemId,
+		String name,
+		EquipmentInventorySlot slot,
+		int guidePrice,
+		double score,
+		boolean pinned)
+	{
+		return riskItem(itemId, name, slot, guidePrice, score, pinned, false);
+	}
+
+	private static GearScorer.BankEquipment riskItem(
+		int itemId,
+		String name,
+		EquipmentInventorySlot slot,
+		int guidePrice,
+		double score,
+		boolean pinned,
+		boolean twoHanded)
+	{
+		ItemEquipmentStats stats = ItemEquipmentStats.builder()
+			.slot(slot.getSlotIdx())
+			.isTwoHanded(twoHanded)
+			.build();
+		GearScorer.BankEquipment item = new GearScorer.BankEquipment(
+			itemId, itemId, name, slot, stats, true, false);
+		item.guidePrice = guidePrice;
+		item.score = score;
+		item.pinned = pinned;
+		return item;
 	}
 
 }

@@ -15,7 +15,7 @@ public interface SlayerGearAdvisorConfig extends Config
 
 	@ConfigSection(
 		name = "Recommendations",
-		description = "Controls how many owned gear choices Best-in-Bank keeps per slot.",
+		description = "Controls how many coherent owned loadouts Best-in-Bank builds.",
 		position = 0
 	)
 	String recommendationSection = "recommendations";
@@ -28,24 +28,31 @@ public interface SlayerGearAdvisorConfig extends Config
 	String preferenceSection = "gearPreferences";
 
 	@ConfigSection(
+		name = "Trip planning",
+		description = "Controls supply estimates while preserving mandatory task safety.",
+		position = 2
+	)
+	String tripPlanningSection = "tripPlanning";
+
+	@ConfigSection(
 		name = "Bank highlights",
 		description = "Controls normal-bank recommendation markers and their colors.",
-		position = 2
+		position = 3
 	)
 	String highlightSection = "bankHighlights";
 
 	@ConfigSection(
 		name = "Prep reminder",
 		description = "Controls the reminder shown after closing the bank.",
-		position = 3
+		position = 4
 	)
 	String reminderSection = "prepReminder";
 
 	@Range(min = 1, max = 3)
 	@ConfigItem(
 		keyName = "alternativesPerSlot",
-		name = "Choices per slot",
-		description = "Number of ranked owned items to keep for each equipment slot.",
+		name = "Loadout tiers",
+		description = "Number of coherent owned loadouts to build. Tier 2 and Tier 3 show only the swaps that differ from Tier 1.",
 		position = 1,
 		section = recommendationSection
 	)
@@ -87,7 +94,7 @@ public interface SlayerGearAdvisorConfig extends Config
 	@ConfigItem(
 		keyName = "lowRiskMode",
 		name = "Low-risk mode",
-		description = "Skip expensive tradeable gear unless it is explicitly pinned. Useful for Wilderness Slayer.",
+		description = "Build the strongest complete equipment loadout whose combined GE guide value fits the configured cap. Task-required protection and explicitly pinned items remain hard overrides.",
 		position = 4,
 		section = preferenceSection
 	)
@@ -96,12 +103,85 @@ public interface SlayerGearAdvisorConfig extends Config
 	@Range(min = 50, max = 10000)
 	@ConfigItem(
 		keyName = "riskCapThousands",
-		name = "Risk cap (k GP)",
-		description = "Maximum GE value per tradeable equipment item while Low-risk mode is enabled.",
+		name = "Loadout cap (k GP)",
+		description = "Maximum combined GE guide value for the recommended equipment loadout. Uses one of each selected item; required or pinned items can exceed the cap.",
 		position = 5,
 		section = preferenceSection
 	)
 	default int riskCapThousands() { return 500; }
+
+	@ConfigItem(
+		keyName = "tripPlan",
+		name = "Trip length",
+		description = "Full assignment scales from the remaining task, Short trip plans for at most 40 kills, and Custom uses the configured kill count.",
+		position = 1,
+		section = tripPlanningSection
+	)
+	default TripPlan tripPlan() { return TripPlan.FULL_ASSIGNMENT; }
+
+	@Range(min = 10, max = 250)
+	@ConfigItem(
+		keyName = "customTripKills",
+		name = "Custom kills",
+		description = "Number of kills used when Trip length is Custom kills.",
+		position = 2,
+		section = tripPlanningSection
+	)
+	default int customTripKills() { return 80; }
+
+	@ConfigItem(
+		keyName = "potionEstimatesEnabled",
+		name = "Potion Estimate (BETA)",
+		description = "Shows estimated potion counts based on remaining kills, trip length, combat method, and supply preferences. Estimates are advisory only: actual use varies with stats, gear, location, Prayer use, damage taken, and kill speed. Disable this to keep potion recommendations without quantity targets.",
+		position = 3,
+		section = tripPlanningSection
+	)
+	default boolean potionEstimatesEnabled() { return true; }
+
+	@ConfigItem(
+		keyName = "foodSafety",
+		name = "Food safety",
+		description = "Adjusts the automatic food estimate.",
+		position = 4,
+		section = tripPlanningSection
+	)
+	default SupplyLevel foodSafety() { return SupplyLevel.NORMAL; }
+
+	@ConfigItem(
+		keyName = "prayerSafety",
+		name = "Prayer safety",
+		description = "Adjusts Prayer and restoration supply estimates.",
+		position = 5,
+		section = tripPlanningSection
+	)
+	default SupplyLevel prayerSafety() { return SupplyLevel.NORMAL; }
+
+	@ConfigItem(
+		keyName = "useGoading",
+		name = "Suggest Goading",
+		description = "Include owned Goading potions in automatic trip preparation.",
+		position = 6,
+		section = tripPlanningSection
+	)
+	default boolean useGoading() { return true; }
+
+	@ConfigItem(
+		keyName = "usePrayerRegen",
+		name = "Suggest Prayer regeneration",
+		description = "Include owned Prayer regeneration potions in automatic trip preparation.",
+		position = 7,
+		section = tripPlanningSection
+	)
+	default boolean usePrayerRegen() { return true; }
+
+	@ConfigItem(
+		keyName = "preferDivineBoosts",
+		name = "Prefer Divine boosts",
+		description = "Prefer owned Divine combat boosts over their regular versions.",
+		position = 8,
+		section = tripPlanningSection
+	)
+	default boolean preferDivineBoosts() { return true; }
 
 	@ConfigItem(
 		keyName = "highlightsEnabled",

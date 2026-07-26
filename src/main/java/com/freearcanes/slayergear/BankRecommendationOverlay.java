@@ -50,11 +50,16 @@ class BankRecommendationOverlay extends WidgetItemOverlay
 			if (heading != null)
 			{
 				Color color = tier > 0 ? colorFor(tier) : new Color(255, 152, 31);
-				renderHeading(graphics, bounds, heading, color);
+				renderHeading(graphics, bounds, heading, color, tier == 1 ? 4 : 8);
 			}
 			if (tier > 0)
 			{
 				renderTierHighlight(graphics, bounds, tier, colorFor(tier), false);
+			}
+			SupplyRecommendation supply = tieredBankLayout.supplyFor(widgetItem.getWidget());
+			if (supply != null && supply.getWithdrawalsStillNeeded() > 0)
+			{
+				renderWithdrawalBadge(graphics, bounds, supply.getWithdrawalsStillNeeded());
 			}
 			return;
 		}
@@ -158,11 +163,28 @@ class BankRecommendationOverlay extends WidgetItemOverlay
 		}
 	}
 
+	private static void renderWithdrawalBadge(Graphics2D graphics, Rectangle bounds, int withdrawals)
+	{
+		if (bounds == null || withdrawals <= 0) return;
+		String text = "×" + withdrawals;
+		graphics.setFont(FontManager.getRunescapeBoldFont());
+		int width = graphics.getFontMetrics().stringWidth(text) + 6;
+		int height = 14;
+		int x = bounds.x + bounds.width - width;
+		int y = bounds.y + 1;
+		graphics.setColor(new Color(20, 17, 12, 225));
+		graphics.fillRoundRect(x, y, width, height, 5, 5);
+		graphics.setColor(new Color(255, 193, 7));
+		graphics.drawRoundRect(x, y, width - 1, height - 1, 5, 5);
+		graphics.drawString(text, x + 3, y + 11);
+	}
+
 	private static void renderHeading(
 		Graphics2D graphics,
 		Rectangle firstItemBounds,
 		String text,
-		Color color)
+		Color color,
+		int columns)
 	{
 		graphics.setFont(FontManager.getRunescapeSmallFont());
 		graphics.setRenderingHint(
@@ -177,7 +199,7 @@ class BankRecommendationOverlay extends WidgetItemOverlay
 		graphics.drawLine(
 			x,
 			firstItemBounds.y - 3,
-			x + 8 * (36 + 12) - 12,
+			x + Math.max(1, columns) * (36 + 12) - 12,
 			firstItemBounds.y - 3);
 	}
 }

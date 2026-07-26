@@ -25,6 +25,7 @@ class TieredBankLayout
 {
 	private static final Logger log = LoggerFactory.getLogger(TieredBankLayout.class);
 	private static final int ITEMS_PER_ROW = 8;
+	private static final int EQUIP_PATH_ITEMS_PER_ROW = 4;
 	private static final int ITEM_WIDTH = 36;
 	private static final int ITEM_HEIGHT = 32;
 	private static final int ITEM_X_PADDING = 12;
@@ -50,6 +51,7 @@ class TieredBankLayout
 	private final ItemManager itemManager;
 	private final Map<Widget, Integer> tiersByWidget = new IdentityHashMap<>();
 	private final Map<Widget, String> headingsByWidget = new IdentityHashMap<>();
+	private final Map<Widget, SupplyRecommendation> suppliesByWidget = new IdentityHashMap<>();
 	private boolean resetScrollOnNextLayout;
 
 	@Inject
@@ -80,7 +82,8 @@ class TieredBankLayout
 			return;
 		}
 
-		Map<Integer, Widget> widgetsByItemId = new HashMap<>();
+		Map<Integer, Widget> widgetsByExactItemId = new HashMap<>();
+		Map<Integer, Widget> widgetsByCanonicalItemId = new HashMap<>();
 		for (Widget child : itemContainer.getChildren())
 		{
 			if (child == null || child.getItemId() < 0)
@@ -95,7 +98,8 @@ class TieredBankLayout
 				&& composition.getPlaceholderTemplateId() == -1;
 			if (realItem)
 			{
-				widgetsByItemId.putIfAbsent(itemManager.canonicalize(itemId), child);
+				widgetsByExactItemId.putIfAbsent(itemId, child);
+				widgetsByCanonicalItemId.putIfAbsent(itemManager.canonicalize(itemId), child);
 			}
 		}
 
@@ -113,13 +117,18 @@ class TieredBankLayout
 		{
 			for (GearRecommendation recommendation : entry.getValue())
 			{
-				Widget widget = widgetsByItemId.get(recommendation.getCanonicalItemId());
-				if (widget == null || !representedGear.add(widget))
+				Widget widget = selectExactOrCanonical(
+					widgetsByExactItemId,
+					widgetsByCanonicalItemId,
+					recommendation.getItemId(),
+					recommendation.getCanonicalItemId());
+				if (widget != null && !representedGear.add(widget))
 				{
-					// The item may already be in inventory/equipment. Keep its rank in the
-					// recommendation model, but never fake it back into the bank UI.
-					continue;
+					widget = null;
 				}
+				// Keep a path entry even when the item is already packed. That reserved
+				// position prevents the remaining bank widgets from compacting under the
+				// mouse after each withdrawal.
 				byTier.computeIfAbsent(recommendation.getRank(), ignored -> new ArrayList<>())
 					.add(new TierWidget(widget, recommendation));
 			}
@@ -127,76 +136,80 @@ class TieredBankLayout
 
 		List<SupplyWidget> supplies = new ArrayList<>();
 		Set<Integer> representedSupplies = new HashSet<>();
+		int supplyPathSize = 0;
 		for (SupplyRecommendation supply : recommendations.getSupplies())
 		{
+			if (!supply.isEnabledForTrip()) continue;
+			int pathIndex = supplyPathSize++;
 			// PACKED_BANKED is intentionally still visible. Consumables should not
 			// vanish from the Best-in-Bank view after the first potion/food withdrawal.
 			if (!supply.getStatus().isBanked()) continue;
-			Widget widget = widgetsByItemId.get(supply.getCanonicalItemId());
+			Widget widget = selectExactOrCanonical(
+				widgetsByExactItemId,
+				widgetsByCanonicalItemId,
+				supply.getItemId(),
+				supply.getCanonicalItemId());
 			if (widget != null
 				&& !representedGear.contains(widget)
 				&& representedSupplies.add(supply.getCanonicalItemId()))
 			{
-				supplies.add(new SupplyWidget(widget, supply));
+				supplies.add(new SupplyWidget(widget, supply, pathIndex));
 			}
 		}
-		supplies.sort(Comparator.comparingInt(value ->
-			recommendations.getSupplies().indexOf(value.recommendation)));
 
 		Comparator<TierWidget> slotOrder = Comparator
 			.comparingInt(value -> slotIndex(value.recommendation.getSlot()));
 		int cursorY = 0;
 		int gearPlaced = 0;
 
-		// Tier 1 and task supplies share the primary section. This keeps the things
-		// the player should actually withdraw together at the top of the bank view.
+		// Tier 1 equipment uses four columns, matching the inventory width. Odd rows
+		// run right-to-left so the player can withdraw and then equip the set with a
+		// short continuous zigzag mouse path.
 		List<TierWidget> tierOne = byTier.getOrDefault(1, Collections.emptyList());
 		tierOne.sort(slotOrder);
-		int primaryCount = tierOne.size() + supplies.size();
-		boolean cannonSetupIncluded = supplies.stream().anyMatch(value ->
-			"Cannon setup".equals(value.recommendation.getCategory()) || "Cannon ammo".equals(value.recommendation.getCategory()));
-		if (primaryCount > 0)
+		if (!tierOne.isEmpty())
 		{
 			int itemStartY = cursorY + HEADER_HEIGHT;
-			int index = 0;
 			Widget firstWidget = null;
-			for (TierWidget tierWidget : tierOne)
+			for (int index = 0; index < tierOne.size(); index++)
 			{
+				TierWidget tierWidget = tierOne.get(index);
 				Widget widget = tierWidget.widget;
+				if (widget == null) continue;
 				if (firstWidget == null) firstWidget = widget;
-				positionWidget(widget,
-					ITEM_START_X + (index % ITEMS_PER_ROW) * (ITEM_WIDTH + ITEM_X_PADDING),
-					itemStartY + (index / ITEMS_PER_ROW) * (ITEM_HEIGHT + ITEM_Y_PADDING));
+				positionPathWidget(widget, index, itemStartY);
 				tiersByWidget.put(widget, 1);
 				gearPlaced++;
-				index++;
 			}
+			if (firstWidget != null)
+			{
+				headingsByWidget.put(firstWidget, "Tier 1 - Equip path (follow the zigzag)");
+			}
+			int rows = rowsFor(tierOne.size(), EQUIP_PATH_ITEMS_PER_ROW);
+			cursorY = itemStartY + rows * (ITEM_HEIGHT + ITEM_Y_PADDING) + SECTION_PADDING;
+		}
+
+		// Keep all owned trip supplies in their own Tier 1 path. This includes
+		// Goading, Prayer regeneration and the combat-style boost, followed by
+		// protection, cannon and general sustain supplies.
+		if (supplyPathSize > 0)
+		{
+			int itemStartY = cursorY + HEADER_HEIGHT;
+			Widget firstWidget = null;
 			for (SupplyWidget supplyWidget : supplies)
 			{
 				Widget widget = supplyWidget.widget;
 				if (firstWidget == null) firstWidget = widget;
-				positionWidget(widget,
-					ITEM_START_X + (index % ITEMS_PER_ROW) * (ITEM_WIDTH + ITEM_X_PADDING),
-					itemStartY + (index / ITEMS_PER_ROW) * (ITEM_HEIGHT + ITEM_Y_PADDING));
-				// Cannon parts/ammo are part of the actual Tier 1 trip setup, not
-				// merely optional consumables. Give them the same Tier 1 bank treatment.
-				String category = supplyWidget.recommendation.getCategory();
-				if ("Cannon setup".equals(category) || "Cannon ammo".equals(category))
-				{
-					tiersByWidget.put(widget, 1);
-				}
-				index++;
+				positionPathWidget(widget, supplyWidget.pathIndex, itemStartY);
+				tiersByWidget.put(widget, 1);
+				suppliesByWidget.put(widget, supplyWidget.recommendation);
 			}
 			if (firstWidget != null)
 			{
-				headingsByWidget.put(firstWidget, cannonSetupIncluded
-					? "Tier 1 - Best equipment + cannon + task supplies"
-					: "Tier 1 - Best equipment + task supplies");
+				headingsByWidget.put(firstWidget, "Tier 1 - Potions, tools and trip supplies");
 			}
-			int rows = (primaryCount + ITEMS_PER_ROW - 1) / ITEMS_PER_ROW;
-			cursorY = itemStartY
-				+ rows * (ITEM_HEIGHT + ITEM_Y_PADDING)
-				+ SECTION_PADDING;
+			int rows = rowsFor(supplyPathSize, EQUIP_PATH_ITEMS_PER_ROW);
+			cursorY = itemStartY + rows * (ITEM_HEIGHT + ITEM_Y_PADDING) + SECTION_PADDING;
 		}
 
 		for (int tier = 2; tier <= 3; tier++)
@@ -209,10 +222,13 @@ class TieredBankLayout
 
 			widgets.sort(slotOrder);
 			int itemStartY = cursorY + HEADER_HEIGHT;
+			Widget firstWidget = null;
 			for (int index = 0; index < widgets.size(); index++)
 			{
 				TierWidget tierWidget = widgets.get(index);
 				Widget widget = tierWidget.widget;
+				if (widget == null) continue;
+				if (firstWidget == null) firstWidget = widget;
 				int x = ITEM_START_X
 					+ (index % ITEMS_PER_ROW) * (ITEM_WIDTH + ITEM_X_PADDING);
 				int y = itemStartY
@@ -222,7 +238,10 @@ class TieredBankLayout
 				gearPlaced++;
 			}
 
-			headingsByWidget.put(widgets.get(0).widget, tierHeading(tier));
+			if (firstWidget != null)
+			{
+				headingsByWidget.put(firstWidget, tierHeading(tier));
+			}
 			int rows = (widgets.size() + ITEMS_PER_ROW - 1) / ITEMS_PER_ROW;
 			cursorY = itemStartY
 				+ rows * (ITEM_HEIGHT + ITEM_Y_PADDING)
@@ -258,10 +277,16 @@ class TieredBankLayout
 		return headingsByWidget.get(widget);
 	}
 
+	SupplyRecommendation supplyFor(Widget widget)
+	{
+		return suppliesByWidget.get(widget);
+	}
+
 	private void clearMappings()
 	{
 		tiersByWidget.clear();
 		headingsByWidget.clear();
+		suppliesByWidget.clear();
 	}
 
 	private static void positionWidget(Widget widget, int x, int y)
@@ -274,11 +299,45 @@ class TieredBankLayout
 		widget.revalidate();
 	}
 
+	private static void positionPathWidget(Widget widget, int index, int itemStartY)
+	{
+		int row = index / EQUIP_PATH_ITEMS_PER_ROW;
+		int column = zigzagColumn(index, EQUIP_PATH_ITEMS_PER_ROW);
+		positionWidget(widget,
+			ITEM_START_X + column * (ITEM_WIDTH + ITEM_X_PADDING),
+			itemStartY + row * (ITEM_HEIGHT + ITEM_Y_PADDING));
+	}
+
+	static int zigzagColumn(int index, int columns)
+	{
+		if (columns <= 0 || index < 0) return 0;
+		int row = index / columns;
+		int column = index % columns;
+		return row % 2 == 0 ? column : columns - 1 - column;
+	}
+
+	static <T> T selectExactOrCanonical(
+		Map<Integer, T> exactItems,
+		Map<Integer, T> canonicalItems,
+		int exactItemId,
+		int canonicalItemId)
+	{
+		T exact = exactItems == null ? null : exactItems.get(exactItemId);
+		return exact != null || canonicalItems == null
+			? exact
+			: canonicalItems.get(canonicalItemId);
+	}
+
+	static int rowsFor(int itemCount, int columns)
+	{
+		return (itemCount + columns - 1) / columns;
+	}
+
 	private static String tierHeading(int tier)
 	{
 		String suffix = tier == 1
 			? "Best available equipment"
-			: tier == 2 ? "Next-best equipment" : "Fallback equipment";
+			: tier == 2 ? "Next loadout swaps" : "Further loadout swaps";
 		return "Tier " + tier + " - " + suffix;
 	}
 
@@ -305,11 +364,13 @@ class TieredBankLayout
 	{
 		private final Widget widget;
 		private final SupplyRecommendation recommendation;
+		private final int pathIndex;
 
-		private SupplyWidget(Widget widget, SupplyRecommendation recommendation)
+		private SupplyWidget(Widget widget, SupplyRecommendation recommendation, int pathIndex)
 		{
 			this.widget = widget;
 			this.recommendation = recommendation;
+			this.pathIndex = pathIndex;
 		}
 	}
 }

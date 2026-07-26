@@ -11,6 +11,7 @@ import java.util.Set;
 import javax.inject.Inject;
 import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
+import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
 
 /**
@@ -22,21 +23,29 @@ class SmartSupplyAdvisor
 {
 	private final ItemManager itemManager;
 	private final SlayerGearAdvisorConfig config;
+	private final ConfigManager configManager;
 
 	@Inject
-	SmartSupplyAdvisor(ItemManager itemManager, SlayerGearAdvisorConfig config)
+	SmartSupplyAdvisor(ItemManager itemManager, SlayerGearAdvisorConfig config, ConfigManager configManager)
 	{
 		this.itemManager = itemManager;
 		this.config = config;
+		this.configManager = configManager;
 	}
 
+	SmartSupplyAdvisor(ItemManager itemManager, SlayerGearAdvisorConfig config)
+	{
+		this(itemManager, config, null);
+	}
 	List<SupplyRecommendation> recommend(
 		SlayerTaskProfile profile,
 		GearStrategy strategy,
+		int taskAmount,
 		Item[] bankItems,
 		Item[] packedItems)
 	{
 		List<SupplyRule> rules = buildRules(profile, strategy);
+		int plannedKills = plannedKillCount(taskAmount);
 		Map<Integer, OwnedItem> bank = collect(bankItems);
 		Map<Integer, OwnedItem> packed = collect(packedItems);
 		// Cannon cosmetics are not interchangeable: regular and ornamented parts
@@ -54,6 +63,15 @@ class SmartSupplyAdvisor
 
 		for (SupplyRule rule : rules)
 		{
+			boolean potionEstimateDisabled = !quantityTargetEnabled(config, rule.category);
+			int automaticQuantity = potionEstimateDisabled ? 0 : applySupplyLevel(
+				rule.category, recommendedQuantity(rule.category, plannedKills));
+			int recommendedQuantity = potionEstimateDisabled
+				? 0
+				: quantityOverride(profile, rule.category, automaticQuantity);
+			String quantityUnit = quantityUnit(rule.category);
+			int packedQuantity = matchingQuantity(rule, exactPacked, quantityUnit);
+			int bankQuantity = matchingQuantity(rule, exactBank, quantityUnit);
 			// Resolve inventory/equipment and bank independently. A consumable that is
 			// already packed can still have more doses/food available in the bank.
 			// Keeping both states prevents the filtered bank row from disappearing after
@@ -67,21 +85,24 @@ class SmartSupplyAdvisor
 				usedCanonicalIds.add(bankMatch.canonicalItemId);
 				// Use the bank variant for the recommendation so the filtered-bank widget
 				// points at the exact stack/dose that can still be withdrawn.
-				recommendations.add(toRecommendation(rule, bankMatch, SupplyStatus.PACKED_BANKED));
+				recommendations.add(toRecommendation(rule, bankMatch, SupplyStatus.PACKED_BANKED,
+					automaticQuantity, recommendedQuantity, packedQuantity, bankQuantity, quantityUnit));
 				continue;
 			}
 
 			if (packedMatch != null)
 			{
 				usedCanonicalIds.add(packedMatch.canonicalItemId);
-				recommendations.add(toRecommendation(rule, packedMatch, SupplyStatus.PACKED));
+				recommendations.add(toRecommendation(rule, packedMatch, SupplyStatus.PACKED,
+					automaticQuantity, recommendedQuantity, packedQuantity, bankQuantity, quantityUnit));
 				continue;
 			}
 
 			if (bankMatch != null)
 			{
 				usedCanonicalIds.add(bankMatch.canonicalItemId);
-				recommendations.add(toRecommendation(rule, bankMatch, SupplyStatus.BANKED));
+				recommendations.add(toRecommendation(rule, bankMatch, SupplyStatus.BANKED,
+					automaticQuantity, recommendedQuantity, packedQuantity, bankQuantity, quantityUnit));
 				continue;
 			}
 
@@ -94,13 +115,26 @@ class SmartSupplyAdvisor
 					rule.category,
 					rule.reason,
 					SupplyStatus.MISSING,
-					true));
+					true,
+					automaticQuantity,
+					recommendedQuantity,
+					packedQuantity,
+					bankQuantity,
+					quantityUnit));
 			}
 		}
 		return recommendations;
 	}
 
-	private SupplyRecommendation toRecommendation(SupplyRule rule, OwnedItem item, SupplyStatus status)
+	private SupplyRecommendation toRecommendation(
+		SupplyRule rule,
+		OwnedItem item,
+		SupplyStatus status,
+		int automaticQuantity,
+		int recommendedQuantity,
+		int packedQuantity,
+		int bankQuantity,
+		String quantityUnit)
 	{
 		return new SupplyRecommendation(
 			item.itemId,
@@ -109,47 +143,64 @@ class SmartSupplyAdvisor
 			rule.category,
 			rule.reason,
 			status,
-			rule.required);
+			rule.required,
+			automaticQuantity,
+			recommendedQuantity,
+			packedQuantity,
+			bankQuantity,
+			quantityUnit);
 	}
 
-	private List<SupplyRule> buildRules(SlayerTaskProfile profile, GearStrategy strategy)
+	List<SupplyRule> buildRules(SlayerTaskProfile profile, GearStrategy strategy)
 	{
 		List<SupplyRule> rules = new ArrayList<>();
 		String key = profile == null ? "" : profile.getKey().toLowerCase(Locale.ENGLISH);
+		boolean ancientAoe = strategy != null && strategy.isAncientAoe();
+		boolean venator = strategy != null && isVenator(strategy);
 
-		if (strategy != null && strategy.isAncientAoe())
+		// These are useful owned trip accelerators across Slayer methods, not only
+		// Ancient AoE and Venator. They remain optional and therefore appear only
+		// when the account owns them.
+		if (config.useGoading())
 		{
-			rules.add(rule("Goading", "Keeps targets aggressive so stacks stay together", false,
-				"Goading potion", "goading potion"));
-			rules.add(rule("Prayer regen", "Passive Prayer sustain during long multi-target trips", false,
+			rules.add(rule("Goading",
+				ancientAoe || venator
+					? "Keeps multi-target groups aggressive and close together"
+					: "Keeps Slayer targets aggressive during the trip",
+				false, "Goading potion", "goading potion"));
+		}
+		if (config.usePrayerRegen())
+		{
+			rules.add(rule("Prayer regen", "Passive Prayer sustain during longer Slayer trips", false,
 				"Prayer regeneration potion", "prayer regeneration potion"));
-			rules.add(rule("Prayer", "Protection and offensive prayer sustain", false,
-				"Prayer potion / restore", "prayer potion", "super restore", "sanfew serum"));
+		}
+
+		if (ancientAoe)
+		{
 			rules.add(rule("Magic boost", "Boosts Magic damage or preserves spell access", false,
 				"Magic boost", "saturated heart", "imbued heart", "forgotten brew", "ancient brew", "magic potion"));
 			rules.add(rule("Rune pouch", "Compact Ancient Magicks rune storage", false,
 				"Rune pouch", "divine rune pouch", "rune pouch"));
 		}
-		else if (strategy != null && isVenator(strategy))
-		{
-			rules.add(rule("Goading", "Keeps targets aggressive so Venator chains keep bouncing", false,
-				"Goading potion", "goading potion"));
-			rules.add(rule("Prayer regen", "Passive Prayer sustain during long multi-target trips", false,
-				"Prayer regeneration potion", "prayer regeneration potion"));
-			rules.add(rule("Ranged boost", "Improves ranged accuracy and damage", false,
-				"Ranging potion", "divine ranging potion", "ranging potion", "bastion potion"));
-			rules.add(rule("Prayer", "Protection and offensive prayer sustain", false,
-				"Prayer potion / restore", "prayer potion", "super restore", "sanfew serum"));
-		}
 		else if (strategy != null && strategy.getCombatStyle() == CombatStyle.MELEE)
 		{
-			rules.add(rule("Combat boost", "Improves melee task speed", false,
-				"Combat potion", "divine super combat potion", "super combat potion", "divine combat potion", "combat potion"));
+			rules.add(config.preferDivineBoosts()
+				? rule("Combat boost", "Improves melee task speed", false,
+					"Combat potion", "divine super combat potion", "divine combat potion",
+					"super combat potion", "combat potion")
+				: rule("Combat boost", "Improves melee task speed", false,
+					"Combat potion", "super combat potion", "combat potion",
+					"divine super combat potion", "divine combat potion"));
 		}
 		else if (strategy != null && strategy.getCombatStyle() == CombatStyle.RANGED)
 		{
-			rules.add(rule("Ranged boost", "Improves ranged task speed", false,
-				"Ranging potion", "divine ranging potion", "ranging potion", "bastion potion"));
+			rules.add(config.preferDivineBoosts()
+				? rule("Ranged boost", "Improves ranged task speed", false,
+					"Bastion / ranging potion", "divine bastion potion", "bastion potion",
+					"divine ranging potion", "ranging potion")
+				: rule("Ranged boost", "Improves ranged task speed", false,
+					"Bastion / ranging potion", "bastion potion", "ranging potion",
+					"divine bastion potion", "divine ranging potion"));
 		}
 		else if (strategy != null && strategy.getCombatStyle() == CombatStyle.MAGIC)
 		{
@@ -216,7 +267,7 @@ class SmartSupplyAdvisor
 		}
 
 		// Helpful sustain, but only surface it when the user actually owns it.
-		if (strategy != null && !strategy.isAncientAoe() && !isVenator(strategy))
+		if (strategy != null)
 		{
 			rules.add(rule("Prayer", "Useful sustain for protection or offensive prayers", false,
 				"Prayer potion / restore", "prayer potion", "super restore", "sanfew serum"));
@@ -320,7 +371,8 @@ class SmartSupplyAdvisor
 			if (item == null || item.getId() <= 0 || item.getQuantity() <= 0) continue;
 			ItemComposition composition = itemManager.getItemComposition(item.getId());
 			if (composition == null || composition.getPlaceholderTemplateId() != -1 || invalidName(composition.getName())) continue;
-			result.add(new OwnedItem(item.getId(), itemManager.canonicalize(item.getId()), composition.getName()));
+			result.add(new OwnedItem(
+				item.getId(), itemManager.canonicalize(item.getId()), composition.getName(), item.getQuantity()));
 		}
 		return result;
 	}
@@ -335,11 +387,21 @@ class SmartSupplyAdvisor
 			ItemComposition composition = itemManager.getItemComposition(item.getId());
 			if (composition == null || composition.getPlaceholderTemplateId() != -1 || invalidName(composition.getName())) continue;
 			int canonical = itemManager.canonicalize(item.getId());
-			OwnedItem candidate = new OwnedItem(item.getId(), canonical, composition.getName());
+			OwnedItem candidate = new OwnedItem(item.getId(), canonical, composition.getName(), item.getQuantity());
 			OwnedItem existing = result.get(canonical);
 			if (existing == null || doseScore(candidate.name) > doseScore(existing.name))
 			{
+				if (existing != null)
+				{
+					candidate = new OwnedItem(candidate.itemId, candidate.canonicalItemId,
+						candidate.name, candidate.quantity + existing.quantity);
+				}
 				result.put(canonical, candidate);
+			}
+			else
+			{
+				result.put(canonical, new OwnedItem(existing.itemId, existing.canonicalItemId,
+					existing.name, existing.quantity + candidate.quantity));
 			}
 		}
 		return result;
@@ -355,7 +417,7 @@ class SmartSupplyAdvisor
 				if (used.contains(item.canonicalItemId)) continue;
 				String normalizedName = NameMatcher.normalize(item.name);
 				if ("Food".equals(rule.category) && isUnsafeFoodName(normalizedName)) continue;
-				if (normalizedName.contains(preferred))
+				if (matchesPreferredSupply(normalizedName, preferred))
 				{
 					if (best == null || doseScore(item.name) > doseScore(best.name)) best = item;
 				}
@@ -363,6 +425,18 @@ class SmartSupplyAdvisor
 			if (best != null) return best;
 		}
 		return null;
+	}
+
+	static boolean matchesPreferredSupply(String normalizedName, String preferred)
+	{
+		if (normalizedName == null || preferred == null) return false;
+		if (!preferred.startsWith("divine ")
+			&& normalizedName.startsWith("divine ")
+			&& normalizedName.contains(preferred))
+		{
+			return false;
+		}
+		return normalizedName.contains(preferred);
 	}
 
 	static boolean isUnsafeFoodName(String normalizedName)
@@ -399,6 +473,170 @@ class SmartSupplyAdvisor
 		return 0;
 	}
 
+	static int recommendedQuantity(String category, int taskAmount)
+	{
+		if (taskAmount <= 0) return 0;
+		switch (category)
+		{
+			case "Cannon ammo":
+				return Math.max(100, taskAmount * 8);
+			case "Food":
+				return clamp(2, 12, (taskAmount + 19) / 20);
+			case "Prayer":
+				return clamp(4, 12, ((taskAmount + 59) / 60) * 4);
+			case "Antifire":
+			case "Venom protection":
+				return clamp(4, 16, ((taskAmount + 39) / 40) * 4);
+			case "Combat boost":
+			case "Ranged boost":
+			case "Prayer regen":
+			case "Goading":
+				return clamp(4, 12, ((taskAmount + 49) / 50) * 4);
+			case "Run energy":
+				return clamp(4, 8, ((taskAmount + 79) / 80) * 4);
+			case "Magic boost":
+				// This category can resolve to reusable hearts as well as potions.
+				// Keep it presence-based until the selected item is modeled separately.
+				return 0;
+			default:
+				return 0;
+		}
+	}
+
+	private int plannedKillCount(int remainingTask)
+	{
+		return plannedKillCount(
+			config.tripPlan(), remainingTask, config.customTripKills());
+	}
+
+	static int plannedKillCount(TripPlan plan, int remainingTask, int customKills)
+	{
+		TripPlan effective = plan == null ? TripPlan.FULL_ASSIGNMENT : plan;
+		int remaining = Math.max(0, remainingTask);
+		switch (effective)
+		{
+			case SHORT_TRIP:
+				return remaining > 0 ? Math.min(remaining, 40) : 40;
+			case CUSTOM_KILLS:
+				int custom = Math.max(1, customKills);
+				return remaining > 0 ? Math.min(remaining, custom) : custom;
+			case FULL_ASSIGNMENT:
+			default:
+				return remaining;
+		}
+	}
+
+	private int applySupplyLevel(String category, int automaticQuantity)
+	{
+		if (automaticQuantity <= 0) return automaticQuantity;
+		SupplyLevel level = "Food".equals(category)
+			? config.foodSafety()
+			: ("Prayer".equals(category) || "Prayer regen".equals(category))
+				? config.prayerSafety()
+				: SupplyLevel.NORMAL;
+		return applySupplyLevel(automaticQuantity, level, "Food".equals(category) ? 1 : 4);
+	}
+
+	static int applySupplyLevel(int automaticQuantity, SupplyLevel level, int unitSize)
+	{
+		if (automaticQuantity <= 0) return 0;
+		int unit = Math.max(1, unitSize);
+		double multiplier = level == null ? 1.0 : level.getMultiplier();
+		int scaled = (int) Math.ceil(automaticQuantity * multiplier);
+		return Math.max(unit, ((scaled + unit - 1) / unit) * unit);
+	}
+
+	private int quantityOverride(SlayerTaskProfile profile, String category, int automaticQuantity)
+	{
+		if (configManager == null || profile == null) return automaticQuantity;
+		String value = configManager.getRSProfileConfiguration(
+			SlayerGearAdvisorConfig.GROUP, quantityOverrideKey(profile.getKey(), category));
+		if (value == null || value.trim().isEmpty()) return automaticQuantity;
+		try
+		{
+			return Math.max(0, Integer.parseInt(value.trim()));
+		}
+		catch (NumberFormatException ignored)
+		{
+			return automaticQuantity;
+		}
+	}
+
+	static String quantityOverrideKey(String taskKey, String category)
+	{
+		String task = NameMatcher.normalize(taskKey).replace(' ', '-');
+		String supply = NameMatcher.normalize(category).replace(' ', '-');
+		return "supply." + task + "." + supply;
+	}
+
+	static String quantityUnit(String category)
+	{
+		switch (category)
+		{
+			case "Prayer":
+			case "Antifire":
+			case "Venom protection":
+			case "Combat boost":
+			case "Ranged boost":
+			case "Magic boost":
+			case "Prayer regen":
+			case "Run energy":
+			case "Goading":
+				return "doses";
+			case "Cannon ammo":
+				return "shots";
+			default:
+				return "items";
+		}
+	}
+
+	static boolean isPotionQuantityCategory(String category)
+	{
+		return "doses".equals(quantityUnit(category));
+	}
+
+	static boolean quantityTargetEnabled(SlayerGearAdvisorConfig config, String category)
+	{
+		return config == null
+			|| config.potionEstimatesEnabled()
+			|| !isPotionQuantityCategory(category);
+	}
+
+	private static int matchingQuantity(SupplyRule rule, Iterable<OwnedItem> items, String unit)
+	{
+		int total = 0;
+		for (OwnedItem item : items)
+		{
+			String normalizedName = NameMatcher.normalize(item.name);
+			if ("Food".equals(rule.category) && isUnsafeFoodName(normalizedName)) continue;
+			boolean matches = false;
+			for (String preferred : rule.preferredNames)
+			{
+				if (normalizedName.contains(preferred))
+				{
+					matches = true;
+					break;
+				}
+			}
+			if (!matches) continue;
+			if ("doses".equals(unit))
+			{
+				int doses = doseScore(item.name);
+				total += item.quantity * Math.max(1, doses);
+			}
+			else
+			{
+				total += item.quantity;
+			}
+		}
+		return total;
+	}
+
+	private static int clamp(int minimum, int maximum, int value)
+	{
+		return Math.max(minimum, Math.min(maximum, value));
+	}
+
 	private static SupplyRule rule(String category, String reason, boolean required, String fallback, String... preferred)
 	{
 		List<String> normalized = new ArrayList<>();
@@ -416,7 +654,7 @@ class SmartSupplyAdvisor
 		return value == null || value.trim().isEmpty() || "null".equalsIgnoreCase(value);
 	}
 
-	private static final class SupplyRule
+	static final class SupplyRule
 	{
 		private final String category;
 		private final String reason;
@@ -432,6 +670,9 @@ class SmartSupplyAdvisor
 			this.displayFallback = displayFallback;
 			this.preferredNames = preferredNames;
 		}
+
+		String getCategory() { return category; }
+		List<String> getPreferredNames() { return preferredNames; }
 	}
 
 	private static final class OwnedItem
@@ -439,12 +680,14 @@ class SmartSupplyAdvisor
 		private final int itemId;
 		private final int canonicalItemId;
 		private final String name;
+		private final int quantity;
 
-		private OwnedItem(int itemId, int canonicalItemId, String name)
+		private OwnedItem(int itemId, int canonicalItemId, String name, int quantity)
 		{
 			this.itemId = itemId;
 			this.canonicalItemId = canonicalItemId;
 			this.name = name;
+			this.quantity = quantity;
 		}
 	}
 }

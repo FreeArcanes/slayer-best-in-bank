@@ -24,7 +24,7 @@ import java.util.Set;
  */
 final class TaskCombatCatalog
 {
-	private static final Map<String, Rule> RULES = new LinkedHashMap<>();
+	private static final AliasCatalog<Rule> RULES = new AliasCatalog<>(TaskCombatCatalog::normalize);
 
 	static
 	{
@@ -33,7 +33,10 @@ final class TaskCombatCatalog
 		// assignment added there must be explicitly visible to coverage tests/docs.
 		for (java.util.List<String> assignments : SlayerMasterCatalog.allAssignments().values())
 		{
-			for (String task : assignments) RULES.putIfAbsent(normalize(task), Rule.generic());
+			for (String task : assignments)
+			{
+				RULES.register(Rule.generic(), AliasCatalog.CollisionPolicy.KEEP_FIRST, task);
+			}
 		}
 
 		// Undead / spectral targets. Salve interactions are not forced because the
@@ -258,7 +261,7 @@ final class TaskCombatCatalog
 
 	private static Rule contextualRule(String taskName, String assignedLocation)
 	{
-		Rule base = RULES.get(normalize(taskName));
+		Rule base = RULES.get(taskName);
 		if (base == null) base = Rule.generic();
 
 		String task = normalize(taskName);
@@ -290,48 +293,48 @@ final class TaskCombatCatalog
 
 	static boolean isAudited(String taskName)
 	{
-		return RULES.containsKey(normalize(taskName));
+		return RULES.contains(taskName);
 	}
 
 	static WeaponRule ruleFor(String taskName)
 	{
-		Rule rule = RULES.get(normalize(taskName));
+		Rule rule = RULES.get(taskName);
 		return rule == null ? WeaponRule.ANY : rule.weaponRule;
 	}
 
 	static AttackType meleeAttackTypeFor(String taskName)
 	{
-		Rule rule = RULES.get(normalize(taskName));
+		Rule rule = RULES.get(taskName);
 		return rule == null ? AttackType.BALANCED : rule.attackType;
 	}
 
 	static Set<TargetTrait> traitsFor(String taskName)
 	{
-		Rule rule = RULES.get(normalize(taskName));
+		Rule rule = RULES.get(taskName);
 		return rule == null ? Collections.emptySet() : rule.targetTraits;
 	}
 
 	static ElementalWeakness elementalWeaknessFor(String taskName)
 	{
-		Rule rule = RULES.get(normalize(taskName));
+		Rule rule = RULES.get(taskName);
 		return rule == null ? ElementalWeakness.NONE : rule.elementalWeakness;
 	}
 
 	static int elementalWeaknessPercentFor(String taskName)
 	{
-		Rule rule = RULES.get(normalize(taskName));
+		Rule rule = RULES.get(taskName);
 		return rule == null ? 0 : rule.elementalWeaknessPercent;
 	}
 
 	static String noteFor(String taskName)
 	{
-		Rule rule = RULES.get(normalize(taskName));
+		Rule rule = RULES.get(taskName);
 		return rule == null ? Rule.GENERIC_NOTE : rule.note;
 	}
 
 	static Set<String> auditedTasks()
 	{
-		return Collections.unmodifiableSet(new LinkedHashSet<>(RULES.keySet()));
+		return Collections.unmodifiableSet(new LinkedHashSet<>(RULES.snapshot().keySet()));
 	}
 
 	private static GearStrategy signatureMethod(String name, CombatStyle style, Rule rule, String weapon)
@@ -441,13 +444,16 @@ final class TaskCombatCatalog
 
 	private static void register(Rule rule, String... taskNames)
 	{
-		for (String task : taskNames) RULES.put(normalize(task), rule);
+		RULES.register(rule, AliasCatalog.CollisionPolicy.REPLACE, taskNames);
 	}
 
 	private static void alias(String alias, String sourceTask)
 	{
-		Rule source = RULES.get(normalize(sourceTask));
-		if (source != null) RULES.put(normalize(alias), source);
+		Rule source = RULES.get(sourceTask);
+		if (source != null)
+		{
+			RULES.register(source, AliasCatalog.CollisionPolicy.REPLACE, alias);
+		}
 	}
 
 	private static String normalize(String value)
@@ -455,6 +461,16 @@ final class TaskCombatCatalog
 		if (value == null) return "";
 		String normalized = value.trim().toLowerCase(Locale.ENGLISH).replaceAll("[^a-z0-9]+", " ").trim();
 		return normalized.startsWith("the ") ? normalized.substring(4) : normalized;
+	}
+
+	static Map<String, WeaponRule> weaponRulesSnapshot()
+	{
+		Map<String, WeaponRule> snapshot = new LinkedHashMap<>();
+		for (Map.Entry<String, Rule> entry : RULES.snapshot().entrySet())
+		{
+			snapshot.put(entry.getKey(), entry.getValue().weaponRule);
+		}
+		return Collections.unmodifiableMap(snapshot);
 	}
 
 	private static final class Rule

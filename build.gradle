@@ -35,6 +35,10 @@ tasks.withType(JavaCompile).configureEach {
 	options.release.set(11)
 }
 
+tasks.named('compileJava', JavaCompile) {
+	options.compilerArgs.addAll(['-Xlint:deprecation', '-Werror'])
+}
+
 tasks.register('run', JavaExec) {
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = pluginMainClass
