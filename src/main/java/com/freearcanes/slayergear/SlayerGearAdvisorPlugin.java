@@ -37,7 +37,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.AsyncBufferedImage;
 
 @PluginDescriptor(
-	name = "Slayer Best-in-Bank",
+	name = "Slayer Best in Bank",
 	description = "Builds stable Slayer loadouts from gear and supplies you actually own",
 	tags = {"slayer", "gear", "bank", "equipment", "loadout", "overlay"}
 )
@@ -102,6 +102,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private boolean highlightsActive;
 	private boolean bankFilterActive;
 	private boolean recalculateQueued;
+	private boolean bankFilterTransitionQueued;
+	private boolean bankViewRefreshQueued;
 	private String bankSearchTextBeforeFilter = "";
 
 	@Provides
@@ -120,7 +122,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 
 		AsyncBufferedImage icon = itemManager.getImage(ItemID.SLAYER_HELM);
 		final NavigationButton nav = NavigationButton.builder()
-			.tooltip("Slayer Best-in-Bank")
+			.tooltip("Slayer Best in Bank")
 			.icon(icon)
 			.priority(6)
 			.panel(panel)
@@ -174,6 +176,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		lastTaskLocation = "";
 		lastTaskAmount = -1;
 		recalculateQueued = false;
+		bankFilterTransitionQueued = false;
+		bankViewRefreshQueued = false;
 		recommendations = GearRecommendations.noTask();
 		panel.display(recommendations);
 	}
@@ -193,6 +197,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			lastTaskLocation = "";
 			lastTaskAmount = -1;
 			recalculateQueued = false;
+			bankFilterTransitionQueued = false;
+			bankViewRefreshQueued = false;
 			recommendations = GearRecommendations.noTask();
 			prepReminderOverlay.hide();
 			panel.display(recommendations);
@@ -286,7 +292,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		Widget title = client.getWidget(InterfaceID.Bankmain.TITLE);
 		if (title != null)
 		{
-			title.setText("Slayer Best-in-Bank");
+			title.setText("Slayer Best in Bank");
 		}
 	}
 
@@ -304,6 +310,10 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			{
 				int[] intStack = client.getIntStack();
 				int size = client.getIntStackSize();
+				if (intStack == null || size < 2)
+				{
+					break;
+				}
 				int itemId = intStack[size - 1];
 				int canonicalItemId = itemId < 0 ? itemId : itemManager.canonicalize(itemId);
 				boolean placeholder = itemId >= 0
@@ -317,21 +327,33 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			case "bankBuildTab":
 			{
 				int[] intStack = client.getIntStack();
-				intStack[client.getIntStackSize() - 1] = 1;
+				int size = client.getIntStackSize();
+				if (intStack != null && size >= 1)
+				{
+					intStack[size - 1] = 1;
+				}
 				break;
 			}
 			case "setSearchBankInputText":
 			{
 				Object[] objectStack = client.getObjectStack();
-				objectStack[client.getObjectStackSize() - 1] =
-					"Best-in-Bank: " + recommendations.getTaskName();
+				int size = client.getObjectStackSize();
+				if (objectStack != null && size >= 1)
+				{
+					objectStack[size - 1] =
+						"Best-in-Bank: " + recommendations.getTaskName();
+				}
 				break;
 			}
 			case "setSearchBankInputTextFound":
 			{
 				Object[] objectStack = client.getObjectStack();
-				objectStack[client.getObjectStackSize() - 1] =
-					"Tier 1 + supplies | Tier 2 | Tier 3";
+				int size = client.getObjectStackSize();
+				if (objectStack != null && size >= 1)
+				{
+					objectStack[size - 1] =
+						"Tier 1 + supplies | Tier 2 | Tier 3";
+				}
 				break;
 			}
 			default:
@@ -353,12 +375,17 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			panel.updateHighlights(highlightsActive);
 		}
 		else if ("alternativesPerSlot".equals(event.getKey())
+			|| "gearPriority".equals(event.getKey())
 			|| "pinnedItems".equals(event.getKey())
 			|| "excludedItems".equals(event.getKey())
 			|| "lowRiskMode".equals(event.getKey())
 			|| "riskCapThousands".equals(event.getKey()))
 		{
-			recalculate();
+			// RuneLite configuration changes can originate outside the client thread.
+			// Re-score on the client thread, then queue the bank rebuild after the
+			// current bank script has finished. This makes Balanced <-> Prayer First
+			// update immediately without closing/reopening the bank.
+			clientThread.invokeLater(() -> recalculate());
 		}
 	}
 
@@ -372,29 +399,63 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		panel.updateHighlights(highlightsActive);
 	}
 
-	void toggleBankFilter()
+	void queueToggleBankFilter()
 	{
-		if (bankFilterActive)
-		{
-			closeBankFilter();
-			return;
-		}
-		if (recommendations.getState() != GearRecommendations.State.READY)
+		// The button listener runs from a game widget callback. Rebuilding the bank
+		// synchronously from that callback can invalidate the widget currently being
+		// clicked, especially while a bank-tab rebuild is also in flight.
+		if (bankFilterTransitionQueued)
 		{
 			return;
 		}
 
-		bankSearchTextBeforeFilter = client.getVarcStrValue(VarClientID.MESLAYERINPUT);
-		bankFilterActive = true;
-		tieredBankLayout.activate();
-		bankSearch.initSearch();
+		bankFilterTransitionQueued = true;
 		clientThread.invokeLater(() ->
 		{
-			client.setVarcStrValue(
-				VarClientID.MESLAYERINPUT,
-				"Tier 1 + supplies | Tier 2 | Tier 3");
-			bankSearch.layoutBank();
-			bankButton.update();
+			if (bankFilterActive)
+			{
+				closeBankFilter();
+				bankFilterTransitionQueued = false;
+				bankButton.update();
+				return;
+			}
+
+			if (recommendations.getState() != GearRecommendations.State.READY
+				|| client.getWidget(InterfaceID.Bankmain.ITEMS) == null)
+			{
+				bankFilterTransitionQueued = false;
+				bankButton.update();
+				return;
+			}
+
+			bankSearchTextBeforeFilter = client.getVarcStrValue(VarClientID.MESLAYERINPUT);
+			bankFilterActive = true;
+			tieredBankLayout.activate();
+			bankSearch.initSearch();
+
+			// One more client-cycle boundary lets initSearch/reset and any tab script
+			// settle before we lay out the custom Best-in-Bank view.
+			clientThread.invokeLater(() ->
+			{
+				try
+				{
+					if (!bankFilterActive
+						|| client.getWidget(InterfaceID.Bankmain.ITEMS) == null)
+					{
+						return;
+					}
+
+					client.setVarcStrValue(
+						VarClientID.MESLAYERINPUT,
+						"Tier 1 + supplies | Tier 2 | Tier 3");
+					bankSearch.layoutBank();
+				}
+				finally
+				{
+					bankFilterTransitionQueued = false;
+					bankButton.update();
+				}
+			});
 		});
 	}
 
@@ -505,6 +566,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			client.getVarbitValue(VarbitID.KOUREND_DIARY_ELITE_COMPLETE) == 1,
 			client.getVarbitValue(VarbitID.SPELLBOOK) == 1,
 			strategyOverride,
+			config.gearPriority(),
 			config.pinnedItems(),
 			config.excludedItems(),
 			config.lowRiskMode(),
@@ -512,8 +574,40 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		panel.display(recommendations);
 		if (bankFilterActive && rebuildBankView)
 		{
-			bankSearch.layoutBank();
+			queueBankViewRefresh();
 		}
+	}
+
+	private void queueBankViewRefresh()
+	{
+		if (!bankFilterActive || bankViewRefreshQueued)
+		{
+			return;
+		}
+
+		bankViewRefreshQueued = true;
+		clientThread.invokeLater(() ->
+		{
+			try
+			{
+				if (!bankFilterActive
+					|| recommendations.getState() != GearRecommendations.State.READY
+					|| client.getWidget(InterfaceID.Bankmain.ITEMS) == null)
+				{
+					return;
+				}
+
+				// Re-run the bank container script only after the triggering config/UI
+				// event has completed. ScriptPostFired will apply TieredBankLayout
+				// using the newly-scored recommendations.
+				bankSearch.layoutBank();
+			}
+			finally
+			{
+				bankViewRefreshQueued = false;
+				bankButton.update();
+			}
+		});
 	}
 
 	private Item[] snapshotContainer(int containerId)
@@ -554,6 +648,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		}
 
 		bankFilterActive = false;
+		bankViewRefreshQueued = false;
 		tieredBankLayout.clear();
 		if (client.getWidget(InterfaceID.Bankmain.ITEMS) != null)
 		{

@@ -1,4 +1,4 @@
-# Slayer Best-in-Bank 1.0.0-beta.3 — Cannon Task Intelligence
+# Slayer Best in Bank 1.0.0-beta.3 — Cannon Task Intelligence
 
 Beta 3 expands Best-in-Bank's strategy engine with a location-aware dwarf multicannon catalog and promotes the full cannon into the Tier 1 trip loadout whenever a cannon method is selected.
 

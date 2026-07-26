@@ -2,7 +2,9 @@ package com.freearcanes.slayergear;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 final class GearStrategy
 {
@@ -12,6 +14,9 @@ final class GearStrategy
 	private final CombatStyle combatStyle;
 	private final AttackType attackType;
 	private final WeaponRule weaponRule;
+	private final Set<TargetTrait> targetTraits;
+	private final ElementalWeakness elementalWeakness;
+	private final int elementalWeaknessPercent;
 	private final int minimumMagic;
 	private final int minimumRanged;
 	private final String requiredWeapon;
@@ -29,6 +34,10 @@ final class GearStrategy
 		this.combatStyle = builder.combatStyle;
 		this.attackType = builder.attackType;
 		this.weaponRule = builder.weaponRule;
+		this.targetTraits = Collections.unmodifiableSet(builder.targetTraits.isEmpty()
+			? EnumSet.noneOf(TargetTrait.class) : EnumSet.copyOf(builder.targetTraits));
+		this.elementalWeakness = builder.elementalWeakness;
+		this.elementalWeaknessPercent = builder.elementalWeaknessPercent;
 		this.minimumMagic = builder.minimumMagic;
 		this.minimumRanged = builder.minimumRanged;
 		this.requiredWeapon = builder.requiredWeapon;
@@ -50,6 +59,9 @@ final class GearStrategy
 	CombatStyle getCombatStyle() { return combatStyle; }
 	AttackType getAttackType() { return attackType; }
 	WeaponRule getWeaponRule() { return weaponRule; }
+	Set<TargetTrait> getTargetTraits() { return targetTraits; }
+	ElementalWeakness getElementalWeakness() { return elementalWeakness; }
+	int getElementalWeaknessPercent() { return elementalWeaknessPercent; }
 	int getMinimumMagic() { return minimumMagic; }
 	int getMinimumRanged() { return minimumRanged; }
 	String getRequiredWeapon() { return requiredWeapon; }
@@ -67,6 +79,9 @@ final class GearStrategy
 		private CombatStyle combatStyle = CombatStyle.MELEE;
 		private AttackType attackType = AttackType.BALANCED;
 		private WeaponRule weaponRule = WeaponRule.ANY;
+		private final EnumSet<TargetTrait> targetTraits = EnumSet.noneOf(TargetTrait.class);
+		private ElementalWeakness elementalWeakness = ElementalWeakness.NONE;
+		private int elementalWeaknessPercent;
 		private int minimumMagic = 1;
 		private int minimumRanged = 1;
 		private String requiredWeapon;
@@ -82,6 +97,14 @@ final class GearStrategy
 		Builder combatStyle(CombatStyle value) { this.combatStyle = value; return this; }
 		Builder attackType(AttackType value) { this.attackType = value; return this; }
 		Builder weaponRule(WeaponRule value) { this.weaponRule = value; return this; }
+		Builder targetTrait(TargetTrait value) { if (value != null) targetTraits.add(value); return this; }
+		Builder targetTraits(Iterable<TargetTrait> values) { if (values != null) for (TargetTrait value : values) if (value != null) targetTraits.add(value); return this; }
+		Builder elementalWeakness(ElementalWeakness value, int percent)
+		{
+			this.elementalWeakness = value == null ? ElementalWeakness.NONE : value;
+			this.elementalWeaknessPercent = Math.max(0, percent);
+			return this;
+		}
 		Builder minimumMagic(int value) { this.minimumMagic = value; return this; }
 		Builder minimumRanged(int value) { this.minimumRanged = value; return this; }
 		Builder requiredWeapon(String value) { this.requiredWeapon = value; return this; }

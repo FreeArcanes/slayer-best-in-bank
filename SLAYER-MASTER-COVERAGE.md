@@ -1,6 +1,6 @@
 # Slayer Master Coverage
 
-Embedded assignment catalog for **Slayer Best-in-Bank 1.0.0-beta.2**.
+Embedded assignment catalog for **Slayer Best in Bank 1.0.0-beta.2**.
 
 The catalog is used for task context in the panel; specialized task profiles still provide the strategy/safety logic, and safe generic profiles cover recognized tasks without a specialized profile.
 
@@ -51,4 +51,3 @@ Aberrant spectres, Abyssal demons, Ankou, Aquanites, Araxytes, Aviansies, Basili
 **37 assignments/categories**
 
 Abyssal demons, Ankou, Aviansies, Bandits, Bears, Black demons, Black dragons, Black knights, Bloodveld, Bosses, Chaos druids, Dark warriors, Dust devils, Earth warriors, Ents, Fire giants, Greater demons, Green dragons, Hellhounds, Hill giants, Ice giants, Ice warriors, Jellies, Lava Dragons, Lesser demons, Magic axes, Mammoths, Moss giants, Nechryael, Pirates, Revenants, Rogues, Scorpions, Skeletons, Spiders, Spiritual creatures, Zombies
-

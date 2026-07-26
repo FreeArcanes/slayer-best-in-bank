@@ -55,10 +55,22 @@ public interface SlayerGearAdvisorConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "gearPriority",
+		name = "Gear priority",
+		description = "Balanced keeps normal DPS-oriented scoring. Prayer First strongly favors owned Prayer-bonus gear while preserving mandatory Slayer mechanics and target-specific weapons.",
+		position = 1,
+		section = preferenceSection
+	)
+	default GearPriority gearPriority()
+	{
+		return GearPriority.BALANCED;
+	}
+
+	@ConfigItem(
 		keyName = "pinnedItems",
 		name = "Always prefer",
 		description = "Comma-separated item-name fragments to strongly prefer when valid for the selected strategy.",
-		position = 1,
+		position = 2,
 		section = preferenceSection
 	)
 	default String pinnedItems() { return ""; }
@@ -67,7 +79,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "excludedItems",
 		name = "Never recommend",
 		description = "Comma-separated item-name fragments the solver must not recommend.",
-		position = 2,
+		position = 3,
 		section = preferenceSection
 	)
 	default String excludedItems() { return ""; }
@@ -76,7 +88,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "lowRiskMode",
 		name = "Low-risk mode",
 		description = "Skip expensive tradeable gear unless it is explicitly pinned. Useful for Wilderness Slayer.",
-		position = 3,
+		position = 4,
 		section = preferenceSection
 	)
 	default boolean lowRiskMode() { return false; }
@@ -86,7 +98,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "riskCapThousands",
 		name = "Risk cap (k GP)",
 		description = "Maximum GE value per tradeable equipment item while Low-risk mode is enabled.",
-		position = 4,
+		position = 5,
 		section = preferenceSection
 	)
 	default int riskCapThousands() { return 500; }

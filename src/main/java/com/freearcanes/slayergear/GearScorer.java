@@ -39,7 +39,7 @@ class GearScorer
 
 	GearRecommendations score(String taskName, int taskAmount, SlayerTaskProfile profile,
 		Item[] gearPool, Item[] bankItems, Item[] packedItems, int alternativesPerSlot,
-		int magicLevel, int rangedLevel, boolean kourendEliteComplete, boolean ancientSpellbookActive, String preferredStrategy, String pinnedItems, String excludedItems, boolean lowRiskMode, int riskCapGp)
+		int magicLevel, int rangedLevel, boolean kourendEliteComplete, boolean ancientSpellbookActive, String preferredStrategy, GearPriority gearPriority, String pinnedItems, String excludedItems, boolean lowRiskMode, int riskCapGp)
 	{
 		Set<Integer> bankCanonical = canonicalIds(bankItems);
 		Set<Integer> packedCanonical = canonicalIds(packedItems);
@@ -54,7 +54,7 @@ class GearScorer
 		Set<String> excluded = parsePreferenceTokens(excludedItems);
 		List<GearRequirement> requirements = TaskSafetyRules.gearRequirements(profile.getKey(), selected, kourendEliteComplete);
 		Map<EquipmentInventorySlot, List<BankEquipment>> candidates = buildCandidates(
-			equipment, selected, requirements, pinned, excluded, lowRiskMode, riskCapGp);
+			equipment, selected, requirements, gearPriority, pinned, excluded, lowRiskMode, riskCapGp);
 
 		int tiersWanted = Math.max(1, Math.min(3, alternativesPerSlot));
 		List<LoadoutTier> loadoutTiers = new ArrayList<>();
@@ -110,7 +110,7 @@ class GearScorer
 	}
 
 	private Map<EquipmentInventorySlot, List<BankEquipment>> buildCandidates(List<BankEquipment> equipment,
-		GearStrategy strategy, List<GearRequirement> requirements, Set<String> pinned, Set<String> excluded,
+		GearStrategy strategy, List<GearRequirement> requirements, GearPriority gearPriority, Set<String> pinned, Set<String> excluded,
 		boolean lowRiskMode, int riskCapGp)
 	{
 		Map<EquipmentInventorySlot, List<BankEquipment>> result = new EnumMap<>(EquipmentInventorySlot.class);
@@ -134,7 +134,7 @@ class GearScorer
 				if (req.restricts(item.slot) && !req.matchesForSlot(item.slot, item.name)) { blocked = true; break; }
 			}
 			if (blocked) continue;
-			item.score = scoreStats(strategy, item.name, item.slot, item.stats);
+			item.score = scoreStats(strategy, item.name, item.slot, item.stats, gearPriority);
 			if (explicitlyPinned) item.score += 5_000;
 			result.computeIfAbsent(item.slot, ignored -> new ArrayList<>()).add(item);
 		}
@@ -318,18 +318,98 @@ class GearScorer
 
 	static double scoreStats(GearStrategy strategy, String itemName, EquipmentInventorySlot slot, ItemEquipmentStats stats)
 	{
-		double score;
+		return scoreStats(strategy, itemName, slot, stats, GearPriority.BALANCED);
+	}
+
+	static double scoreStats(GearStrategy strategy, String itemName, EquipmentInventorySlot slot,
+		ItemEquipmentStats stats, GearPriority gearPriority)
+	{
+		double damage;
+		double accuracy;
+		boolean prayerFirst = gearPriority == GearPriority.PRAYER_FIRST;
+		double prayerWeight = prayerFirst
+			? (slot == EquipmentInventorySlot.WEAPON ? 50.0 : 200.0)
+			: strategy.getPrayerWeight();
+		double utility = stats.getPrayer() * prayerWeight
+			+ stats.getDmagic() * strategy.getMagicDefenceWeight();
+
 		switch (strategy.getCombatStyle())
 		{
-			case MAGIC: score = stats.getMdmg()*25.0 + stats.getAmagic()*.28 + stats.getPrayer()*strategy.getPrayerWeight() + stats.getDmagic()*strategy.getMagicDefenceWeight(); break;
-			case RANGED: score = stats.getRstr()*5.0 + stats.getArange()*.32 + stats.getPrayer()*strategy.getPrayerWeight() + stats.getDmagic()*strategy.getMagicDefenceWeight(); break;
-			default: score = stats.getStr()*5.0 + attackBonus(strategy.getAttackType(), stats)*.34 + stats.getPrayer()*strategy.getPrayerWeight() + stats.getDmagic()*strategy.getMagicDefenceWeight();
+			case MAGIC:
+				damage = stats.getMdmg() * 25.0;
+				accuracy = stats.getAmagic() * .28;
+				break;
+			case RANGED:
+				damage = stats.getRstr() * 5.0;
+				accuracy = stats.getArange() * .32;
+				break;
+			default:
+				damage = stats.getStr() * 5.0;
+				accuracy = attackBonus(strategy.getAttackType(), stats) * .34;
+				break;
 		}
-		if (slot == EquipmentInventorySlot.WEAPON && stats.getAspeed() > 0) score += Math.max(0, 7-stats.getAspeed())*8.0;
+
+		if (slot == EquipmentInventorySlot.WEAPON)
+		{
+			damage *= WeaponCombatRules.damageMultiplier(strategy, itemName);
+			accuracy *= WeaponCombatRules.accuracyMultiplier(strategy, itemName);
+			damage += WeaponCombatRules.flatDamageScore(strategy, itemName);
+
+			// Attack speed is part of real sustained DPS. Scale the offensive
+			// components around a standard 4-tick cycle; utility stats are not
+			// speed-scaled.
+			if (stats.getAspeed() > 0)
+			{
+				double speedScale = 4.0 / stats.getAspeed();
+				damage *= speedScale;
+				accuracy *= speedScale;
+			}
+		}
+
+		// Prayer First is primarily a sustain preset for armor/accessories.
+		// Keep a portion of offensive value so ties do not become arbitrary.
+		// Weapons keep their normal offensive model because target-specific
+		// weapon passives and valid attack styles must remain authoritative.
+		if (prayerFirst && slot != EquipmentInventorySlot.WEAPON)
+		{
+			damage *= 0.25;
+			accuracy *= 0.10;
+		}
+
+		double score = damage + accuracy + utility;
 		String n = NameMatcher.normalize(itemName);
+
+		// A real target-specific weapon effect always outranks a generic
+		// prayer-oriented weapon choice in Prayer First mode.
+		if (prayerFirst
+			&& slot == EquipmentInventorySlot.WEAPON
+			&& WeaponCombatRules.hasTargetSpecificEffect(strategy, n))
+		{
+			score += 2_500;
+		}
+
 		if (slot == EquipmentInventorySlot.HEAD && (n.contains("slayer helm") || n.startsWith("black mask"))
-			&& (strategy.getCombatStyle() == CombatStyle.MELEE || n.contains("(i)") || n.contains("imbued"))) score += 1200;
-		for (int x=0; x<strategy.getPreferredItems().size(); x++) if (n.contains(NameMatcher.normalize(strategy.getPreferredItems().get(x)))) { score += Math.max(250, 1000-x*125); break; }
+			&& (strategy.getCombatStyle() == CombatStyle.MELEE || n.contains("(i)") || n.contains("imbued")))
+		{
+			score += 1200;
+		}
+
+		// Pearl enchanted bolts have a target-specific fiery proc. Keep this
+		// bounded because the proc is probabilistic rather than an every-hit
+		// multiplier.
+		if (slot == EquipmentInventorySlot.AMMO && WeaponCombatRules.isFieryPearlAmmo(strategy, itemName))
+		{
+			score += 35;
+		}
+
+		for (int x = 0; x < strategy.getPreferredItems().size(); x++)
+		{
+			if (n.contains(NameMatcher.normalize(strategy.getPreferredItems().get(x))))
+			{
+				score += Math.max(250, 1000 - x * 125);
+				break;
+			}
+		}
 		return score;
 	}
 
@@ -375,13 +455,35 @@ class GearScorer
 		return s.getRequiredWeapon()==null || names.stream().anyMatch(n -> NameMatcher.matchesAnyToken(n, s.getRequiredWeapon()));
 	}
 
-	private static boolean allowed(BankEquipment item, GearStrategy strategy)
+	static boolean allowed(BankEquipment item, GearStrategy strategy)
 	{
 		if (item.slot != EquipmentInventorySlot.WEAPON) return true;
-		String n=NameMatcher.normalize(item.name);
+		String n = NameMatcher.normalize(item.name);
+		if (!WeaponCombatRules.usableOnTarget(strategy, n)) return false;
 		if (!matchesCombatStyle(strategy.getCombatStyle(), n, item.stats)) return false;
-		if (strategy.getWeaponRule()==WeaponRule.LEAF_BLADED && !(n.contains("leaf-bladed")||n.contains("slayer's staff"))) return false;
-		return strategy.getWeaponRule()!=WeaponRule.VAMPYRE || n.contains("blisterwood")||n.contains("ivandis")||n.contains("silverlight")||n.contains("darklight")||n.contains("wolfbane");
+
+		// A strategy that names a required weapon (for example Venator bow) is a
+		// real loadout constraint, not merely an eligibility check.
+		if (strategy.getRequiredWeapon() != null
+			&& !NameMatcher.matchesAnyToken(n, strategy.getRequiredWeapon())) return false;
+
+		if (strategy.getCombatStyle() == CombatStyle.MELEE
+			&& !WeaponCombatRules.supportsAttackType(n, strategy.getAttackType())
+			&& !WeaponCombatRules.hasTargetSpecificEffect(strategy, n)) return false;
+
+		if (strategy.getWeaponRule() == WeaponRule.LEAF_BLADED)
+		{
+			if (strategy.getCombatStyle() == CombatStyle.MELEE && !n.contains("leaf-bladed")) return false;
+			if (strategy.getCombatStyle() == CombatStyle.MAGIC && !n.contains("slayer's staff")) return false;
+		}
+
+		if (strategy.getWeaponRule() == WeaponRule.VAMPYRE)
+		{
+			return n.contains("sunspear") || n.contains("hallowed flail") || n.contains("blisterwood")
+				|| n.contains("ivandis") || n.contains("rod of ivandis") || n.contains("silverlight")
+				|| n.contains("darklight") || n.contains("arclight") || n.contains("emberlight");
+		}
+		return true;
 	}
 
 	private static boolean matchesCombatStyle(CombatStyle style,String n,ItemEquipmentStats s)
@@ -414,7 +516,16 @@ class GearScorer
 
 	private static String explain(GearStrategy strategy,String name,EquipmentInventorySlot slot,ItemEquipmentStats stats)
 	{
-		List<String> r=new ArrayList<>();
+		List<String> r = new ArrayList<>();
+		if (slot == EquipmentInventorySlot.WEAPON)
+		{
+			String affinity = WeaponCombatRules.affinityReason(strategy, name);
+			if (affinity != null) r.add(affinity);
+		}
+		else if (slot == EquipmentInventorySlot.AMMO && WeaponCombatRules.isFieryPearlAmmo(strategy, name))
+		{
+			r.add("Fiery-target Sea Curse bonus");
+		}
 		for(String p:strategy.getPreferredItems())if(NameMatcher.normalize(name).contains(NameMatcher.normalize(p))){r.add("task-method priority");break;}
 		switch(strategy.getCombatStyle()){case MAGIC:add(r,stats.getMdmg(),"% magic dmg");add(r,stats.getAmagic(),"magic");break;case RANGED:add(r,stats.getRstr(),"ranged Str");add(r,stats.getArange(),"ranged");break;default:add(r,stats.getStr(),"melee Str");add(r,attackBonus(strategy.getAttackType(),stats),strategy.getAttackType().name().toLowerCase(Locale.ENGLISH));}
 		add(r,stats.getPrayer(),"prayer"); if(slot==EquipmentInventorySlot.WEAPON&&stats.getAspeed()>0)r.add(stats.getAspeed()+"-tick speed"); if(r.isEmpty())r.add("best weighted stats available"); return String.join(", ",r);

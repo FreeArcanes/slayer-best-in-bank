@@ -12,10 +12,12 @@ final class TaskProfiles
 	static
 	{
 		register(profile("aberrant-spectres", "Aberrant spectres",
-				"Cannon-assisted melee is the practical default; magic defence reduces their spell damage.",
-				"A Slayer helmet or nose peg is required.",
+				"Air Magic exploits their elemental weakness; cannon-assisted combat remains a fast route in cannonable locations.",
+				"A Slayer helmet or nose peg is required; Salve and Slayer-helmet damage bonuses do not stack.",
+				elementalMagic("Air Magic", "Slayer Tower / Stronghold Slayer Cave",
+					"Air spells exploit the current 50% elemental weakness."),
 				melee("Cannon + melee", "Stronghold Slayer Cave / Deepfin Mine", AttackType.SLASH,
-					"Fastest owned melee setup while a cannon supplies extra hits.", "slayer helm", "nose peg")),
+					"Fast owned melee setup while a cannon supplies extra hits.", "slayer helm", "nose peg")),
 			"aberrant spectres", "aberrant spectre");
 
 		register(profile("abyssal-demons", "Abyssal demons",
@@ -145,10 +147,12 @@ final class TaskProfiles
 			"dark beasts", "dark beast");
 
 		register(profile("drakes", "Drakes",
-				"Dragonbane stab gear is prioritized for this draconic task.",
+				"Drakes are draconic and have a 50% Water weakness; dragonbane and Water Magic are both surfaced.",
 				"Boots of stone or a heat-protecting upgrade may be required in Karuulm.",
 				dragonMelee("Dragonbane stab", "Karuulm Slayer Dungeon"),
-				ranged("Ranged fallback", "Karuulm Slayer Dungeon", "Safer-distance alternative")),
+				dragonRanged("Dragonbane Ranged", "Karuulm Slayer Dungeon"),
+				dragonMagic("Water Magic / dragonbane", "Karuulm Slayer Dungeon",
+					"Water spells gain the elemental bonus; Dragon hunter wand gains its draconic bonus.")),
 			"drakes", "drake");
 
 		register(profile("dust-devils", "Dust devils",
@@ -204,10 +208,16 @@ final class TaskProfiles
 			"frost dragons", "frost dragon");
 
 		register(profile("gargoyles", "Gargoyles",
-				"Crush melee is prioritized.",
-				"Keep a rock hammer or rock thrownhammer available for finishing blows.",
-				melee("Crush melee", "Slayer Tower", AttackType.CRUSH,
-					"Targets their crush weakness", "rock hammer", "rock thrownhammer")),
+				"Crush melee is scored with Gargoyle-specific Golembane effects instead of raw sheet stats alone.",
+				"A Granite hammer doubles as the finishing hammer; otherwise keep a rock hammer or rock thrownhammer available.",
+				GearStrategy.builder()
+					.name("Golembane crush")
+					.location("Slayer Tower")
+					.rationale("Compares real Crush-capable weapons while applying Golembane accuracy/damage to Granite hammer.")
+					.combatStyle(CombatStyle.MELEE)
+					.attackType(AttackType.CRUSH)
+					.weaponRule(WeaponRule.GOLEMBANE)
+					.build()),
 			"gargoyles", "gargoyle");
 
 		register(profile("greater-demons", "Greater demons",
@@ -226,19 +236,30 @@ final class TaskProfiles
 			"gryphons", "gryphon", "the shellbane gryphon");
 
 		register(profile("hellhounds", "Hellhounds",
-				"Venator in the Catacombs is prioritized for normal-task XP; melee follows.",
+				"Venator is the multi-target option; Hellhounds are demonic and also have a Water elemental weakness.",
 				"Protect from Melee removes ordinary Hellhound damage.",
 				venator("Catacombs Venator", "Catacombs of Kourend",
 					"Multi-target, low-effort Slayer XP."),
-				melee("Melee / Cerberus", "Catacombs / Cerberus", AttackType.CRUSH,
-					"General fallback and boss-capable melee setup")),
+				demonMelee("Demonbane melee / Cerberus", "Catacombs / Cerberus",
+					"Demonbane weapons receive their target-specific bonus."),
+				elementalMagic("Water Magic", "Catacombs / Stronghold Slayer Cave",
+					"Standard-spellbook Water spells exploit the current elemental weakness.")),
 			"hellhounds", "hellhound", "cerberus");
 
 		register(profile("kalphites", "Kalphites",
 				"Cannon-assisted melee is the fast normal-task method.",
 				"Bring poison protection for stronger variants.",
-				melee("Cannon + Keris melee", "Kalphite Slayer Cave", AttackType.STAB,
-					"Keris weapons receive task-specific priority", "keris")),
+				GearStrategy.builder()
+					.name("Cannon + Keris melee")
+					.location("Kalphite Slayer Cave")
+					.rationale("Keris/partisan effects receive priority against Kalphites.")
+					.combatStyle(CombatStyle.MELEE)
+					.attackType(AttackType.STAB)
+					.weaponRule(WeaponRule.KALPHITE)
+					.preferredItem("keris partisan of breaching")
+					.preferredItem("keris partisan")
+					.preferredItem("keris")
+					.build()),
 			"kalphites", "kalphite");
 
 		register(profile("kurask", "Kurask",
@@ -288,8 +309,8 @@ final class TaskProfiles
 				"Protect from Melee while stacking Greater Nechryaels.",
 				ancients("Catacombs barrage", "Catacombs of Kourend",
 					"High-XP multi-target method."),
-				melee("Melee fallback", "Slayer Tower / Catacombs", AttackType.SLASH,
-					"Profitable single-target fallback")),
+				demonMelee("Demonbane melee fallback", "Slayer Tower / Catacombs",
+					"Demonbane single-target fallback when not using Ancient AoE.")),
 			"nechryael", "nechryaels");
 
 		register(profile("red-dragons", "Red dragons",
@@ -363,18 +384,15 @@ final class TaskProfiles
 			"tzkal-zuk", "zuk");
 
 		register(profile("vampyres", "Vampyres",
-				"Only valid vampyre weapons are considered.",
-				"Higher-tier Vyrewatch require an Ivandis or blisterwood weapon.",
+				"Vampyre-specific weapon effects are scored dynamically, including modern Sunspear, Hallowed and Blisterwood options.",
+				"Higher-tier Vampyres require an appropriate silver/blisterwood/hallowed weapon.",
 				GearStrategy.builder()
 					.name("Vampyre melee")
-					.location("Darkmeyer / Meiyerditch")
-					.rationale("Prioritizes blisterwood, then Ivandis and other valid silver weapons.")
+					.location("Darkmeyer / Meiyerditch / Vampyrium")
+					.rationale("Compares valid owned Vampyre weapons with their target-specific accuracy and damage effects.")
 					.combatStyle(CombatStyle.MELEE)
-					.attackType(AttackType.CRUSH)
+					.attackType(AttackType.BALANCED)
 					.weaponRule(WeaponRule.VAMPYRE)
-					.preferredItem("blisterwood flail")
-					.preferredItem("ivandis flail")
-					.preferredItem("silverlight")
 					.build()),
 			"vampyres", "vampyre", "vyrewatch");
 
@@ -386,17 +404,21 @@ final class TaskProfiles
 			"warped creatures", "warped creature");
 
 		register(profile("waterfiends", "Waterfiends",
-				"Crush melee targets their main weakness.",
+				"Crush melee and Earth Magic both target current weaknesses; Earth spells receive a 100% elemental bonus.",
 				"They attack with two styles; defensive balance may help.",
+				elementalMagic("Earth Magic", "Ancient Cavern",
+					"Earth spells exploit the current 100% elemental weakness."),
 				melee("Crush melee", "Ancient Cavern", AttackType.CRUSH,
 					"Crush accuracy receives priority")),
 			"waterfiends", "waterfiend");
 
 		register(profile("wyrms", "Wyrms",
-				"Dragonbane stab or Ranged is prioritized.",
+				"Wyrms are draconic and have a 50% Earth weakness; dragonbane and Earth Magic are both surfaced.",
 				"Boots of stone or a heat-protecting upgrade may be required in Karuulm.",
 				dragonMelee("Dragonbane stab", "Karuulm Slayer Dungeon"),
-				dragonRanged("Dragonbane Ranged", "Karuulm Slayer Dungeon")),
+				dragonRanged("Dragonbane Ranged", "Karuulm Slayer Dungeon"),
+				dragonMagic("Earth Magic / dragonbane", "Karuulm Slayer Dungeon",
+					"Earth spells gain the elemental bonus; Dragon hunter wand gains its draconic bonus.")),
 			"wyrms", "wyrm");
 
 
@@ -487,8 +509,7 @@ final class TaskProfiles
 				GearStrategy.builder().name("Leaf-bladed melee").location("Fremennik Slayer Dungeon")
 					.rationale("Rejects ordinary melee weapons that cannot damage Turoth.")
 					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
-					.weaponRule(WeaponRule.LEAF_BLADED).preferredItem("leaf-bladed battleaxe")
-					.preferredItem("leaf-bladed sword").preferredItem("leaf-bladed spear").build()),
+					.weaponRule(WeaponRule.LEAF_BLADED).build()),
 			"turoth", "turoths");
 
 		register(profile("wall-beasts", "Wall beasts",
@@ -517,11 +538,9 @@ final class TaskProfiles
 			return Optional.empty();
 		}
 		SlayerTaskProfile exact = PROFILES.get(normalize(taskName));
-		if (exact != null)
-		{
-			return Optional.of(withCannonOption(exact, taskName, assignedLocation));
-		}
-		return Optional.of(withCannonOption(generic(taskName), taskName, assignedLocation));
+		SlayerTaskProfile base = exact != null ? exact : generic(taskName);
+		base = withCannonOption(base, taskName, assignedLocation);
+		return Optional.of(TaskCombatCatalog.enrich(base, taskName, assignedLocation));
 	}
 
 	static int profileCount()
@@ -608,6 +627,8 @@ final class TaskProfiles
 			.combatStyle(source.getCombatStyle())
 			.attackType(source.getAttackType())
 			.weaponRule(source.getWeaponRule())
+			.targetTraits(source.getTargetTraits())
+			.elementalWeakness(source.getElementalWeakness(), source.getElementalWeaknessPercent())
 			.minimumMagic(source.getMinimumMagic())
 			.minimumRanged(source.getMinimumRanged())
 			.magicDefenceWeight(source.getMagicDefenceWeight())
@@ -651,6 +672,8 @@ final class TaskProfiles
 				.combatStyle(source.getCombatStyle())
 				.attackType(source.getAttackType())
 				.weaponRule(source.getWeaponRule())
+				.targetTraits(source.getTargetTraits())
+				.elementalWeakness(source.getElementalWeakness(), source.getElementalWeaknessPercent())
 				.minimumMagic(source.getMinimumMagic())
 				.minimumRanged(source.getMinimumRanged())
 				.magicDefenceWeight(source.getMagicDefenceWeight())
@@ -806,10 +829,7 @@ final class TaskProfiles
 			.rationale(rationale)
 			.combatStyle(CombatStyle.MELEE)
 			.attackType(AttackType.SLASH)
-			.preferredItem("emberlight")
-			.preferredItem("arclight")
-			.preferredItem("darklight")
-			.preferredItem("silverlight")
+			.weaponRule(WeaponRule.DEMONBANE)
 			.build();
 	}
 
@@ -821,8 +841,7 @@ final class TaskProfiles
 			.rationale("Prioritizes owned dragonbane weapons, then stab damage.")
 			.combatStyle(CombatStyle.MELEE)
 			.attackType(AttackType.STAB)
-			.preferredItem("dragon hunter lance")
-			.preferredItem("zamorakian hasta")
+			.weaponRule(WeaponRule.DRAGONBANE)
 			.build();
 	}
 
@@ -833,8 +852,18 @@ final class TaskProfiles
 			.location(location)
 			.rationale("Prioritizes owned ranged dragonbane weapons.")
 			.combatStyle(CombatStyle.RANGED)
-			.preferredItem("dragon hunter crossbow")
-			.preferredItem("twisted bow")
+			.weaponRule(WeaponRule.DRAGONBANE)
+			.build();
+	}
+
+	private static GearStrategy dragonMagic(String name, String location, String rationale)
+	{
+		return GearStrategy.builder()
+			.name(name)
+			.location(location)
+			.rationale(rationale)
+			.combatStyle(CombatStyle.MAGIC)
+			.weaponRule(WeaponRule.DRAGONBANE)
 			.build();
 	}
 

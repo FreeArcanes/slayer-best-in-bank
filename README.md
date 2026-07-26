@@ -1,22 +1,22 @@
-# Slayer Best-in-Bank
+# Slayer Best in Bank
 
 **Stop looking at theoretical BiS. Gear for the Slayer task with what you actually own.**
 
-Slayer Best-in-Bank is a task-aware RuneLite loadout assistant that reads your current Slayer task and the gear/supplies available to your account, then builds a coherent setup you can actually take out of the bank.
+Slayer Best in Bank is a task-aware RuneLite loadout assistant that reads your current Slayer task and the gear/supplies available to your account, then builds a coherent setup you can actually take out of the bank.
 
 It is designed around one question:
 
 > **What is the best Slayer setup I can make from my bank right now?**
 
 <p align="center">
-  <img src="images/01-side-panel.png" alt="Slayer Best-in-Bank side panel" width="330">
+  <img src="images/01-side-panel.png" alt="Slayer Best in Bank side panel" width="330">
 </p>
 
 > **Beta:** This repository contains the public beta being prepared for RuneLite Plugin Hub review. Recommendations are advisory only. The plugin never withdraws, equips, clicks, attacks, or performs gameplay actions for the player.
 
 ## Why Best-in-Bank?
 
-Traditional gear guides are useful when you own everything on the list. Slayer Best-in-Bank solves a different problem: it works from **your bank, your account, and your current task**.
+Traditional gear guides are useful when you own everything on the list. Slayer Best in Bank solves a different problem: it works from **your bank, your account, and your current task**.
 
 The plugin combines:
 
@@ -79,6 +79,37 @@ Best-in-Bank maintains a location-aware cannon catalog instead of assuming that 
 
 See [CANNON-TASK-COVERAGE.md](CANNON-TASK-COVERAGE.md) for the full embedded route catalog.
 
+## Monster-specific combat intelligence
+
+Best-in-Bank now evaluates **what the target is actually weak to**, not just which owned weapon has the largest raw item-sheet numbers. The beta.3 combat catalog explicitly audits all **116 unique Slayer-master assignment categories** embedded in the plugin.
+
+The solver can account for:
+
+- melee attack-type affinities such as **Crush / Stab / Slash** where the task has a stable preference;
+- **Golembane, Demonbane, Dragonbane, Kalphite/Scabarite, Leafbane, Ratbane, Shade, Vampyre, and Wilderness-weapon** effects;
+- current elemental weaknesses for Standard-spellbook alternatives;
+- target-locked weapons that should not be considered on unrelated monsters;
+- task families where a special passive is strong enough to remain valid even when the weapon does not use the generic preferred melee attack type.
+
+### Gargoyle example
+
+Gargoyles are a good example of why this matters. They favour **Crush**, have the **Golem** attribute, and Granite hammer receives its current **+30% accuracy and +30% damage Golembane effect** against them. Crystal halberd cannot use Crush and has no Gargoyle/Golem passive, so it can no longer win merely because its raw strength number is larger.
+
+The ranking order is effectively:
+
+1. task/method legality and mandatory constraints;
+2. monster-specific weapon effects and attack-type compatibility;
+3. real offensive stats and attack speed;
+4. utility / task preferences.
+
+This is still an owned-gear optimizer rather than a hardcoded gear guide. A stronger *valid* Crush weapon can beat Granite hammer; the plugin simply stops pretending an incompatible raw-stat weapon is automatically better.
+
+### Special-effect exceptions
+
+A preferred attack type is not treated as an absolute ban when the target has a real weapon passive. For example, Waterfiends normally favour Crush, but they are currently classified as Demons; an owned Emberlight can therefore remain a legitimate candidate because its Demonbane effect is real and substantial.
+
+See [COMBAT-TASK-COVERAGE.md](COMBAT-TASK-COVERAGE.md) for the complete 116-category combat audit.
+
 ## Tiered owned gear
 
 Best-in-Bank builds **coherent Tier 1 / Tier 2 / Tier 3 choices**, instead of scoring every equipment slot in isolation.
@@ -107,7 +138,7 @@ Best-in-Bank can:
 
 - highlight recommended equipment in the normal bank;
 - color-code Tier 1 / Tier 2 / Tier 3;
-- open a dedicated **Slayer Best-in-Bank** filtered bank view;
+- open a dedicated **Slayer Best in Bank** filtered bank view;
 - keep task supplies together with the primary setup;
 - track whether each recommendation is **BANK**, **PACKED**, **PACKED+**, or **MISSING**;
 - keep stackable consumables visible while more remain in the bank;
@@ -198,7 +229,7 @@ See [SLAYER-MASTER-COVERAGE.md](SLAYER-MASTER-COVERAGE.md) for the embedded task
 
 ## Configuration
 
-![Slayer Best-in-Bank settings](images/07-settings.png)
+![Slayer Best in Bank settings](images/07-settings.png)
 
 Available controls include:
 
@@ -258,4 +289,4 @@ Use the repository's **Bug report** issue template so task-specific edge cases c
 
 ## License
 
-Slayer Best-in-Bank is licensed under the BSD 2-Clause License. See [LICENSE](LICENSE).
+Slayer Best in Bank is licensed under the BSD 2-Clause License. See [LICENSE](LICENSE).

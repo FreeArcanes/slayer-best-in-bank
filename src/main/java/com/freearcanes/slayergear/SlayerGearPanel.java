@@ -38,7 +38,7 @@ import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 
 /**
- * Beta 2 panel refresh for Slayer Best-in-Bank.
+ * Beta 2 panel refresh for Slayer Best in Bank.
  *
  * The layout is intentionally compact and scan-first: current task, readiness,
  * Tier 1 gear, trip supplies, then optional detail. Backups and long task notes
@@ -169,7 +169,7 @@ class SlayerGearPanel extends PluginPanel
 
 		JPanel names = transparentPanel();
 		names.setLayout(new BoxLayout(names, BoxLayout.Y_AXIS));
-		JLabel title = new JLabel("Slayer Best-in-Bank");
+		JLabel title = new JLabel("Slayer Best in Bank");
 		title.setFont(FontManager.getRunescapeBoldFont().deriveFont(Font.BOLD, 15f));
 		title.setForeground(TEXT);
 		JLabel subtitle = new JLabel("BETA 2  •  owned loadout optimizer");

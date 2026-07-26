@@ -1,6 +1,6 @@
 # Cannon Task Coverage
 
-Embedded cannon-route catalog for **Slayer Best-in-Bank 1.0.0-beta.3**.
+Embedded cannon-route catalog for **Slayer Best in Bank 1.0.0-beta.3**.
 
 This catalog was audited against current Old School RuneScape Wiki Slayer task/location guidance on 2026-07-25. A task is included when it has a practical Slayer route where a dwarf multicannon can be used. **Cannonability is location-sensitive**: when RuneLite supplies a location-locked task, Best-in-Bank suppresses the cannon method if that assigned area is prohibited or does not match the verified route.
 

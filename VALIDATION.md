@@ -1,4 +1,4 @@
-# Slayer Best-in-Bank 1.0.0-beta.3 Validation
+# Slayer Best in Bank 1.0.0-beta.3 Validation
 
 Validation date: 2026-07-25
 

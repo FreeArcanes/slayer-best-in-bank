@@ -55,7 +55,10 @@ public class GearScorerTest
 		double ordinarySword = GearScorer.scoreStats(
 			strategy, "Ordinary sword", EquipmentInventorySlot.WEAPON, stats);
 
-		assertTrue(emberlight > arclight);
+		// Emberlight and Arclight share the same target multiplier; their real
+		// base stats decide between them. With identical synthetic stats both
+		// should receive the same demonbane uplift over an ordinary sword.
+		assertEquals(emberlight, arclight, 0.0001);
 		assertTrue(arclight > ordinarySword);
 	}
 

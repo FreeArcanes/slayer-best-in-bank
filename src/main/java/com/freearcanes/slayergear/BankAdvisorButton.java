@@ -46,12 +46,13 @@ class BankAdvisorButton
 		button.setYPositionMode(WidgetPositionMode.ABSOLUTE_TOP);
 		button.setOriginalX(98);
 		button.setOriginalY(6);
-		button.setName("Slayer Best-in-Bank");
+		button.setName("Slayer Best in Bank");
 		button.setHasListener(true);
 		button.setOnOpListener((JavaScriptCallback) event ->
 		{
-			plugin.toggleBankFilter();
-			update();
+			// Never rebuild/reset the bank search from inside the widget op callback.
+			// Queue the transition so the current bank script/click can finish first.
+			plugin.queueToggleBankFilter();
 		});
 		update();
 		button.revalidate();
@@ -65,7 +66,7 @@ class BankAdvisorButton
 		}
 
 		boolean active = plugin.isBankFilterActive();
-		button.setAction(1, active ? "Close Best-in-Bank view" : "Show Slayer Best-in-Bank");
+		button.setAction(1, active ? "Close Best-in-Bank view" : "Show Slayer Best in Bank");
 		button.setBorderType(active ? 2 : 1);
 		button.setOpacity(active ? 0 : 35);
 	}
