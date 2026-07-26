@@ -27,6 +27,15 @@ class GearScorer
 		EquipmentInventorySlot.LEGS, EquipmentInventorySlot.GLOVES, EquipmentInventorySlot.BOOTS,
 		EquipmentInventorySlot.RING, EquipmentInventorySlot.AMMO);
 
+	/*
+	 * Monster-family passives multiply the player's effective attack/max-hit
+	 * rolls, not merely the visible bonuses printed on the weapon itself.
+	 * These shared baselines represent the offensive value supplied by levels,
+	 * the rest of the worn setup, ammo/spell base damage, prayers and boosts.
+	 */
+	private static final double WEAPON_SHARED_DAMAGE_BASE = 500.0;
+	private static final double WEAPON_SHARED_ACCURACY_BASE = 100.0;
+
 	private final ItemManager itemManager;
 	private final SmartSupplyAdvisor supplyAdvisor;
 
@@ -327,9 +336,12 @@ class GearScorer
 		double damage;
 		double accuracy;
 		boolean prayerFirst = gearPriority == GearPriority.PRAYER_FIRST;
-		double prayerWeight = prayerFirst
-			? (slot == EquipmentInventorySlot.WEAPON ? 50.0 : 200.0)
+
+		// Prayer First changes sustain gear, not the combat-optimal weapon.
+		double prayerWeight = prayerFirst && slot != EquipmentInventorySlot.WEAPON
+			? 200.0
 			: strategy.getPrayerWeight();
+
 		double utility = stats.getPrayer() * prayerWeight
 			+ stats.getDmagic() * strategy.getMagicDefenceWeight();
 
@@ -351,13 +363,22 @@ class GearScorer
 
 		if (slot == EquipmentInventorySlot.WEAPON)
 		{
-			damage *= WeaponCombatRules.damageMultiplier(strategy, itemName);
-			accuracy *= WeaponCombatRules.accuracyMultiplier(strategy, itemName);
+			double damageMultiplier = WeaponCombatRules.damageMultiplier(strategy, itemName);
+			double accuracyMultiplier = WeaponCombatRules.accuracyMultiplier(strategy, itemName);
+
+			/*
+			 * Apply monster-specific passives to a proxy for the whole attack.
+			 * This fixes cases such as Emberlight vs Abyssal whip on demons:
+			 * Emberlight's +70% effect scales the wielder's attack/max hit in game,
+			 * not only Emberlight's own small +Strength bonus.
+			 */
+			damage = (WEAPON_SHARED_DAMAGE_BASE + damage) * damageMultiplier;
+			accuracy = (WEAPON_SHARED_ACCURACY_BASE + accuracy) * accuracyMultiplier;
+
+			// Rat-bone weapons add flat max hit instead of a multiplier.
 			damage += WeaponCombatRules.flatDamageScore(strategy, itemName);
 
-			// Attack speed is part of real sustained DPS. Scale the offensive
-			// components around a standard 4-tick cycle; utility stats are not
-			// speed-scaled.
+			// Attack speed scales the whole attack contribution.
 			if (stats.getAspeed() > 0)
 			{
 				double speedScale = 4.0 / stats.getAspeed();
@@ -365,13 +386,9 @@ class GearScorer
 				accuracy *= speedScale;
 			}
 		}
-
-		// Prayer First is primarily a sustain preset for armor/accessories.
-		// Keep a portion of offensive value so ties do not become arbitrary.
-		// Weapons keep their normal offensive model because target-specific
-		// weapon passives and valid attack styles must remain authoritative.
-		if (prayerFirst && slot != EquipmentInventorySlot.WEAPON)
+		else if (prayerFirst)
 		{
+			// Prayer dominates non-weapon sustain gear; offence remains a tie-breaker.
 			damage *= 0.25;
 			accuracy *= 0.10;
 		}
@@ -379,37 +396,27 @@ class GearScorer
 		double score = damage + accuracy + utility;
 		String n = NameMatcher.normalize(itemName);
 
-		// A real target-specific weapon effect always outranks a generic
-		// prayer-oriented weapon choice in Prayer First mode.
-		if (prayerFirst
-			&& slot == EquipmentInventorySlot.WEAPON
-			&& WeaponCombatRules.hasTargetSpecificEffect(strategy, n))
-		{
-			score += 2_500;
-		}
-
 		if (slot == EquipmentInventorySlot.HEAD && (n.contains("slayer helm") || n.startsWith("black mask"))
 			&& (strategy.getCombatStyle() == CombatStyle.MELEE || n.contains("(i)") || n.contains("imbued")))
 		{
 			score += 1200;
 		}
 
-		// Pearl enchanted bolts have a target-specific fiery proc. Keep this
-		// bounded because the proc is probabilistic rather than an every-hit
-		// multiplier.
 		if (slot == EquipmentInventorySlot.AMMO && WeaponCombatRules.isFieryPearlAmmo(strategy, itemName))
 		{
 			score += 35;
 		}
 
+		// Curated names are tie-breakers; required weapons are enforced elsewhere.
 		for (int x = 0; x < strategy.getPreferredItems().size(); x++)
 		{
 			if (n.contains(NameMatcher.normalize(strategy.getPreferredItems().get(x))))
 			{
-				score += Math.max(250, 1000 - x * 125);
+				score += Math.max(40, 160 - x * 20);
 				break;
 			}
 		}
+
 		return score;
 	}
 

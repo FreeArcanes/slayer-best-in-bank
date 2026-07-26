@@ -104,6 +104,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private boolean recalculateQueued;
 	private boolean bankFilterTransitionQueued;
 	private boolean bankViewRefreshQueued;
+	private boolean strategyCycleQueued;
 	private String bankSearchTextBeforeFilter = "";
 
 	@Provides
@@ -117,7 +118,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	{
 		highlightsActive = config.highlightsEnabled();
 		panel.setToggleHandler(this::toggleHighlights);
-		panel.setStrategyCycleHandler(this::cycleStrategy);
+		panel.setStrategyCycleHandler(this::queueCycleStrategy);
 		panel.updateHighlights(highlightsActive);
 
 		AsyncBufferedImage icon = itemManager.getImage(ItemID.SLAYER_HELM);
@@ -178,6 +179,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		recalculateQueued = false;
 		bankFilterTransitionQueued = false;
 		bankViewRefreshQueued = false;
+		strategyCycleQueued = false;
 		recommendations = GearRecommendations.noTask();
 		panel.display(recommendations);
 	}
@@ -199,6 +201,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			recalculateQueued = false;
 			bankFilterTransitionQueued = false;
 			bankViewRefreshQueued = false;
+			strategyCycleQueued = false;
 			recommendations = GearRecommendations.noTask();
 			prepReminderOverlay.hide();
 			panel.display(recommendations);
@@ -662,9 +665,41 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		}
 	}
 
-	private void cycleStrategy()
+	void queueCycleStrategy()
 	{
-		if (recommendations.getState() != GearRecommendations.State.READY || recommendations.getStrategy() == null) return;
+		/*
+		 * The sidebar Change method button is a Swing JButton, so its action
+		 * listener runs on the Swing EDT. Recommendation scoring reads RuneLite
+		 * client state and an active Best-in-Bank view may need to rebuild bank
+		 * widgets, so the entire strategy transition belongs on the client thread.
+		 */
+		if (strategyCycleQueued)
+		{
+			return;
+		}
+
+		strategyCycleQueued = true;
+		clientThread.invokeLater(() ->
+		{
+			try
+			{
+				cycleStrategyOnClientThread();
+			}
+			finally
+			{
+				strategyCycleQueued = false;
+			}
+		});
+	}
+
+	private void cycleStrategyOnClientThread()
+	{
+		if (recommendations.getState() != GearRecommendations.State.READY
+			|| recommendations.getStrategy() == null)
+		{
+			return;
+		}
+
 		List<GearStrategy> eligible = new java.util.ArrayList<>();
 		SlayerTaskProfile profile = recommendations.getProfile();
 		if (profile != null)
@@ -672,13 +707,19 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			for (GearStrategy strategy : profile.getStrategies())
 			{
 				if (strategy.getName().equals(recommendations.getStrategy().getName())
-					|| recommendations.getAlternativeStrategies().stream().anyMatch(candidate -> candidate.getName().equals(strategy.getName())))
+					|| recommendations.getAlternativeStrategies().stream()
+						.anyMatch(candidate -> candidate.getName().equals(strategy.getName())))
 				{
 					eligible.add(strategy);
 				}
 			}
 		}
-		if (eligible.size() < 2) return;
+
+		if (eligible.size() < 2)
+		{
+			return;
+		}
+
 		int current = 0;
 		for (int i = 0; i < eligible.size(); i++)
 		{
@@ -688,16 +729,32 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				break;
 			}
 		}
+
 		if (current == eligible.size() - 1)
 		{
 			// One more click after the final explicit method returns the task to Auto.
-			configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP, strategyKey(lastTaskName), "");
+			configManager.setConfiguration(
+				SlayerGearAdvisorConfig.GROUP,
+				strategyKey(lastTaskName),
+				"");
 		}
 		else
 		{
 			GearStrategy next = eligible.get(current + 1);
-			configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP, strategyKey(lastTaskName), next.getName());
+			configManager.setConfiguration(
+				SlayerGearAdvisorConfig.GROUP,
+				strategyKey(lastTaskName),
+				next.getName());
 		}
+
+		/*
+		 * Re-score immediately from the cached bank/inventory/equipment snapshot.
+		 * panel.display() then schedules the new method on the Swing EDT.
+		 *
+		 * If Best-in-Bank is active, recalculate() also calls
+		 * queueBankViewRefresh(), so the currently-open bank changes in place
+		 * instead of waiting for a close/reopen.
+		 */
 		recalculate();
 	}
 

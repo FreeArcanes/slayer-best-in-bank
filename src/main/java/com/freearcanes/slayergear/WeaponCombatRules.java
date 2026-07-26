@@ -43,7 +43,7 @@ final class WeaponCombatRules
 		return true;
 	}
 
-	/** Multiplier applied only to the weapon's accuracy proxy. */
+	/** Multiplier applied to the effective attack-roll proxy while this weapon is used. */
 	static double accuracyMultiplier(GearStrategy strategy, String itemName)
 	{
 		String n = NameMatcher.normalize(itemName);
@@ -91,7 +91,7 @@ final class WeaponCombatRules
 		return result;
 	}
 
-	/** Multiplier applied only to the weapon's damage proxy. */
+	/** Multiplier applied to the effective damage/max-hit proxy while this weapon is used. */
 	static double damageMultiplier(GearStrategy strategy, String itemName)
 	{
 		String n = NameMatcher.normalize(itemName);
