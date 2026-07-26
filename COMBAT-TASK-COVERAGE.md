@@ -1,6 +1,6 @@
 # Slayer Best in Bank — Combat Task Coverage
 
-Embedded combat-affinity audit for **1.0.0-beta.3**.
+Embedded combat-affinity audit for the current **Slayer Best in Bank** release candidate.
 
 This catalog covers every unique Slayer assignment category currently embedded in `SlayerMasterCatalog`. It records only mechanics that are stable for the whole task category: target attributes, special weapon families, preferred melee attack types, and Standard-spellbook elemental weaknesses. When a task can be completed using variants with conflicting weaknesses, the plugin deliberately leaves that field neutral instead of inventing one answer.
 

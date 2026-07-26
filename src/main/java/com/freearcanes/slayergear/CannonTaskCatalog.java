@@ -1,6 +1,5 @@
 package com.freearcanes.slayergear;
 
-import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -14,7 +13,7 @@ import java.util.Optional;
  */
 final class CannonTaskCatalog
 {
-	private static final Map<String, CannonRoute> ROUTES = new LinkedHashMap<>();
+	private static final AliasCatalog<CannonRoute> ROUTES = new AliasCatalog<>(CannonTaskCatalog::normalize);
 
 	static
 	{
@@ -234,7 +233,7 @@ final class CannonTaskCatalog
 
 	static Optional<CannonRoute> find(String taskName)
 	{
-		return Optional.ofNullable(ROUTES.get(normalize(taskName)));
+		return Optional.ofNullable(ROUTES.get(taskName));
 	}
 
 	static Optional<CannonRoute> find(String taskName, String assignedLocation)
@@ -274,7 +273,12 @@ final class CannonTaskCatalog
 
 	static int routeCount()
 	{
-		return (int) ROUTES.values().stream().distinct().count();
+		return ROUTES.distinctValueCount();
+	}
+
+	static Map<String, CannonRoute> routesSnapshot()
+	{
+		return ROUTES.snapshot();
 	}
 
 	private static void route(String displayName, String location, CombatStyle style, AttackType attackType,
@@ -291,10 +295,7 @@ final class CannonTaskCatalog
 
 	private static void addRoute(CannonRoute route, String... aliases)
 	{
-		for (String alias : aliases)
-		{
-			ROUTES.put(normalize(alias), route);
-		}
+		ROUTES.register(route, AliasCatalog.CollisionPolicy.KEEP_FIRST, aliases);
 	}
 
 	private static String normalize(String value)

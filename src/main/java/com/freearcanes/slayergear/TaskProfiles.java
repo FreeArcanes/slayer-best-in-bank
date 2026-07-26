@@ -1,13 +1,12 @@
 package com.freearcanes.slayergear;
 
-import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
 final class TaskProfiles
 {
-	private static final Map<String, SlayerTaskProfile> PROFILES = new LinkedHashMap<>();
+	private static final AliasCatalog<SlayerTaskProfile> PROFILES = new AliasCatalog<>(TaskProfiles::normalize);
 
 	static
 	{
@@ -537,7 +536,7 @@ final class TaskProfiles
 		{
 			return Optional.empty();
 		}
-		SlayerTaskProfile exact = PROFILES.get(normalize(taskName));
+		SlayerTaskProfile exact = PROFILES.get(taskName);
 		SlayerTaskProfile base = exact != null ? exact : generic(taskName);
 		base = withCannonOption(base, taskName, assignedLocation);
 		return Optional.of(TaskCombatCatalog.enrich(base, taskName, assignedLocation));
@@ -545,7 +544,17 @@ final class TaskProfiles
 
 	static int profileCount()
 	{
-		return (int) PROFILES.values().stream().distinct().count();
+		return PROFILES.distinctValueCount();
+	}
+
+	static Map<String, SlayerTaskProfile> catalogSnapshot()
+	{
+		return PROFILES.snapshot();
+	}
+
+	static Map<String, java.util.List<SlayerTaskProfile>> ignoredAliasCollisions()
+	{
+		return PROFILES.ignoredCollisionsSnapshot();
 	}
 
 	private static SlayerTaskProfile withCannonOption(SlayerTaskProfile profile, String taskName, String assignedLocation)
@@ -692,10 +701,9 @@ final class TaskProfiles
 	{
 		for (String taskName : taskNames)
 		{
-			String key = normalize(taskName);
 			// First registration wins: a later broad boss alias must never overwrite
 			// a task-specific curated profile.
-			PROFILES.putIfAbsent(key, profile);
+			PROFILES.register(profile, AliasCatalog.CollisionPolicy.KEEP_FIRST, taskName);
 		}
 	}
 

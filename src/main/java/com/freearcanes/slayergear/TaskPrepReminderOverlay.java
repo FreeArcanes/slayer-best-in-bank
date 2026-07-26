@@ -57,9 +57,16 @@ class TaskPrepReminderOverlay extends Overlay
 		{
 			for (SupplyRecommendation supply : recommendations.getSupplies())
 			{
-				if (supply.getStatus() == SupplyStatus.BANKED && (supply.isRequired() || isPrepReminderSupply(supply)))
+				if (shouldRemindSupply(supply))
 				{
-					reminders.add(supply.getItemName());
+					String quantity = "";
+					if (supply.hasQuantityTarget())
+					{
+						quantity = "shots".equals(supply.getQuantityUnit())
+							? supply.getQuantityStillNeeded() + " "
+							: supply.getWithdrawalsStillNeeded() + "× ";
+					}
+					reminders.add(quantity + supply.getItemName());
 					if (reminders.size() == 2) break;
 				}
 			}
@@ -126,6 +133,15 @@ class TaskPrepReminderOverlay extends Overlay
 		graphics.drawString(message, 18, 39);
 
 		return new Dimension(width, HEIGHT);
+	}
+
+	static boolean shouldRemindSupply(SupplyRecommendation supply)
+	{
+		return supply != null
+			&& supply.isEnabledForTrip()
+			&& supply.getStatus().isBanked()
+			&& (!supply.getStatus().isPacked() || !supply.hasRecommendedQuantityPacked())
+			&& (supply.isRequired() || isPrepReminderSupply(supply));
 	}
 
 	private static boolean isPrepReminderSupply(SupplyRecommendation supply)

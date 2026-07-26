@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import javax.inject.Inject;
 import net.runelite.api.EquipmentInventorySlot;
@@ -26,6 +27,18 @@ class GearScorer
 		EquipmentInventorySlot.WEAPON, EquipmentInventorySlot.BODY, EquipmentInventorySlot.SHIELD,
 		EquipmentInventorySlot.LEGS, EquipmentInventorySlot.GLOVES, EquipmentInventorySlot.BOOTS,
 		EquipmentInventorySlot.RING, EquipmentInventorySlot.AMMO);
+	private static final List<EquipmentInventorySlot> LOADOUT_SLOT_ORDER = List.of(
+		EquipmentInventorySlot.WEAPON,
+		EquipmentInventorySlot.HEAD,
+		EquipmentInventorySlot.CAPE,
+		EquipmentInventorySlot.AMULET,
+		EquipmentInventorySlot.BODY,
+		EquipmentInventorySlot.SHIELD,
+		EquipmentInventorySlot.LEGS,
+		EquipmentInventorySlot.GLOVES,
+		EquipmentInventorySlot.BOOTS,
+		EquipmentInventorySlot.RING,
+		EquipmentInventorySlot.AMMO);
 
 	/*
 	 * Monster-family passives multiply the player's effective attack/max-hit
@@ -68,11 +81,22 @@ class GearScorer
 		int tiersWanted = Math.max(1, Math.min(3, alternativesPerSlot));
 		List<LoadoutTier> loadoutTiers = new ArrayList<>();
 		Map<EquipmentInventorySlot, List<GearRecommendation>> bySlot = new EnumMap<>(EquipmentInventorySlot.class);
-		for (int rank = 1; rank <= tiersWanted; rank++)
+		List<Map<EquipmentInventorySlot, GearRecommendation>> coherentLoadouts =
+			buildCoherentLoadouts(
+				tiersWanted,
+				candidates,
+				selected,
+				requirements,
+				pinned,
+				lowRiskMode,
+				riskCapGp);
+		for (int index = 0; index < coherentLoadouts.size(); index++)
 		{
-			Map<EquipmentInventorySlot, GearRecommendation> loadout = buildLoadout(rank, candidates, selected, requirements);
-			if (loadout.isEmpty()) break;
-			loadoutTiers.add(new LoadoutTier(rank, loadout));
+			int rank = index + 1;
+			Map<EquipmentInventorySlot, GearRecommendation> loadout = coherentLoadouts.get(index);
+			int loadoutRisk = lowRiskMode ? totalRecommendationGuidePrice(loadout) : 0;
+			loadoutTiers.add(new LoadoutTier(
+				rank, loadout, loadoutRisk, lowRiskMode ? riskCapGp : 0));
 			for (Map.Entry<EquipmentInventorySlot, GearRecommendation> entry : loadout.entrySet())
 			{
 				List<GearRecommendation> slotRecommendations = bySlot.computeIfAbsent(entry.getKey(), ignored -> new ArrayList<>());
@@ -87,7 +111,8 @@ class GearScorer
 
 		Map<EquipmentInventorySlot, GearRecommendation> best = loadoutTiers.isEmpty()
 			? Collections.emptyMap() : loadoutTiers.get(0).getItems();
-		List<SupplyRecommendation> supplies = supplyAdvisor.recommend(profile, selected, bankItems, packedItems);
+		List<SupplyRecommendation> supplies = supplyAdvisor.recommend(
+			profile, selected, taskAmount, bankItems, packedItems);
 		// A protective off-hand already satisfies dragonfire protection. Do not
 		// simultaneously tell the player that antifire is still required.
 		if (hasDragonfireProtection(best))
@@ -128,11 +153,6 @@ class GearScorer
 		{
 			boolean explicitlyPinned = matchesAnyPreference(item.name, pinned);
 			if (matchesAnyPreference(item.name, excluded) || !allowed(item, strategy)) continue;
-			if (lowRiskMode && !explicitlyPinned && riskCapGp > 0)
-			{
-				int price = itemManager.getItemPrice(item.itemId);
-				if (price > riskCapGp) continue;
-			}
 			// Safety beats raw DPS: a mandatory off-hand makes every 2H weapon an
 			// invalid candidate, otherwise the protection pass could create an
 			// impossible weapon + shield loadout.
@@ -144,6 +164,8 @@ class GearScorer
 			}
 			if (blocked) continue;
 			item.score = scoreStats(strategy, item.name, item.slot, item.stats, gearPriority);
+			item.guidePrice = lowRiskMode ? Math.max(0, itemManager.getItemPrice(item.itemId)) : 0;
+			item.pinned = explicitlyPinned;
 			if (explicitlyPinned) item.score += 5_000;
 			result.computeIfAbsent(item.slot, ignored -> new ArrayList<>()).add(item);
 		}
@@ -159,15 +181,30 @@ class GearScorer
 	}
 
 	private Map<EquipmentInventorySlot, GearRecommendation> buildLoadout(int rank,
-		Map<EquipmentInventorySlot, List<BankEquipment>> candidates, GearStrategy strategy, List<GearRequirement> requirements)
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		List<GearRequirement> requirements,
+		boolean lowRiskMode,
+		int riskCapGp)
 	{
 		EnumMap<EquipmentInventorySlot, GearRecommendation> selected = new EnumMap<>(EquipmentInventorySlot.class);
-		for (EquipmentInventorySlot slot : SUPPORTED_SLOTS)
+		if (lowRiskMode && riskCapGp > 0)
 		{
-			List<BankEquipment> list = candidates.getOrDefault(slot, Collections.emptyList());
-			if (rank <= list.size())
+			for (Map.Entry<EquipmentInventorySlot, BankEquipment> entry :
+				selectRiskBudgetItems(rank, candidates, strategy, riskCapGp).entrySet())
 			{
-				selected.put(slot, recommendation(list.get(rank - 1), rank, strategy));
+				selected.put(entry.getKey(), recommendation(entry.getValue(), rank, strategy));
+			}
+		}
+		else
+		{
+			for (EquipmentInventorySlot slot : SUPPORTED_SLOTS)
+			{
+				List<BankEquipment> list = candidates.getOrDefault(slot, Collections.emptyList());
+				if (rank <= list.size())
+				{
+					selected.put(slot, recommendation(list.get(rank - 1), rank, strategy));
+				}
 			}
 		}
 
@@ -210,6 +247,436 @@ class GearScorer
 		return selected;
 	}
 
+	List<Map<EquipmentInventorySlot, GearRecommendation>> buildCoherentLoadouts(
+		int tiersWanted,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		List<GearRequirement> requirements,
+		Set<String> pinned,
+		boolean lowRiskMode,
+		int riskCapGp)
+	{
+		List<Map<EquipmentInventorySlot, GearRecommendation>> result = new ArrayList<>();
+		Map<EquipmentInventorySlot, GearRecommendation> tierOne =
+			buildLoadout(1, candidates, strategy, requirements, lowRiskMode, riskCapGp);
+		if (tierOne.isEmpty()) return result;
+
+		result.add(rerankLoadout(tierOne, 1));
+		long riskCeiling = lowRiskMode
+			? Math.max((long) riskCapGp, totalRecommendationGuidePrice(tierOne))
+			: Long.MAX_VALUE;
+		Set<String> seen = new HashSet<>();
+		seen.add(loadoutSignature(tierOne));
+		PriorityQueue<LoadoutCandidate> queue = new PriorityQueue<>(
+			Comparator.comparingDouble((LoadoutCandidate value) -> value.score).reversed()
+				.thenComparingLong(value -> value.guidePrice));
+		enqueueLoadoutNeighbors(
+			tierOne, candidates, strategy, requirements, pinned,
+			lowRiskMode, riskCeiling, seen, queue);
+
+		while (result.size() < Math.max(1, tiersWanted) && !queue.isEmpty())
+		{
+			LoadoutCandidate next = queue.poll();
+			int rank = result.size() + 1;
+			result.add(rerankLoadout(next.items, rank));
+			enqueueLoadoutNeighbors(
+				next.items, candidates, strategy, requirements, pinned,
+				lowRiskMode, riskCeiling, seen, queue);
+		}
+		return result;
+	}
+
+	private void enqueueLoadoutNeighbors(
+		Map<EquipmentInventorySlot, GearRecommendation> current,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		List<GearRequirement> requirements,
+		Set<String> pinned,
+		boolean lowRiskMode,
+		long riskCeiling,
+		Set<String> seen,
+		PriorityQueue<LoadoutCandidate> queue)
+	{
+		for (EquipmentInventorySlot slot : LOADOUT_SLOT_ORDER)
+		{
+			GearRecommendation existing = current.get(slot);
+			if (existing == null || matchesAnyPreference(existing.getItemName(), pinned)) continue;
+
+			List<BankEquipment> slotCandidates =
+				candidates.getOrDefault(slot, Collections.emptyList());
+			if (slot == EquipmentInventorySlot.AMMO
+				&& strategy.getCombatStyle() == CombatStyle.RANGED)
+			{
+				GearRecommendation weapon = current.get(EquipmentInventorySlot.WEAPON);
+				if (weapon == null || usesNoAmmoSlot(NameMatcher.normalize(weapon.getItemName()))) continue;
+				slotCandidates = compatibleAmmo(
+					slotCandidates, NameMatcher.normalize(weapon.getItemName()));
+			}
+
+			int currentIndex = candidateIndex(slotCandidates, existing.getCanonicalItemId());
+			if (currentIndex < 0) continue;
+			for (int candidateIndex = currentIndex + 1;
+				candidateIndex < slotCandidates.size();
+				candidateIndex++)
+			{
+				EnumMap<EquipmentInventorySlot, GearRecommendation> neighbor =
+					new EnumMap<>(EquipmentInventorySlot.class);
+				neighbor.putAll(current);
+				neighbor.put(slot, recommendation(slotCandidates.get(candidateIndex), 1, strategy));
+				normalizeLoadout(neighbor, candidates, strategy, requirements);
+				if (!isCoherentLoadout(neighbor, strategy, requirements)) continue;
+
+				long guidePrice = lowRiskMode
+					? totalRecommendationGuidePrice(neighbor)
+					: 0;
+				if (lowRiskMode && guidePrice > riskCeiling) continue;
+				String signature = loadoutSignature(neighbor);
+				if (!seen.add(signature)) continue;
+				queue.add(new LoadoutCandidate(
+					neighbor, loadoutScore(neighbor), guidePrice));
+				break;
+			}
+		}
+	}
+
+	private void normalizeLoadout(
+		Map<EquipmentInventorySlot, GearRecommendation> selected,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		List<GearRequirement> requirements)
+	{
+		GearRecommendation weapon = selected.get(EquipmentInventorySlot.WEAPON);
+		if (weapon != null && weapon.isTwoHanded())
+		{
+			selected.remove(EquipmentInventorySlot.SHIELD);
+		}
+		else if (weapon != null && !selected.containsKey(EquipmentInventorySlot.SHIELD))
+		{
+			List<BankEquipment> shields =
+				candidates.getOrDefault(EquipmentInventorySlot.SHIELD, Collections.emptyList());
+			if (!shields.isEmpty())
+			{
+				selected.put(
+					EquipmentInventorySlot.SHIELD,
+					recommendation(shields.get(0), 1, strategy));
+			}
+		}
+
+		if (weapon != null && strategy.getCombatStyle() == CombatStyle.RANGED)
+		{
+			String weaponName = NameMatcher.normalize(weapon.getItemName());
+			if (usesNoAmmoSlot(weaponName))
+			{
+				selected.remove(EquipmentInventorySlot.AMMO);
+			}
+			else
+			{
+				GearRecommendation ammo = selected.get(EquipmentInventorySlot.AMMO);
+				if (ammo == null || !isCompatibleAmmo(ammo.getItemName(), weaponName))
+				{
+					List<BankEquipment> compatible = compatibleAmmo(
+						candidates.getOrDefault(
+							EquipmentInventorySlot.AMMO, Collections.emptyList()),
+						weaponName);
+					if (compatible.isEmpty()) selected.remove(EquipmentInventorySlot.AMMO);
+					else selected.put(
+						EquipmentInventorySlot.AMMO,
+						recommendation(compatible.get(0), 1, strategy));
+				}
+			}
+		}
+
+		for (GearRequirement requirement : requirements)
+		{
+			if (requirement.isSatisfied(selected)) continue;
+			for (GearRequirement.Option option : requirement.getOptions())
+			{
+				for (BankEquipment item :
+					candidates.getOrDefault(option.getSlot(), Collections.emptyList()))
+				{
+					if (option.matches(item.name))
+					{
+						selected.put(
+							option.getSlot(),
+							recommendation(item, 1, strategy));
+						break;
+					}
+				}
+				if (requirement.isSatisfied(selected)) break;
+			}
+		}
+	}
+
+	private static boolean isCoherentLoadout(
+		Map<EquipmentInventorySlot, GearRecommendation> selected,
+		GearStrategy strategy,
+		List<GearRequirement> requirements)
+	{
+		for (GearRequirement requirement : requirements)
+		{
+			if (!requirement.isSatisfied(selected)) return false;
+		}
+		GearRecommendation weapon = selected.get(EquipmentInventorySlot.WEAPON);
+		if (weapon == null) return false;
+		if (weapon.isTwoHanded() && selected.containsKey(EquipmentInventorySlot.SHIELD)) return false;
+		if (strategy.getCombatStyle() == CombatStyle.RANGED)
+		{
+			String weaponName = NameMatcher.normalize(weapon.getItemName());
+			if (!usesNoAmmoSlot(weaponName))
+			{
+				GearRecommendation ammo = selected.get(EquipmentInventorySlot.AMMO);
+				if (ammo == null || !isCompatibleAmmo(ammo.getItemName(), weaponName)) return false;
+			}
+		}
+		return true;
+	}
+
+	private static boolean isCompatibleAmmo(String ammoName, String normalizedWeaponName)
+	{
+		return NameMatcher.normalize(ammoName).contains(ammoToken(normalizedWeaponName));
+	}
+
+	private static int candidateIndex(List<BankEquipment> candidates, int canonicalItemId)
+	{
+		for (int index = 0; index < candidates.size(); index++)
+		{
+			if (candidates.get(index).canonicalItemId == canonicalItemId) return index;
+		}
+		return -1;
+	}
+
+	private static double loadoutScore(
+		Map<EquipmentInventorySlot, GearRecommendation> loadout)
+	{
+		double total = 0;
+		for (GearRecommendation item : loadout.values()) total += item.getScore();
+		return total;
+	}
+
+	private static String loadoutSignature(
+		Map<EquipmentInventorySlot, GearRecommendation> loadout)
+	{
+		StringBuilder signature = new StringBuilder();
+		for (EquipmentInventorySlot slot : LOADOUT_SLOT_ORDER)
+		{
+			GearRecommendation item = loadout.get(slot);
+			if (item != null)
+			{
+				signature.append(slot.ordinal())
+					.append(':')
+					.append(item.getCanonicalItemId())
+					.append(';');
+			}
+		}
+		return signature.toString();
+	}
+
+	private static Map<EquipmentInventorySlot, GearRecommendation> rerankLoadout(
+		Map<EquipmentInventorySlot, GearRecommendation> loadout,
+		int rank)
+	{
+		EnumMap<EquipmentInventorySlot, GearRecommendation> reranked =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		for (Map.Entry<EquipmentInventorySlot, GearRecommendation> entry : loadout.entrySet())
+		{
+			reranked.put(entry.getKey(), entry.getValue().withRank(rank));
+		}
+		return reranked;
+	}
+
+	static Map<EquipmentInventorySlot, BankEquipment> selectRiskBudgetItems(
+		int rank,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		int riskCapGp)
+	{
+		List<BankEquipment> weaponChoices = rankedChoices(
+			candidates.getOrDefault(EquipmentInventorySlot.WEAPON, Collections.emptyList()), rank);
+		weaponChoices = preferredPinnedChoices(weaponChoices);
+		if (weaponChoices.isEmpty())
+		{
+			return buildRiskPlan(null, rank, candidates, strategy, riskCapGp).items;
+		}
+
+		RiskPlan best = null;
+		for (BankEquipment weapon : weaponChoices)
+		{
+			RiskPlan plan = buildRiskPlan(weapon, rank, candidates, strategy, riskCapGp);
+			if (betterRiskPlan(plan, best, riskCapGp))
+			{
+				best = plan;
+			}
+		}
+		return best == null ? Collections.emptyMap() : best.items;
+	}
+
+	private static RiskPlan buildRiskPlan(
+		BankEquipment weapon,
+		int rank,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		int riskCapGp)
+	{
+		EnumMap<EquipmentInventorySlot, List<BankEquipment>> choices =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		if (weapon != null)
+		{
+			choices.put(EquipmentInventorySlot.WEAPON, Collections.singletonList(weapon));
+		}
+
+		for (EquipmentInventorySlot slot : LOADOUT_SLOT_ORDER)
+		{
+			if (slot == EquipmentInventorySlot.WEAPON) continue;
+			if (slot == EquipmentInventorySlot.SHIELD && weapon != null && weapon.stats.isTwoHanded()) continue;
+
+			List<BankEquipment> slotChoices;
+			if (slot == EquipmentInventorySlot.AMMO
+				&& weapon != null
+				&& strategy.getCombatStyle() == CombatStyle.RANGED)
+			{
+				String weaponName = NameMatcher.normalize(weapon.name);
+				if (usesNoAmmoSlot(weaponName)) continue;
+				slotChoices = rankedChoices(
+					compatibleAmmo(candidates.getOrDefault(slot, Collections.emptyList()), weaponName),
+					rank);
+			}
+			else
+			{
+				slotChoices = rankedChoices(candidates.getOrDefault(slot, Collections.emptyList()), rank);
+			}
+
+			slotChoices = preferredPinnedChoices(slotChoices);
+			if (!slotChoices.isEmpty())
+			{
+				choices.put(slot, slotChoices);
+			}
+		}
+		return chooseWithinRiskBudget(choices, riskCapGp);
+	}
+
+	private static RiskPlan chooseWithinRiskBudget(
+		Map<EquipmentInventorySlot, List<BankEquipment>> choices,
+		int riskCapGp)
+	{
+		EnumMap<EquipmentInventorySlot, BankEquipment> selected =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		long totalPrice = 0;
+		double totalScore = 0;
+		for (EquipmentInventorySlot slot : LOADOUT_SLOT_ORDER)
+		{
+			List<BankEquipment> slotChoices = choices.getOrDefault(slot, Collections.emptyList());
+			if (slotChoices.isEmpty()) continue;
+			BankEquipment base = cheapestChoice(slotChoices);
+			selected.put(slot, base);
+			totalPrice += base.guidePrice;
+			totalScore += base.score;
+		}
+
+		if (totalPrice <= riskCapGp)
+		{
+			while (true)
+			{
+				RiskUpgrade bestUpgrade = null;
+				for (Map.Entry<EquipmentInventorySlot, BankEquipment> entry : selected.entrySet())
+				{
+					List<BankEquipment> slotChoices =
+						choices.getOrDefault(entry.getKey(), Collections.emptyList());
+					if (slotChoices.size() <= 1 || entry.getValue().pinned) continue;
+					for (BankEquipment candidate : slotChoices)
+					{
+						long addedPrice = (long) candidate.guidePrice - entry.getValue().guidePrice;
+						double addedScore = candidate.score - entry.getValue().score;
+						if (addedScore <= 0 || totalPrice + addedPrice > riskCapGp) continue;
+						RiskUpgrade upgrade = new RiskUpgrade(
+							entry.getKey(), candidate, addedPrice, addedScore);
+						if (upgrade.isBetterThan(bestUpgrade))
+						{
+							bestUpgrade = upgrade;
+						}
+					}
+				}
+				if (bestUpgrade == null) break;
+				BankEquipment previous = selected.put(bestUpgrade.slot, bestUpgrade.candidate);
+				totalPrice += (long) bestUpgrade.candidate.guidePrice - previous.guidePrice;
+				totalScore += bestUpgrade.candidate.score - previous.score;
+			}
+		}
+		return new RiskPlan(selected, totalPrice, totalScore);
+	}
+
+	private static List<BankEquipment> rankedChoices(List<BankEquipment> values, int rank)
+	{
+		if (values == null || values.isEmpty()) return Collections.emptyList();
+		int start = Math.max(0, rank - 1);
+		if (start >= values.size()) return Collections.emptyList();
+		return new ArrayList<>(values.subList(start, values.size()));
+	}
+
+	private static List<BankEquipment> preferredPinnedChoices(List<BankEquipment> values)
+	{
+		for (BankEquipment value : values)
+		{
+			if (value.pinned)
+			{
+				return Collections.singletonList(value);
+			}
+		}
+		return values;
+	}
+
+	private static BankEquipment cheapestChoice(List<BankEquipment> values)
+	{
+		return values.stream()
+			.min(Comparator.comparingInt((BankEquipment item) -> item.guidePrice)
+				.thenComparing(Comparator.comparingDouble((BankEquipment item) -> item.score).reversed()))
+			.orElseThrow();
+	}
+
+	private static boolean betterRiskPlan(RiskPlan candidate, RiskPlan current, int riskCapGp)
+	{
+		if (candidate == null) return false;
+		if (current == null) return true;
+		boolean candidateWithinCap = candidate.totalPrice <= riskCapGp;
+		boolean currentWithinCap = current.totalPrice <= riskCapGp;
+		if (candidateWithinCap != currentWithinCap) return candidateWithinCap;
+		if (candidateWithinCap)
+		{
+			return candidate.totalScore > current.totalScore;
+		}
+		return candidate.totalPrice < current.totalPrice
+			|| (candidate.totalPrice == current.totalPrice
+				&& candidate.totalScore > current.totalScore);
+	}
+
+	private static List<BankEquipment> compatibleAmmo(List<BankEquipment> ammo, String weapon)
+	{
+		String token = ammoToken(weapon);
+		List<BankEquipment> compatible = new ArrayList<>();
+		for (BankEquipment candidate : ammo)
+		{
+			if (NameMatcher.normalize(candidate.name).contains(token)) compatible.add(candidate);
+		}
+		return compatible;
+	}
+
+	static long totalGuidePrice(Map<EquipmentInventorySlot, BankEquipment> selected)
+	{
+		long total = 0;
+		for (BankEquipment item : selected.values()) total += Math.max(0, item.guidePrice);
+		return total;
+	}
+
+	private int totalRecommendationGuidePrice(
+		Map<EquipmentInventorySlot, GearRecommendation> selected)
+	{
+		long total = 0;
+		for (GearRecommendation item : selected.values())
+		{
+			total += Math.max(0, itemManager.getItemPrice(item.getItemId()));
+		}
+		return (int) Math.min(Integer.MAX_VALUE, total);
+	}
+
 	private GearRecommendation recommendation(BankEquipment i, int rank, GearStrategy strategy)
 	{
 		return GearRecommendation.builder().itemId(i.itemId).canonicalItemId(i.canonicalItemId)
@@ -244,6 +711,10 @@ class GearScorer
 		boolean dragonfireShieldReady = hasDragonfireProtection(selected);
 		for (SupplyRecommendation s : supplies)
 		{
+			if (!s.isEnabledForTrip())
+			{
+				continue;
+			}
 			// Cannon components are ground equipment and are rendered inside the Tier 1
 			// loadout. Count the four required parts as gear readiness; cannonballs
 			// remain a trip supply. This keeps the readiness strip consistent with
@@ -256,15 +727,16 @@ class GearScorer
 			else
 			{
 				suppliesTotal++;
-				if (s.getStatus().isPacked()) suppliesPacked++;
+				if (s.getStatus().isPacked() && s.hasRecommendedQuantityPacked()) suppliesPacked++;
 			}
 
 			boolean requiredHere = s.isRequired()
 				&& !("Antifire".equals(s.getCategory()) && dragonfireShieldReady);
-			if (requiredHere && !s.getStatus().isPacked())
+			if (requiredHere && (!s.getStatus().isPacked() || !s.hasRecommendedQuantityPacked()))
 			{
 				missing.add(s.getStatus().isBanked()
-					? "Pack " + s.getItemName()
+					? "Pack " + (s.hasQuantityTarget() ? s.getQuantityStillNeeded() + " " : "")
+						+ s.getItemName()
 					: s.getCategory() + ": " + s.getItemName());
 			}
 		}
@@ -505,17 +977,21 @@ class GearScorer
 
 	private static BankEquipment nthCompatibleAmmo(List<BankEquipment> ammo, String weapon, int rank)
 	{
-		String token = weapon.contains("crossbow") ? "bolt"
-			: weapon.contains("atlatl") ? "atlatl dart"
-			: weapon.contains("ballista") ? "javelin"
-			: weapon.contains("salamander") ? "tar"
-			: "arrow";
+		String token = ammoToken(weapon);
 		List<BankEquipment> compatible = new ArrayList<>();
 		for (BankEquipment candidate : ammo)
 		{
 			if (NameMatcher.normalize(candidate.name).contains(token)) compatible.add(candidate);
 		}
 		return rank <= 0 || rank > compatible.size() ? null : compatible.get(rank - 1);
+	}
+	private static String ammoToken(String weapon)
+	{
+		return weapon.contains("crossbow") ? "bolt"
+			: weapon.contains("atlatl") ? "atlatl dart"
+			: weapon.contains("ballista") ? "javelin"
+			: weapon.contains("salamander") ? "tar"
+			: "arrow";
 	}
 	private static boolean has(String v,String...t){for(String x:t)if(v.contains(x))return true;return false;}
 	private static int attackBonus(AttackType a,ItemEquipmentStats s){switch(a){case STAB:return s.getAstab();case SLASH:return s.getAslash();case CRUSH:return s.getAcrush();default:return Math.max(s.getAstab(),Math.max(s.getAslash(),s.getAcrush()));}}
@@ -539,9 +1015,79 @@ class GearScorer
 	}
 	private static void add(List<String> r,float v,String label){if(v!=0)r.add((v>0?"+":"")+(v==Math.rint(v)?Integer.toString((int)v):Float.toString(v))+" "+label);}
 
-	private static final class BankEquipment
+	private static final class RiskPlan
 	{
-		final int itemId,canonicalItemId; final String name; final EquipmentInventorySlot slot; final ItemEquipmentStats stats; final boolean banked,packed; double score;
+		private final Map<EquipmentInventorySlot, BankEquipment> items;
+		private final long totalPrice;
+		private final double totalScore;
+
+		private RiskPlan(
+			Map<EquipmentInventorySlot, BankEquipment> items,
+			long totalPrice,
+			double totalScore)
+		{
+			this.items = items;
+			this.totalPrice = totalPrice;
+			this.totalScore = totalScore;
+		}
+	}
+
+	private static final class LoadoutCandidate
+	{
+		private final Map<EquipmentInventorySlot, GearRecommendation> items;
+		private final double score;
+		private final long guidePrice;
+
+		private LoadoutCandidate(
+			Map<EquipmentInventorySlot, GearRecommendation> items,
+			double score,
+			long guidePrice)
+		{
+			EnumMap<EquipmentInventorySlot, GearRecommendation> copy =
+				new EnumMap<>(EquipmentInventorySlot.class);
+			copy.putAll(items);
+			this.items = copy;
+			this.score = score;
+			this.guidePrice = guidePrice;
+		}
+	}
+
+	private static final class RiskUpgrade
+	{
+		private final EquipmentInventorySlot slot;
+		private final BankEquipment candidate;
+		private final long addedPrice;
+		private final double addedScore;
+
+		private RiskUpgrade(
+			EquipmentInventorySlot slot,
+			BankEquipment candidate,
+			long addedPrice,
+			double addedScore)
+		{
+			this.slot = slot;
+			this.candidate = candidate;
+			this.addedPrice = addedPrice;
+			this.addedScore = addedScore;
+		}
+
+		private boolean isBetterThan(RiskUpgrade other)
+		{
+			if (other == null) return true;
+			double efficiency = addedPrice <= 0
+				? Double.POSITIVE_INFINITY
+				: addedScore / addedPrice;
+			double otherEfficiency = other.addedPrice <= 0
+				? Double.POSITIVE_INFINITY
+				: other.addedScore / other.addedPrice;
+			return efficiency > otherEfficiency
+				|| (efficiency == otherEfficiency && addedScore > other.addedScore);
+		}
+	}
+
+	static final class BankEquipment
+	{
+		final int itemId,canonicalItemId; final String name; final EquipmentInventorySlot slot; final ItemEquipmentStats stats; final boolean banked,packed; double score; int guidePrice; boolean pinned;
 		BankEquipment(int itemId,int canonical,String name,EquipmentInventorySlot slot,ItemEquipmentStats stats,boolean banked,boolean packed){this.itemId=itemId;this.canonicalItemId=canonical;this.name=name;this.slot=slot;this.stats=stats;this.banked=banked;this.packed=packed;}
 	}
 }

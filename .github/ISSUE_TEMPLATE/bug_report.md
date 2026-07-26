@@ -20,6 +20,8 @@ assignees: ''
 
 ## Screenshot / video
 
+Please crop unrelated chat, account, and bank information.
+
 ## RuneLite / plugin version
 
 ## Additional context

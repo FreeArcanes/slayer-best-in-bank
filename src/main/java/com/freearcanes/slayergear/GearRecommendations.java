@@ -144,6 +144,7 @@ final class GearRecommendations
 	{
 		return supplies.stream()
 			.filter(supply -> supply.getStatus().isBanked())
+			.filter(SupplyRecommendation::isEnabledForTrip)
 			.filter(supply -> supply.getCanonicalItemId() == canonicalItemId)
 			.findFirst().orElse(null);
 	}

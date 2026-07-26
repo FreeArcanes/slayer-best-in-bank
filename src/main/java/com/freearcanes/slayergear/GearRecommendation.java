@@ -40,6 +40,21 @@ final class GearRecommendation
 	String getReason() { return reason; }
 	boolean isPacked() { return packed; }
 	boolean isBanked() { return banked; }
+	GearRecommendation withRank(int value)
+	{
+		return builder()
+			.itemId(itemId)
+			.canonicalItemId(canonicalItemId)
+			.itemName(itemName)
+			.slot(slot)
+			.score(score)
+			.rank(value)
+			.twoHanded(twoHanded)
+			.reason(reason)
+			.packed(packed)
+			.banked(banked)
+			.build();
+	}
 
 	static final class Builder
 	{

@@ -1,50 +1,76 @@
-# Slayer Best in Bank 1.0.0-beta.3 — Cannon Task Intelligence
+# Slayer Best in Bank — Unreleased Release Candidate
 
-Beta 3 expands Best-in-Bank's strategy engine with a location-aware dwarf multicannon catalog and promotes the full cannon into the Tier 1 trip loadout whenever a cannon method is selected.
+This release candidate consolidates the current loadout, supply-planning,
+bank-layout, customization, and support improvements into one reviewable update.
 
-## Cannon task audit
+## Coherent loadout tiers
 
-- Added a central cannon-route catalog with **81 verified task/route entries** cross-checked against current Old School RuneScape Wiki Slayer task/location guidance.
-- **Smoke devils now default to `Barrage + cannon lure`**, matching the high-XP method where the cannon pulls the room and Burst/Barrage clears the stack.
-- Cannon-capable tasks advertise a **Cannon + ...** method even when their original curated profile did not mention the cannon.
-- RuneLite Slayer `taskLocation` is used for location-locked assignments so a monster being cannonable somewhere does not automatically mean the assigned location is cannonable.
-- Existing curated cannon methods now inherit the actual assigned cannonable location. A Dagannoth assignment in Jormungand's Prison no longer still tells the player to go to the Lighthouse.
+- Tier 1 remains the strongest complete owned setup.
+- Tier 2 and Tier 3 now start from Tier 1 and introduce progressively different
+  fallback combinations instead of unrelated per-slot rankings.
+- Higher tiers display only the swaps that differ from the better setup.
+- Ranged weapon changes rebuild compatible ammunition.
+- One-handed/two-handed changes rebuild the off-hand.
+- Required protection, pinned gear, and Low-risk constraints remain active in
+  alternative tiers.
+- The setting previously called **Choices per slot** is now **Loadout tiers**.
 
-### Important location corrections
+## Combined Low-risk mode
 
-- **Dagannoth:** Lighthouse, Jormungand's Prison, and Waterbirth Island Dungeon are cannon routes; Catacombs of Kourend is not.
-- **Shades:** Sepulchre of Death / Mort'ton-outskirts route is supported; Shade Catacombs and Catacombs of Kourend are excluded.
-- **Metal dragons:** Brimhaven, Isle of Souls (iron dragons), and Lithkren Vault (adamant/rune dragons) are supported; Ancient Cavern mithril dragons and Catacombs are not cannon routes.
-- Existing location rules remain for Bloodveld, Dust devils, Waterfiends, Wyrms, Lizardmen, Lesser Nagua, Fire giants, Nechryael, Abyssal demons, and other mixed-location tasks.
+- Low-risk mode now caps the combined guide value of the complete equipment
+  loadout.
+- Required safety gear and explicitly preferred items remain hard overrides.
+- When an override exceeds the cap, remaining slots use the strongest safer
+  lower-value choices available.
+- The sidebar shows the estimated Tier 1 value against the configured cap.
 
-See [CANNON-TASK-COVERAGE.md](CANNON-TASK-COVERAGE.md) for the embedded route list.
+## Task-scaled trip supplies
 
-## Full cannon as Tier 1 gear
+- Added Full assignment, Short trip, and Custom kills planning.
+- Added Light, Normal, and Extra food/Prayer safety levels.
+- Added quantity estimates for food, Prayer support, combat boosts, Goading,
+  Prayer regeneration, protection potions, run energy, and cannon ammunition.
+- Added Bastion support and Divine-versus-regular boost preference.
+- Added **Potion Estimate (BETA)**; disabling it keeps potion recommendations
+  while removing their quantity targets.
+- Added task-scoped decrease, Auto, and increase controls.
+- Optional supplies can be turned off and restored without disappearing from the
+  sidebar.
+- Profile switches now refresh recommendations and per-account supply
+  overrides immediately.
 
-A selected cannon method now requires and displays the complete dwarf multicannon directly inside the Tier 1 Loadout:
+## Stable bank preparation
 
-- Cannon base
-- Cannon stand
-- Cannon barrels
-- Cannon furnace
+- Tier 1 equipment and supplies use separate four-column zigzag paths.
+- Withdrawn equipment, potions, food, and cannon items reserve their positions
+  instead of shifting the next item under the pointer.
+- Exact potion-dose widgets are preferred before canonical fallbacks.
+- Remaining manual withdrawal counts are shown for quantity-planned supplies.
+- Bank open/close, config refresh, strategy changes, and withdrawal bursts use a
+  debounced client-thread flow.
 
-Additional behavior:
+## Catalog and scoring hardening
 
-- The four cannon parts count toward the **GEAR** readiness total instead of being hidden inside the supplies count.
-- Cannonballs / granite cannonballs remain a required **Trip Supply**.
-- Cannon parts and ammunition receive Tier 1 treatment in the filtered bank.
-- Missing cannon components block the Ready-to-leave-bank state.
-- Regular and ornamented cannon parts remain separate complete sets; the optimizer never recommends a mixed regular/ornamented cannon.
+- Added catalog-wide alias, metadata, collision, strategy, and Slayer-master
+  consistency checks.
+- Curated task profiles retain priority over broad boss aliases.
+- Specialized weapon rules propagate through safe fallback profiles.
+- Existing location-aware cannon and monster-affinity audits remain enforced.
 
-## Safety / UX
+## Sidebar and support
 
-- Trip supplies do not duplicate cannon components after the components are promoted into the Tier 1 loadout.
-- The filtered-bank Tier 1 heading mentions cannon only when the selected setup actually contains cannon gear.
-- Cannon recommendations remain advisory and manual. The plugin never deploys, loads, withdraws, or interacts with the cannon for the player.
+- Removed the old beta/task-aware subtitle and duplicate Bank Highlights button.
+- Bank Highlights remains in the normal plugin settings.
+- Added one compact Discord support icon beside the plugin title.
+- The support invite opens only after a direct click through RuneLite's standard
+  browser handler.
+- No background Discord request, tracking parameter, or client-data upload was
+  added.
 
 ## Validation
 
-- Main source compiles under Java 11 against the bundled RuneLite client with `-Xlint:deprecation -Werror`.
-- Cannon regression harness: **59/59 checks passed**.
-- Harness repeated **4 consecutive times with 0 failures**.
-- Catalog contains **81 cannon routes** after location-safety corrections.
+- Main source compiles for Java 11 with deprecation warnings treated as errors.
+- Full release-candidate suite: **112 tests passed, zero failures**.
+- Prohibited API and lifecycle review completed.
+- Remaining in-client and screenshot gates are documented in
+  [VALIDATION.md](VALIDATION.md).

@@ -17,11 +17,14 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.function.BiConsumer;
 import javax.inject.Inject;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
@@ -36,9 +39,10 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.util.ImageUtil;
 
 /**
- * Beta 2 panel refresh for Slayer Best in Bank.
+ * Compact panel for Slayer Best in Bank.
  *
  * The layout is intentionally compact and scan-first: current task, readiness,
  * Tier 1 gear, trip supplies, then optional detail. Backups and long task notes
@@ -82,10 +86,9 @@ class SlayerGearPanel extends PluginPanel
 
 	private final ItemManager itemManager;
 	private final JPanel content = transparentPanel();
-	private final JButton highlightButton = new RoundedButton();
-	private Runnable toggleHandler = () -> { };
 	private Runnable strategyCycleHandler = () -> { };
-	private boolean highlightsActive;
+	private BiConsumer<SupplyRecommendation, SupplyQuantityAction> supplyQuantityHandler =
+		(supply, action) -> { };
 	private boolean showAlternatives;
 	private boolean showTaskDetails;
 	private GearRecommendations lastRecommendations;
@@ -110,20 +113,15 @@ class SlayerGearPanel extends PluginPanel
 			"Best-in-Bank will wake up when RuneLite detects an assignment.");
 	}
 
-	void setToggleHandler(Runnable toggleHandler)
-	{
-		this.toggleHandler = toggleHandler == null ? () -> { } : toggleHandler;
-	}
-
 	void setStrategyCycleHandler(Runnable handler)
 	{
 		this.strategyCycleHandler = handler == null ? () -> { } : handler;
 	}
 
-	void updateHighlights(boolean active)
+	void setSupplyQuantityHandler(
+		BiConsumer<SupplyRecommendation, SupplyQuantityAction> handler)
 	{
-		highlightsActive = active;
-		SwingUtilities.invokeLater(this::refreshHighlightButton);
+		this.supplyQuantityHandler = handler == null ? (supply, action) -> { } : handler;
 	}
 
 	void display(GearRecommendations recommendations)
@@ -168,35 +166,34 @@ class SlayerGearPanel extends PluginPanel
 		identity.add(icon, BorderLayout.WEST);
 
 		JPanel names = transparentPanel();
-		names.setLayout(new BoxLayout(names, BoxLayout.Y_AXIS));
+		names.setLayout(new BoxLayout(names, BoxLayout.X_AXIS));
 		JLabel title = new JLabel("Slayer Best in Bank");
 		title.setFont(FontManager.getRunescapeBoldFont().deriveFont(Font.BOLD, 15f));
 		title.setForeground(TEXT);
-		JLabel subtitle = new JLabel("BETA 2  •  owned loadout optimizer");
-		subtitle.setFont(FontManager.getRunescapeSmallFont());
-		subtitle.setForeground(MUTED_TEXT);
+		title.setVerticalAlignment(SwingConstants.CENTER);
 		names.add(title);
-		names.add(Box.createVerticalStrut(1));
-		names.add(subtitle);
+		names.add(Box.createHorizontalGlue());
+
+		JButton supportButton = new RoundedButton();
+		supportButton.setIcon(new ImageIcon(ImageUtil.resizeImage(
+			ImageUtil.loadImageResource(
+				SlayerGearPanel.class,
+				"/net/runelite/client/plugins/info/discord_icon.png"),
+			20,
+			20)));
+		supportButton.setToolTipText("Open Slayer Best in Bank support Discord");
+		supportButton.getAccessibleContext().setAccessibleName(
+			"Open Slayer Best in Bank support Discord");
+		supportButton.setBorder(new EmptyBorder(4, 4, 4, 4));
+		supportButton.setPreferredSize(new Dimension(30, 30));
+		supportButton.setMinimumSize(new Dimension(30, 30));
+		supportButton.setMaximumSize(new Dimension(30, 30));
+		supportButton.addActionListener(event -> SupportLinks.openDiscord());
+		names.add(supportButton);
 		identity.add(names, BorderLayout.CENTER);
+
 		root.add(identity);
-		root.add(Box.createVerticalStrut(6));
-
-		highlightButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-		highlightButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-		highlightButton.addActionListener(event -> toggleHandler.run());
-		refreshHighlightButton();
-		root.add(highlightButton);
 		return root;
-	}
-
-	private void refreshHighlightButton()
-	{
-		highlightButton.setText(highlightsActive ? "●  Bank highlights on" : "○  Bank highlights off");
-		highlightButton.setForeground(highlightsActive ? SUCCESS : MUTED_TEXT);
-		highlightButton.setToolTipText(highlightsActive
-			? "Hide recommendation markers in the normal bank"
-			: "Show recommendation markers in the normal bank");
 	}
 
 	private void displayOnEdt(GearRecommendations recommendations)
@@ -409,7 +406,17 @@ class SlayerGearPanel extends PluginPanel
 
 	private void addLoadout(GearRecommendations recommendations)
 	{
-		JPanel heading = sectionHeading("LOADOUT", "Tier 1 first");
+		String loadoutSubtitle = "T2/T3 show swaps only";
+		if (!recommendations.getLoadoutTiers().isEmpty())
+		{
+			LoadoutTier tierOne = recommendations.getLoadoutTiers().get(0);
+			if (tierOne.getRiskCapGp() > 0)
+			{
+				loadoutSubtitle = "Low risk  ~" + compactGp(tierOne.getGuidePrice())
+					+ " / " + compactGp(tierOne.getRiskCapGp());
+			}
+		}
+		JPanel heading = sectionHeading("LOADOUT", loadoutSubtitle);
 		RoundedButton alternatives = new RoundedButton();
 		alternatives.setText(showAlternatives ? "Hide backups" : "Show backups");
 		alternatives.setForeground(showAlternatives ? TEAL : MUTED_TEXT);
@@ -570,18 +577,23 @@ class SlayerGearPanel extends PluginPanel
 	{
 		List<SupplyRecommendation> tripSupplies = new ArrayList<>();
 		int packed = 0;
+		int enabled = 0;
 		for (SupplyRecommendation supply : recommendations.getSupplies())
 		{
 			if ("Cannon setup".equals(supply.getCategory())) continue;
 			tripSupplies.add(supply);
-			if (supply.getStatus().isPacked()) packed++;
+			if (supply.isEnabledForTrip())
+			{
+				enabled++;
+				if (supply.getStatus().isPacked() && supply.hasRecommendedQuantityPacked()) packed++;
+			}
 		}
 		if (tripSupplies.isEmpty())
 		{
 			return;
 		}
 
-		content.add(sectionHeading("TRIP SUPPLIES", packed + "/" + tripSupplies.size() + " packed"));
+		content.add(sectionHeading("TRIP SUPPLIES", packed + "/" + enabled + " packed"));
 		content.add(Box.createVerticalStrut(5));
 
 		RoundedPanel card = card(SURFACE);
@@ -607,7 +619,13 @@ class SlayerGearPanel extends PluginPanel
 		RoundedPanel row = new RoundedPanel(ROW, ROW_RADIUS, null);
 		row.setLayout(new BorderLayout(7, 0));
 		row.setBorder(new EmptyBorder(6, 7, 6, 7));
-		row.setToolTipText(supply.getReason());
+		String quantityDetails = supply.hasQuantityTarget()
+			? " Packed: " + supply.getPackedQuantity()
+				+ "; bank: " + supply.getBankQuantity()
+				+ "; estimated target: " + supply.getRecommendedQuantity()
+				+ " " + supply.getQuantityUnit() + "."
+			: "";
+		row.setToolTipText(supply.getReason() + quantityDetails);
 
 		JLabel icon = new JLabel();
 		icon.setPreferredSize(new Dimension(30, 30));
@@ -625,17 +643,74 @@ class SlayerGearPanel extends PluginPanel
 		name.setForeground(TEXT);
 		name.setToolTipText(supply.getItemName());
 		text.add(name);
-		JLabel category = new JLabel(supply.getCategory() + (supply.isRequired() ? "  •  required" : ""));
+		String quantity = supply.hasQuantityTarget()
+			? "  •  " + supply.getPackedQuantity() + "/" + supply.getRecommendedQuantity()
+				+ " " + supply.getQuantityUnit()
+			: "";
+		JLabel category = new JLabel(supply.getCategory()
+			+ (supply.isRequired() ? "  •  required" : "") + quantity);
 		category.setFont(FontManager.getRunescapeSmallFont());
 		category.setForeground(supply.isRequired() ? WARNING : MUTED_TEXT);
 		text.add(category);
 		row.add(text, BorderLayout.CENTER);
-		row.add(supplyStatus(supply), BorderLayout.EAST);
+		JPanel right = transparentPanel();
+		right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
+		StatusPill status = supplyStatus(supply);
+		status.setAlignmentX(Component.RIGHT_ALIGNMENT);
+		right.add(status);
+		if (supply.isQuantityAdjustable())
+		{
+			right.add(Box.createVerticalStrut(3));
+			JPanel controls = transparentPanel(new GridLayout(1, 3, 2, 0));
+			controls.setAlignmentX(Component.RIGHT_ALIGNMENT);
+			controls.setMaximumSize(new Dimension(69, 18));
+			controls.add(quantityButton("−", supply, SupplyQuantityAction.DECREASE));
+			controls.add(quantityButton("A", supply, SupplyQuantityAction.AUTO));
+			controls.add(quantityButton("+", supply, SupplyQuantityAction.INCREASE));
+			right.add(controls);
+		}
+		row.add(right, BorderLayout.EAST);
 		return row;
+	}
+
+	private JButton quantityButton(
+		String text,
+		SupplyRecommendation supply,
+		SupplyQuantityAction action)
+	{
+		JButton button = new JButton(text);
+		button.setFont(FontManager.getRunescapeSmallFont());
+		button.setForeground(SOFT_TEXT);
+		button.setBackground(SURFACE_RAISED);
+		button.setBorder(new EmptyBorder(1, 3, 1, 3));
+		button.setMargin(new Insets(0, 0, 0, 0));
+		button.setFocusable(false);
+		button.setToolTipText(action == SupplyQuantityAction.AUTO
+			? "Reset this task supply to Auto"
+			: action == SupplyQuantityAction.INCREASE
+				? "Increase this task supply"
+				: "Decrease this task supply");
+		button.addActionListener(event -> supplyQuantityHandler.accept(supply, action));
+		return button;
 	}
 
 	private StatusPill supplyStatus(SupplyRecommendation supply)
 	{
+		if (!supply.isEnabledForTrip())
+		{
+			return new StatusPill("OFF", MUTED_TEXT);
+		}
+		if (supply.hasQuantityTarget() && supply.hasRecommendedQuantityPacked())
+		{
+			return new StatusPill("READY", SUCCESS);
+		}
+		if (supply.hasQuantityTarget() && supply.getStatus() != SupplyStatus.MISSING)
+		{
+			String needed = "shots".equals(supply.getQuantityUnit())
+				? Integer.toString(supply.getQuantityStillNeeded())
+				: "×" + supply.getWithdrawalsStillNeeded();
+			return new StatusPill("NEED " + needed, WARNING);
+		}
 		switch (supply.getStatus())
 		{
 			case PACKED_BANKED:
@@ -857,6 +932,21 @@ class SlayerGearPanel extends PluginPanel
 			return value == null ? "" : value;
 		}
 		return value.substring(0, Math.max(1, max - 1)) + "…";
+	}
+
+	private static String compactGp(int value)
+	{
+		if (value >= 1_000_000)
+		{
+			double millions = value / 1_000_000.0;
+			return (millions >= 10 ? Integer.toString((int) millions)
+				: String.format(Locale.ENGLISH, "%.1f", millions)) + "m";
+		}
+		if (value >= 1_000)
+		{
+			return (value / 1_000) + "k";
+		}
+		return Integer.toString(Math.max(0, value));
 	}
 
 	private static String escape(String value)
