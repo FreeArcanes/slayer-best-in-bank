@@ -9,7 +9,7 @@ This catalog was audited against current Old School RuneScape Wiki Slayer task/l
 ## Important location-sensitive examples
 
 - **Smoke devils:** Smoke Devil Dungeon — cannon lure + Burst/Barrage.
-- **Dagannoth:** Lighthouse, Jormungand's Prison, and Waterbirth Island Dungeon are supported; Catacombs of Kourend is not.
+- **Dagannoth:** Lighthouse, Island of Stone/Jormungand's Prison, and Waterbirth Island Dungeon are supported; Catacombs of Kourend is not.
 - **Bloodveld:** Meiyerditch Laboratory, Stronghold Slayer Cave, and Iorwerth Dungeon; Catacombs is not.
 - **Dust devils:** Smoke Dungeon cannon-permitted area or Wilderness Slayer Cave; Catacombs is not.
 - **Metal dragons:** Brimhaven, Isle of Souls (iron), or Lithkren Vault (adamant/rune); Ancient Cavern mithril dragons and Catacombs are not cannon routes.
@@ -44,7 +44,7 @@ This catalog was audited against current Old School RuneScape Wiki Slayer task/l
 | Crabs | Rock Crabs | No | Use Rock Crabs for the cannon route; Sand Crabs cannot be targeted by a dwarf multicannon. |
 | Crocodiles | River Elid south of Pollnivneach | No | Cannon support speeds the open-desert crocodile assignment. |
 | Custodian stalkers | Stalker Den - south-west multicombat area | No | The south-west Stalker Den is multicombat and explicitly permits cannons; Venator pairs well with the route. |
-| Dagannoth | Lighthouse / Jormungand's Prison / Waterbirth Island Dungeon | Yes | Classic high-throughput cannon Slayer routes; Jormungand's Prison, the Lighthouse, and Waterbirth Island Dungeon all permit cannon use, while the Catacombs do not. |
+| Dagannoth | Lighthouse / Island of Stone (Jormungand's Prison) / Waterbirth Island Dungeon | Yes | Classic high-throughput cannon Slayer routes; Jormungand's Prison on the Island of Stone, the Lighthouse, and Waterbirth Island Dungeon all permit cannon use, while the Catacombs do not. |
 | Dark beasts | Iorwerth Dungeon / Mourner Tunnels | No | Both standard dark-beast locations permit a dwarf multicannon. |
 | Dogs | Kharidian Desert - jackals | No | Fast cannon-assisted completion route. |
 | Drakes | Karuulm Slayer Dungeon - Drake area | Yes | The current Slayer guide recommends a dwarf multicannon to speed Drake kills slightly. |

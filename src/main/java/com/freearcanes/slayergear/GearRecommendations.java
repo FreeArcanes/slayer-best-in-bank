@@ -29,6 +29,9 @@ final class GearRecommendations
 	private final ReadinessReport readiness;
 	private final int bankItemsChecked;
 	private final List<String> assignableMasters;
+	private final InventoryCapacityPlan inventoryPlan;
+	private final boolean bankPlanLocked;
+	private final boolean bankRefreshPending;
 
 	private GearRecommendations(
 		State state,
@@ -42,7 +45,10 @@ final class GearRecommendations
 		List<SupplyRecommendation> supplies,
 		ReadinessReport readiness,
 		int bankItemsChecked,
-		List<String> assignableMasters)
+		List<String> assignableMasters,
+		InventoryCapacityPlan inventoryPlan,
+		boolean bankPlanLocked,
+		boolean bankRefreshPending)
 	{
 		this.state = state;
 		this.taskName = taskName;
@@ -64,6 +70,10 @@ final class GearRecommendations
 		this.readiness = readiness == null ? ReadinessReport.empty() : readiness;
 		this.bankItemsChecked = bankItemsChecked;
 		this.assignableMasters = immutable(assignableMasters);
+		this.inventoryPlan = inventoryPlan == null
+			? InventoryCapacityPlan.unavailable() : inventoryPlan;
+		this.bankPlanLocked = bankPlanLocked;
+		this.bankRefreshPending = bankRefreshPending;
 	}
 
 	private static <T> List<T> immutable(List<T> values)
@@ -75,21 +85,24 @@ final class GearRecommendations
 	{
 		return new GearRecommendations(State.NO_TASK, "", 0, null, null,
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
-			Collections.emptyList(), ReadinessReport.empty(), 0, Collections.emptyList());
+			Collections.emptyList(), ReadinessReport.empty(), 0, Collections.emptyList(),
+			InventoryCapacityPlan.unavailable(), false, false);
 	}
 
 	static GearRecommendations unsupported(String taskName, int taskAmount)
 	{
 		return new GearRecommendations(State.UNSUPPORTED_TASK, taskName, taskAmount, null, null,
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
-			Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName));
+			Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName),
+			InventoryCapacityPlan.unavailable(), false, false);
 	}
 
 	static GearRecommendations openBank(String taskName, int taskAmount, SlayerTaskProfile profile)
 	{
 		return new GearRecommendations(State.OPEN_BANK, taskName, taskAmount, profile, null,
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
-			Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName));
+			Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName),
+			InventoryCapacityPlan.unavailable(), false, false);
 	}
 
 	static GearRecommendations ready(
@@ -106,7 +119,7 @@ final class GearRecommendations
 	{
 		return new GearRecommendations(State.READY, taskName, taskAmount, profile, strategy,
 			alternativeStrategies, bySlot, loadoutTiers, supplies, readiness, bankItemsChecked,
-			SlayerMasterCatalog.mastersFor(taskName));
+			SlayerMasterCatalog.mastersFor(taskName), InventoryCapacityPlan.unavailable(), false, false);
 	}
 
 	State getState() { return state; }
@@ -121,6 +134,55 @@ final class GearRecommendations
 	ReadinessReport getReadiness() { return readiness; }
 	int getBankItemsChecked() { return bankItemsChecked; }
 	List<String> getAssignableMasters() { return assignableMasters; }
+	InventoryCapacityPlan getInventoryPlan() { return inventoryPlan; }
+	boolean isBankPlanLocked() { return bankPlanLocked; }
+	boolean isBankRefreshPending() { return bankRefreshPending; }
+
+	GearRecommendations withPreparationState(
+		List<SupplyRecommendation> plannedSupplies,
+		InventoryCapacityPlan plan,
+		boolean locked,
+		boolean refreshPending)
+	{
+		List<SupplyRecommendation> effectiveSupplies =
+			plannedSupplies == null ? supplies : plannedSupplies;
+		return new GearRecommendations(
+			state,
+			taskName,
+			taskAmount,
+			profile,
+			strategy,
+			alternativeStrategies,
+			bySlot,
+			loadoutTiers,
+			effectiveSupplies,
+			readiness.withSupplyProgress(effectiveSupplies),
+			bankItemsChecked,
+			assignableMasters,
+			plan,
+			locked,
+			refreshPending);
+	}
+
+	GearRecommendations withBankSessionState(boolean locked, boolean refreshPending)
+	{
+		return new GearRecommendations(
+			state,
+			taskName,
+			taskAmount,
+			profile,
+			strategy,
+			alternativeStrategies,
+			bySlot,
+			loadoutTiers,
+			supplies,
+			readiness,
+			bankItemsChecked,
+			assignableMasters,
+			inventoryPlan,
+			locked,
+			refreshPending);
+	}
 
 	List<GearRecommendation> get(EquipmentInventorySlot slot)
 	{

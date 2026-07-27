@@ -15,7 +15,7 @@ public class SupportLinksTest
 
 		assertEquals("https", invite.getScheme());
 		assertEquals("discord.gg", invite.getHost());
-		assertEquals("/hmGW7JGmRF", invite.getPath());
+		assertEquals("/HU67cBGBnt", invite.getPath());
 		assertNull(invite.getQuery());
 		assertNull(invite.getFragment());
 	}

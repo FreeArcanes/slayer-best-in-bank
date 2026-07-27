@@ -3,6 +3,30 @@
 This release candidate consolidates the current loadout, supply-planning,
 bank-layout, customization, and support improvements into one reviewable update.
 
+## Preparation quality of life
+
+- Added All, Missing, Gear, and Supplies focus views in the sidebar.
+- Packed entries remain visible but visually quieter in the complete views.
+- Alternative-only Tier 2/3 slots stay out of the Tier 1 Missing view and are
+  labeled as swaps when backups are shown.
+- Added combined ready-item and planned-inventory progress.
+- Opening the bank locks the active owned loadout and withdrawal order.
+- Task, method, profile, and setting changes wait for an explicit Refresh while
+  the bank plan is locked.
+- Live withdrawals still refresh packed/banked status from the frozen owned
+  selection pool.
+- A completed bank exit silently preserves that trip's prepared supplies, so
+  consumed potions, food, and deployed cannon parts do not become false missing
+  preparation; opening the next bank resets the check.
+- Added a 28-slot inventory-capacity guard covering current inventory, pending
+  Tier 1 gear, and remaining supply withdrawals.
+- Optional food and secondary supplies are reduced first when the requested
+  plan would not fit.
+- Required supplies are never capacity-trimmed; unresolved overflow is shown as
+  a warning.
+- Added Island of Stone as a recognized Dagannoth cannon-location alias for
+  Jormungand's Prison assignments.
+
 ## Coherent loadout tiers
 
 - Tier 1 remains the strongest complete owned setup.
@@ -70,7 +94,7 @@ bank-layout, customization, and support improvements into one reviewable update.
 ## Validation
 
 - Main source compiles for Java 11 with deprecation warnings treated as errors.
-- Full release-candidate suite: **112 tests passed, zero failures**.
+- Full release-candidate suite: **128 tests passed, zero failures**.
 - Prohibited API and lifecycle review completed.
 - Remaining in-client and screenshot gates are documented in
   [VALIDATION.md](VALIDATION.md).

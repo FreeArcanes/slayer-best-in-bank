@@ -13,9 +13,18 @@ final class BankFlowState
 	private boolean filterTransitionQueued;
 	private boolean bankViewRefreshQueued;
 	private boolean strategyCycleQueued;
+	private boolean loadoutLocked;
+	private boolean loadoutRefreshPending;
+	private boolean loadoutRefreshQueued;
 
 	void openBank()
 	{
+		if (!bankOpen)
+		{
+			loadoutLocked = false;
+			loadoutRefreshPending = false;
+			loadoutRefreshQueued = false;
+		}
 		bankOpen = true;
 	}
 
@@ -26,6 +35,9 @@ final class BankFlowState
 		filterTransitionQueued = false;
 		bankViewRefreshQueued = false;
 		recalculationQueued = false;
+		loadoutLocked = false;
+		loadoutRefreshPending = false;
+		loadoutRefreshQueued = false;
 	}
 
 	void resetSession()
@@ -36,6 +48,9 @@ final class BankFlowState
 		filterTransitionQueued = false;
 		bankViewRefreshQueued = false;
 		strategyCycleQueued = false;
+		loadoutLocked = false;
+		loadoutRefreshPending = false;
+		loadoutRefreshQueued = false;
 	}
 
 	boolean isBankOpen() { return bankOpen; }
@@ -87,4 +102,38 @@ final class BankFlowState
 	}
 
 	void completeStrategyCycle() { strategyCycleQueued = false; }
+
+	void lockLoadout()
+	{
+		loadoutLocked = bankOpen;
+	}
+
+	void unlockLoadout()
+	{
+		loadoutLocked = false;
+		loadoutRefreshPending = false;
+	}
+
+	boolean isLoadoutLocked() { return loadoutLocked; }
+	boolean isLoadoutRefreshPending() { return loadoutRefreshPending; }
+
+	void markLoadoutRefreshPending()
+	{
+		if (loadoutLocked)
+		{
+			loadoutRefreshPending = true;
+		}
+	}
+
+	boolean queueLoadoutRefresh()
+	{
+		if (!bankOpen || loadoutRefreshQueued) return false;
+		loadoutRefreshQueued = true;
+		return true;
+	}
+
+	void completeLoadoutRefresh()
+	{
+		loadoutRefreshQueued = false;
+	}
 }

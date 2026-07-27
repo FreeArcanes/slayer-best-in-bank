@@ -56,4 +56,36 @@ final class ReadinessReport
 			&& weaponAmmoReady
 			&& missingCritical.isEmpty();
 	}
+
+	ReadinessReport withSupplyProgress(List<SupplyRecommendation> supplies)
+	{
+		int packed = 0;
+		int total = 0;
+		if (supplies != null)
+		{
+			for (SupplyRecommendation supply : supplies)
+			{
+				if ("Cannon setup".equals(supply.getCategory())
+					|| !supply.isEnabledForTrip())
+				{
+					continue;
+				}
+				total++;
+				if (supply.getStatus().isPacked()
+					&& supply.hasRecommendedQuantityPacked())
+				{
+					packed++;
+				}
+			}
+		}
+		return new ReadinessReport(
+			gearPacked,
+			gearTotal,
+			protectionReady,
+			weaponAmmoReady,
+			spellStatus,
+			packed,
+			total,
+			missingCritical);
+	}
 }

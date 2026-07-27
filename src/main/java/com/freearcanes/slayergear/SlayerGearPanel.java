@@ -89,8 +89,10 @@ class SlayerGearPanel extends PluginPanel
 	private Runnable strategyCycleHandler = () -> { };
 	private BiConsumer<SupplyRecommendation, SupplyQuantityAction> supplyQuantityHandler =
 		(supply, action) -> { };
+	private Runnable loadoutRefreshHandler = () -> { };
 	private boolean showAlternatives;
 	private boolean showTaskDetails;
+	private PrepFocusMode prepFocusMode = PrepFocusMode.ALL;
 	private GearRecommendations lastRecommendations;
 
 	@Inject
@@ -122,6 +124,11 @@ class SlayerGearPanel extends PluginPanel
 		BiConsumer<SupplyRecommendation, SupplyQuantityAction> handler)
 	{
 		this.supplyQuantityHandler = handler == null ? (supply, action) -> { } : handler;
+	}
+
+	void setLoadoutRefreshHandler(Runnable handler)
+	{
+		this.loadoutRefreshHandler = handler == null ? () -> { } : handler;
 	}
 
 	void display(GearRecommendations recommendations)
@@ -224,8 +231,26 @@ class SlayerGearPanel extends PluginPanel
 			case READY:
 				addTaskHero(recommendations);
 				addReadiness(recommendations);
-				addLoadout(recommendations);
-				addSupplies(recommendations);
+				addPrepControls(recommendations);
+				if (prepFocusMode == PrepFocusMode.MISSING
+					&& isPrepComplete(recommendations.getReadiness()))
+				{
+					addEmptyCard(
+						"Nothing missing",
+						"All planned gear and supplies are packed.",
+						SUCCESS);
+				}
+				else
+				{
+					if (prepFocusMode != PrepFocusMode.SUPPLIES)
+					{
+						addLoadout(recommendations, prepFocusMode == PrepFocusMode.MISSING);
+					}
+					if (prepFocusMode != PrepFocusMode.GEAR)
+					{
+						addSupplies(recommendations, prepFocusMode == PrepFocusMode.MISSING);
+					}
+				}
 				addTaskDetailsSection(recommendations);
 				break;
 			default:
@@ -339,6 +364,22 @@ class SlayerGearPanel extends PluginPanel
 		panel.add(metrics);
 		panel.add(Box.createVerticalStrut(7));
 
+		int readyCount = ready.getGearPacked() + ready.getSuppliesPacked();
+		int totalCount = ready.getGearTotal() + ready.getSuppliesTotal();
+		InventoryCapacityPlan inventoryPlan = recommendations.getInventoryPlan();
+		String inventoryText = inventoryPlan.isAvailable()
+			? " | " + inventoryPlan.getPlannedSlots() + "/"
+				+ inventoryPlan.getCapacity() + " slots"
+			: "";
+		JLabel combined = new JLabel(readyCount + "/" + totalCount
+			+ " ready" + inventoryText);
+		combined.setFont(FontManager.getRunescapeSmallFont());
+		combined.setForeground(
+			inventoryPlan.isAvailable() && !inventoryPlan.fits() ? DANGER : SOFT_TEXT);
+		combined.setAlignmentX(Component.LEFT_ALIGNMENT);
+		panel.add(combined);
+		panel.add(Box.createVerticalStrut(6));
+
 		JPanel checks = transparentPanel(new GridLayout(0, 2, 5, 4));
 		checks.setAlignmentX(Component.LEFT_ALIGNMENT);
 		checks.add(checkLabel("Protection", ready.isProtectionReady()));
@@ -352,6 +393,29 @@ class SlayerGearPanel extends PluginPanel
 			checks.add(spell);
 		}
 		panel.add(checks);
+
+		if (inventoryPlan.isAvailable()
+			&& (inventoryPlan.wasTrimmed() || !inventoryPlan.fits()))
+		{
+			panel.add(Box.createVerticalStrut(6));
+			String capacityMessage;
+			Color capacityColor;
+			if (!inventoryPlan.fits())
+			{
+				capacityMessage = "Inventory plan is over by "
+					+ inventoryPlan.getOverBy() + " slot"
+					+ (inventoryPlan.getOverBy() == 1 ? "" : "s")
+					+ ". Required items were kept.";
+				capacityColor = DANGER;
+			}
+			else
+			{
+				capacityMessage = "Fit to 28 slots by reducing "
+					+ String.join(", ", inventoryPlan.getReductions()) + ".";
+				capacityColor = WARNING;
+			}
+			panel.add(wrappedLabel(capacityMessage, capacityColor, WRAP_WIDTH));
+		}
 
 		content.add(panel);
 
@@ -382,6 +446,50 @@ class SlayerGearPanel extends PluginPanel
 		content.add(Box.createVerticalStrut(10));
 	}
 
+	private void addPrepControls(GearRecommendations recommendations)
+	{
+		JPanel controls = transparentPanel(new GridLayout(1, 2, 6, 0));
+		controls.setAlignmentX(Component.LEFT_ALIGNMENT);
+		controls.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+
+		RoundedButton focus = new RoundedButton();
+		focus.setText("View: " + prepFocusMode.getDisplayName());
+		focus.setForeground(prepFocusMode == PrepFocusMode.ALL ? MUTED_TEXT : TEAL);
+		focus.setToolTipText("Show all prep, missing items, gear, or supplies");
+		focus.addActionListener(event ->
+		{
+			prepFocusMode = prepFocusMode.next();
+			refreshLastRecommendations();
+		});
+		controls.add(focus);
+
+		RoundedButton refresh = new RoundedButton();
+		refresh.setText(recommendations.isBankRefreshPending() ? "Refresh *" : "Refresh");
+		refresh.setForeground(recommendations.isBankRefreshPending() ? WARNING : MUTED_TEXT);
+		refresh.setEnabled(recommendations.isBankPlanLocked());
+		refresh.setToolTipText(recommendations.isBankRefreshPending()
+			? "Apply waiting task or setting changes and rebuild the locked bank plan"
+			: recommendations.isBankPlanLocked()
+				? "Rebuild the locked bank plan from the latest bank, inventory, and settings"
+				: "Open the bank to lock and refresh a preparation plan");
+		refresh.addActionListener(event -> loadoutRefreshHandler.run());
+		controls.add(refresh);
+
+		content.add(controls);
+		if (recommendations.isBankPlanLocked())
+		{
+			content.add(Box.createVerticalStrut(3));
+			JLabel lock = new JLabel(recommendations.isBankRefreshPending()
+				? "Bank plan locked | changes waiting"
+				: "Bank plan locked | click Refresh to rebuild");
+			lock.setFont(FontManager.getRunescapeSmallFont());
+			lock.setForeground(recommendations.isBankRefreshPending() ? WARNING : FAINT_TEXT);
+			lock.setAlignmentX(Component.LEFT_ALIGNMENT);
+			content.add(lock);
+		}
+		content.add(Box.createVerticalStrut(10));
+	}
+
 	private JPanel metricTile(String label, String value, Color valueColor)
 	{
 		RoundedPanel tile = new RoundedPanel(SURFACE_RAISED, ROW_RADIUS, BORDER);
@@ -404,8 +512,29 @@ class SlayerGearPanel extends PluginPanel
 		return label;
 	}
 
-	private void addLoadout(GearRecommendations recommendations)
+	private void addLoadout(GearRecommendations recommendations, boolean missingOnly)
 	{
+		if (missingOnly)
+		{
+			boolean missingGear = false;
+			for (EquipmentInventorySlot slot : SLOT_ORDER)
+			{
+				List<GearRecommendation> choices = recommendations.get(slot);
+				if (hasTierOneChoice(choices) && !choices.get(0).isPacked())
+				{
+					missingGear = true;
+					break;
+				}
+			}
+			boolean missingCannon = recommendations.getSupplies().stream()
+				.anyMatch(supply -> "Cannon setup".equals(supply.getCategory())
+					&& !isSupplyReady(supply));
+			if (!missingGear && !missingCannon)
+			{
+				return;
+			}
+		}
+
 		String loadoutSubtitle = "T2/T3 show swaps only";
 		if (!recommendations.getLoadoutTiers().isEmpty())
 		{
@@ -440,7 +569,20 @@ class SlayerGearPanel extends PluginPanel
 			{
 				continue;
 			}
+			boolean tierOneChoice = hasTierOneChoice(choices);
+			if (missingOnly && (!tierOneChoice || choices.get(0).isPacked()))
+			{
+				continue;
+			}
+			if (!showAlternatives && !tierOneChoice)
+			{
+				continue;
+			}
 			String suffix = slot == EquipmentInventorySlot.SHIELD && topWeaponIsTwoHanded ? " · 1H setup" : "";
+			if (!tierOneChoice)
+			{
+				suffix += " · T" + choices.get(0).getRank() + " swap";
+			}
 			content.add(buildSlotCard(slotName(slot) + suffix, choices));
 			content.add(Box.createVerticalStrut(5));
 		}
@@ -452,7 +594,11 @@ class SlayerGearPanel extends PluginPanel
 		List<SupplyRecommendation> cannonSet = new ArrayList<>();
 		for (SupplyRecommendation supply : recommendations.getSupplies())
 		{
-			if ("Cannon setup".equals(supply.getCategory())) cannonSet.add(supply);
+			if ("Cannon setup".equals(supply.getCategory())
+				&& (!missingOnly || !isSupplyReady(supply)))
+			{
+				cannonSet.add(supply);
+			}
 		}
 		if (!cannonSet.isEmpty())
 		{
@@ -468,10 +614,18 @@ class SlayerGearPanel extends PluginPanel
 		content.add(Box.createVerticalStrut(5));
 	}
 
+	static boolean hasTierOneChoice(List<GearRecommendation> choices)
+	{
+		return choices != null
+			&& !choices.isEmpty()
+			&& choices.get(0).getRank() == 1;
+	}
+
 	private JPanel buildSlotCard(String slotName, List<GearRecommendation> choices)
 	{
 		GearRecommendation best = choices.get(0);
-		RoundedPanel card = new RoundedPanel(ROW, ROW_RADIUS, BORDER);
+		Color restingFill = best.isPacked() ? SURFACE : ROW;
+		RoundedPanel card = new RoundedPanel(restingFill, ROW_RADIUS, BORDER);
 		card.setLayout(new BorderLayout(8, 0));
 		card.setBorder(new EmptyBorder(7, 8, 7, 8));
 		card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -492,7 +646,7 @@ class SlayerGearPanel extends PluginPanel
 		center.add(slot);
 		JLabel item = new JLabel(shorten(best.getItemName(), 27));
 		item.setFont(FontManager.getRunescapeBoldFont());
-		item.setForeground(TEXT);
+		item.setForeground(best.isPacked() ? SOFT_TEXT : TEXT);
 		item.setToolTipText(best.getItemName());
 		center.add(item);
 
@@ -545,7 +699,7 @@ class SlayerGearPanel extends PluginPanel
 			@Override
 			public void mouseExited(MouseEvent event)
 			{
-				card.setFill(ROW);
+				card.setFill(restingFill);
 			}
 
 			@Override
@@ -573,7 +727,7 @@ class SlayerGearPanel extends PluginPanel
 		return new StatusPill("T" + recommendation.getRank(), GOLD);
 	}
 
-	private void addSupplies(GearRecommendations recommendations)
+	private void addSupplies(GearRecommendations recommendations, boolean missingOnly)
 	{
 		List<SupplyRecommendation> tripSupplies = new ArrayList<>();
 		int packed = 0;
@@ -581,6 +735,11 @@ class SlayerGearPanel extends PluginPanel
 		for (SupplyRecommendation supply : recommendations.getSupplies())
 		{
 			if ("Cannon setup".equals(supply.getCategory())) continue;
+			if (missingOnly
+				&& (!supply.isEnabledForTrip() || isSupplyReady(supply)))
+			{
+				continue;
+			}
 			tripSupplies.add(supply);
 			if (supply.isEnabledForTrip())
 			{
@@ -616,7 +775,8 @@ class SlayerGearPanel extends PluginPanel
 
 	private JPanel buildSupplyRow(SupplyRecommendation supply)
 	{
-		RoundedPanel row = new RoundedPanel(ROW, ROW_RADIUS, null);
+		boolean ready = isSupplyReady(supply);
+		RoundedPanel row = new RoundedPanel(ready ? SURFACE : ROW, ROW_RADIUS, null);
 		row.setLayout(new BorderLayout(7, 0));
 		row.setBorder(new EmptyBorder(6, 7, 6, 7));
 		String quantityDetails = supply.hasQuantityTarget()
@@ -624,6 +784,10 @@ class SlayerGearPanel extends PluginPanel
 				+ "; bank: " + supply.getBankQuantity()
 				+ "; estimated target: " + supply.getRecommendedQuantity()
 				+ " " + supply.getQuantityUnit() + "."
+				+ (supply.isCapacityAdjusted()
+					? " Capacity guard reduced the requested target from "
+						+ supply.getRequestedQuantity() + "."
+					: "")
 			: "";
 		row.setToolTipText(supply.getReason() + quantityDetails);
 
@@ -640,7 +804,7 @@ class SlayerGearPanel extends PluginPanel
 		text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
 		JLabel name = new JLabel(shorten(supply.getItemName(), 25));
 		name.setFont(FontManager.getRunescapeBoldFont());
-		name.setForeground(TEXT);
+		name.setForeground(ready ? SOFT_TEXT : TEXT);
 		name.setToolTipText(supply.getItemName());
 		text.add(name);
 		String quantity = supply.hasQuantityTarget()
@@ -648,7 +812,9 @@ class SlayerGearPanel extends PluginPanel
 				+ " " + supply.getQuantityUnit()
 			: "";
 		JLabel category = new JLabel(supply.getCategory()
-			+ (supply.isRequired() ? "  •  required" : "") + quantity);
+			+ (supply.isRequired() ? "  •  required" : "")
+			+ (supply.isCapacityAdjusted() ? "  •  capacity fit" : "")
+			+ quantity);
 		category.setFont(FontManager.getRunescapeSmallFont());
 		category.setForeground(supply.isRequired() ? WARNING : MUTED_TEXT);
 		text.add(category);
@@ -671,6 +837,20 @@ class SlayerGearPanel extends PluginPanel
 		}
 		row.add(right, BorderLayout.EAST);
 		return row;
+	}
+
+	private static boolean isSupplyReady(SupplyRecommendation supply)
+	{
+		return !supply.isEnabledForTrip()
+			|| (supply.getStatus().isPacked()
+				&& supply.hasRecommendedQuantityPacked());
+	}
+
+	private static boolean isPrepComplete(ReadinessReport readiness)
+	{
+		return readiness.getGearTotal() > 0
+			&& readiness.getGearPacked() >= readiness.getGearTotal()
+			&& readiness.getSuppliesPacked() >= readiness.getSuppliesTotal();
 	}
 
 	private JButton quantityButton(

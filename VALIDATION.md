@@ -10,7 +10,7 @@ pushed, or submitted as a Plugin Hub update.
 Automated result:
 
 ```text
-112 tests passed
+128 tests passed
 0 failures
 0 errors
 ```
@@ -81,9 +81,24 @@ It is not part of the shipped main plugin source.
 - Bank open/close and filtered-view transitions are debounced.
 - Withdrawal bursts queue one recalculation.
 - Strategy changes cannot stack client-thread transitions.
+- Bank sessions lock the active plan and debounce explicit refresh requests.
+- Pending task/config changes clear on refresh or bank close.
 - Closing the bank cancels pending filtered-bank work.
 - Four-column zigzag positions are deterministic.
 - Withdrawn items retain reserved positions so later items do not shift.
+
+### Preparation focus and capacity
+
+- All, Missing, Gear, and Supplies focus modes cycle deterministically.
+- Current inventory, pending Tier 1 gear, potion withdrawals, food, and stacks
+  contribute the correct number of planned slots.
+- Completed bank exits preserve prepared supply quantities for the active trip;
+  potion use and cannon deployment remain satisfied until the next bank opens.
+- Gear readiness remains live while the silent supply allowance is active.
+- Optional food is reduced before lower-priority optional supplies.
+- Required supplies are never capacity-trimmed.
+- Plans that cannot fit after optional reductions report their remaining
+  overflow.
 
 ### Support link
 
@@ -142,17 +157,26 @@ Complete these checks in the developer client before publishing:
 - [ ] Test Low-risk mode below, exactly at, and above the configured cap.
 - [ ] Test Always prefer and Never recommend together.
 - [ ] Test Potion Estimate enabled and disabled.
+- [ ] Cycle All, Missing, Gear, and Supplies focus views.
+- [ ] Change a method/setting with the bank open and verify it waits for
+      Refresh without moving the active bank plan.
+- [ ] Verify a plan below 28 slots, an optional-supply trim to 28, and a
+      required-item overflow above 28.
 - [ ] Test zeroed optional supplies and reset them with Auto.
 - [ ] Test an empty/partial bank and a fully stocked bank.
 - [ ] Close the bank with missing preparation and verify the reminder.
+- [ ] Leave fully prepared, place the cannon, drink a potion, and eat food;
+      verify preparation stays complete until the next bank opening.
+- [ ] Reopen the bank and verify deployed/consumed supplies are required again
+      for the next trip.
 - [ ] Disable bank highlights and the prep reminder from plugin settings.
 
 ## Documentation and packaging gate
 
 Before publishing:
 
-- [x] Recapture the side-panel screenshot with the current header and support
-      icon.
+- [ ] Recapture the side-panel screenshot with the new prep focus, bank lock,
+      Refresh, and inventory-capacity controls.
 - [x] Recapture the settings screenshot with all current sections.
 - [x] Recapture the four-column equipment and supply paths.
 - [x] Replace README references to older screenshots that no longer match the

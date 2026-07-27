@@ -34,7 +34,7 @@ still make every withdrawal, equipment change, and gameplay decision yourself.
 | **Built from your bank** | Recommends valid gear you actually own across the bank, inventory, and worn equipment instead of handing you a generic shopping list. |
 | **Aware of the task** | Accounts for the assigned monster, location, selected method, required protection, useful attack styles, and supported special weapon families. |
 | **A complete setup** | Builds coherent equipment, ammunition, task tools, potions, food, Prayer support, cannon supplies, and other trip essentials together. |
-| **Fast to prepare** | Offers a stable manual bank view, quantity badges, readiness tracking, optional highlights, and a reminder when useful supplies were left behind. |
+| **Fast to prepare** | Offers focus views, a locked bank-session plan, inventory-capacity fitting, stable manual positions, quantity badges, optional highlights, and readiness reminders. |
 
 ## From assignment to ready
 
@@ -76,6 +76,34 @@ your mouse.
 
 Every interaction remains a normal player click. The plugin does not withdraw,
 equip, move, attack, pray, or otherwise play the game for you.
+
+## Preparation controls
+
+The sidebar's preparation controls keep long loadouts manageable:
+
+- **All** shows the complete plan while packed entries remain visible in a
+  quieter style.
+- **Missing** shows only gear and enabled supplies that still need attention.
+- **Gear** and **Supplies** isolate one part of the trip.
+- Combined readiness shows packed entries and the planned inventory footprint
+  in one line.
+
+Opening the bank locks the active loadout for that bank session. Withdrawals
+continue to update packed and banked status, but task, method, or setting changes
+wait behind a visible `Refresh` action. This keeps equipment, supplies, and bank
+positions predictable while you click through the plan.
+
+After a prepared bank exit, the plugin silently remembers the supplies packed
+for that trip. Drinking potions, eating food, or placing the cannon therefore
+does not turn normal consumption into a new preparation warning. Opening a bank
+starts a fresh preparation check; required worn equipment continues to use live
+inventory and equipment state throughout the trip.
+
+The inventory-capacity guard reserves space for the current inventory, pending
+Tier 1 equipment withdrawals, and remaining supply withdrawals. When a plan
+would exceed 28 slots, it reduces optional food and secondary supply quantities
+first. Required protection, tools, and supplies are never silently removed; if
+they still cannot fit, the sidebar shows the remaining over-capacity warning.
 
 ## Recommendations that stay coherent
 
@@ -192,7 +220,7 @@ contents, task information, account names, chat, or generated loadouts to the
 plugin author.
 
 The Discord icon in the sidebar opens the
-[Slayer Best in Bank support community](https://discord.gg/hmGW7JGmRF) in your
+[Slayer Best in Bank support community](https://discord.gg/HU67cBGBnt) in your
 system browser only after you click it. The plugin does not contact Discord in
 the background.
 
@@ -208,6 +236,8 @@ gameplay actions.
 - Location-specific advice depends on the task location available through
   RuneLite.
 - Potion and food quantities are estimates and may need personal adjustment.
+- Inventory capacity is a conservative preparation estimate; unrelated items
+  already carried can reduce the available space until they are banked.
 - A bank scan is required before account-specific recommendations are possible.
 - The plugin does not provide combat automation, prayer-switch instructions, or
   boss-mechanic prediction.
@@ -223,7 +253,7 @@ Detailed task coverage is documented in:
 Found an odd recommendation or have an idea? Use the repository's
 [bug report template](.github/ISSUE_TEMPLATE/bug_report.md),
 [feature request template](.github/ISSUE_TEMPLATE/feature_request.md), or the
-[support Discord](https://discord.gg/hmGW7JGmRF).
+[support Discord](https://discord.gg/HU67cBGBnt).
 
 For recommendation reports, include the task and location, selected method,
 relevant combat levels, expected setup, and actual setup. Crop screenshots to
