@@ -4,8 +4,9 @@ Validation date: 2026-07-26
 
 ## Current status
 
-The current source is a local release candidate. It has not been committed,
-pushed, or submitted as a Plugin Hub update.
+The current release candidate is published on a source review branch and pinned
+by an open Plugin Hub update. The remaining manual checks below should be
+completed before the source review is merged.
 
 Automated result:
 
