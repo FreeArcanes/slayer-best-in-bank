@@ -83,4 +83,40 @@ public class BankFlowStateTest
 		assertFalse(state.isFilterActive());
 		assertFalse(state.queueBankViewRefresh());
 	}
+
+	@Test
+	public void bankLoadoutLocksAndQueuesOneExplicitRefresh()
+	{
+		BankFlowState state = new BankFlowState();
+		state.openBank();
+		state.lockLoadout();
+		assertTrue(state.isLoadoutLocked());
+		assertFalse(state.isLoadoutRefreshPending());
+
+		state.markLoadoutRefreshPending();
+		assertTrue(state.isLoadoutRefreshPending());
+		assertTrue(state.queueLoadoutRefresh());
+		assertFalse(state.queueLoadoutRefresh());
+
+		state.unlockLoadout();
+		state.completeLoadoutRefresh();
+		assertFalse(state.isLoadoutLocked());
+		assertFalse(state.isLoadoutRefreshPending());
+		assertTrue(state.queueLoadoutRefresh());
+	}
+
+	@Test
+	public void closingBankClearsLockedPlanState()
+	{
+		BankFlowState state = new BankFlowState();
+		state.openBank();
+		state.lockLoadout();
+		state.markLoadoutRefreshPending();
+
+		state.closeBank();
+
+		assertFalse(state.isLoadoutLocked());
+		assertFalse(state.isLoadoutRefreshPending());
+		assertFalse(state.queueLoadoutRefresh());
+	}
 }

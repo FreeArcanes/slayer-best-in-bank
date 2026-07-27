@@ -4,7 +4,7 @@ import net.runelite.client.util.LinkBrowser;
 
 final class SupportLinks
 {
-	static final String DISCORD_INVITE = "https://discord.gg/hmGW7JGmRF";
+	static final String DISCORD_INVITE = "https://discord.gg/HU67cBGBnt";
 
 	private SupportLinks()
 	{

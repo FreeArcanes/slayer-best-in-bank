@@ -302,6 +302,37 @@ public class GearScorerTest
 	}
 
 	@Test
+	public void noxiousHalberdTierOneDoesNotEquipRuneDefender()
+	{
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(EquipmentInventorySlot.WEAPON, Arrays.asList(
+			riskItem(50, "Noxious halberd", EquipmentInventorySlot.WEAPON, 0, 100, false, true),
+			riskItem(51, "Abyssal whip", EquipmentInventorySlot.WEAPON, 0, 90, false, false)));
+		candidates.put(EquipmentInventorySlot.SHIELD, Collections.singletonList(
+			riskItem(52, "Rune defender", EquipmentInventorySlot.SHIELD, 0, 15, false)));
+
+		List<Map<EquipmentInventorySlot, GearRecommendation>> tiers =
+			new GearScorer(null, null).buildCoherentLoadouts(
+				2,
+				candidates,
+				GearStrategy.builder().combatStyle(CombatStyle.MELEE).build(),
+				Collections.emptyList(),
+				Collections.emptySet(),
+				false,
+				0);
+
+		assertEquals("Noxious halberd",
+			tiers.get(0).get(EquipmentInventorySlot.WEAPON).getItemName());
+		assertFalse(tiers.get(0).containsKey(EquipmentInventorySlot.SHIELD));
+
+		assertEquals("Abyssal whip",
+			tiers.get(1).get(EquipmentInventorySlot.WEAPON).getItemName());
+		assertEquals("Rune defender",
+			tiers.get(1).get(EquipmentInventorySlot.SHIELD).getItemName());
+	}
+
+	@Test
 	public void everyRuneLiteRecognizedSlayerTaskHasSafeProfile()
 	{
 		List<String> tasks = Arrays.asList(

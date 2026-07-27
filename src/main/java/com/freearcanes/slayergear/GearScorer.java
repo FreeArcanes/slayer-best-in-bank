@@ -60,11 +60,12 @@ class GearScorer
 	}
 
 	GearRecommendations score(String taskName, int taskAmount, SlayerTaskProfile profile,
-		Item[] gearPool, Item[] bankItems, Item[] packedItems, int alternativesPerSlot,
+		Item[] gearPool, Item[] bankItems, Item[] packedGearItems, Item[] packedSupplyItems,
+		int alternativesPerSlot,
 		int magicLevel, int rangedLevel, boolean kourendEliteComplete, boolean ancientSpellbookActive, String preferredStrategy, GearPriority gearPriority, String pinnedItems, String excludedItems, boolean lowRiskMode, int riskCapGp)
 	{
 		Set<Integer> bankCanonical = canonicalIds(bankItems);
-		Set<Integer> packedCanonical = canonicalIds(packedItems);
+		Set<Integer> packedCanonical = canonicalIds(packedGearItems);
 		List<BankEquipment> equipment = collectEquipment(gearPool, bankCanonical, packedCanonical);
 		Set<String> ownedNames = collectOwnedNames(equipment);
 		List<GearStrategy> eligible = eligibleStrategies(profile, ownedNames, magicLevel, rangedLevel);
@@ -112,7 +113,7 @@ class GearScorer
 		Map<EquipmentInventorySlot, GearRecommendation> best = loadoutTiers.isEmpty()
 			? Collections.emptyMap() : loadoutTiers.get(0).getItems();
 		List<SupplyRecommendation> supplies = supplyAdvisor.recommend(
-			profile, selected, taskAmount, bankItems, packedItems);
+			profile, selected, taskAmount, bankItems, packedSupplyItems);
 		// A protective off-hand already satisfies dragonfire protection. Do not
 		// simultaneously tell the player that antifire is still required.
 		if (hasDragonfireProtection(best))

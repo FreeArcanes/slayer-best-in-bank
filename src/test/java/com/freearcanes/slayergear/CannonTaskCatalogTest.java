@@ -58,6 +58,20 @@ public class CannonTaskCatalogTest
 	}
 
 	@Test
+	public void islandOfStoneDagannothsUseJormungandCannonSupport()
+	{
+		assertTrue(CannonTaskCatalog.find("Dagannoths", "Island of Stone").isPresent());
+		assertTrue(CannonTaskCatalog.find("Dagannoth", "Islands of Stone").isPresent());
+
+		SlayerTaskProfile profile = TaskProfiles.find("Dagannoths", "Island of Stone").orElseThrow();
+		GearStrategy cannon = profile.getStrategies().stream()
+			.filter(SmartSupplyAdvisor::isCannon)
+			.findFirst()
+			.orElseThrow();
+		assertEquals("Island of Stone", cannon.getLocation());
+	}
+
+	@Test
 	public void currentCannonRoutesIncludeNewerAndProtectionHeavyTasks()
 	{
 		assertTrue(CannonTaskCatalog.find("Drakes").isPresent());

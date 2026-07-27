@@ -70,6 +70,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private GearScorer gearScorer;
 
 	@Inject
+	private InventoryCapacityPlanner inventoryCapacityPlanner;
+
+	@Inject
 	private SlayerGearPanel panel;
 
 	@Inject
@@ -98,11 +101,13 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private Item[] lastBankItems;
 	private Item[] lastInventoryItems = EMPTY_ITEMS;
 	private Item[] lastWornItems = EMPTY_ITEMS;
+	private Item[] bankSessionGearPool;
 	private String lastTaskName;
 	private String lastTaskLocation = "";
 	private int lastTaskAmount = -1;
 	private boolean highlightsActive;
 	private final BankFlowState bankFlow = new BankFlowState();
+	private final TripPreparationState tripPreparation = new TripPreparationState();
 	private String bankSearchTextBeforeFilter = "";
 
 	@Provides
@@ -117,6 +122,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		highlightsActive = config.highlightsEnabled();
 		panel.setStrategyCycleHandler(this::queueCycleStrategy);
 		panel.setSupplyQuantityHandler(this::adjustSupplyQuantity);
+		panel.setLoadoutRefreshHandler(this::queueRefreshBankLoadout);
 
 		AsyncBufferedImage icon = itemManager.getImage(ItemID.SLAYER_HELM);
 		final NavigationButton nav = NavigationButton.builder()
@@ -148,6 +154,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			{
 				bankFlow.openBank();
 				lastBankItems = bank.getItems().clone();
+				bankSessionGearPool = combineGearPool(
+					lastBankItems, lastInventoryItems, lastWornItems);
 				bankButton.install();
 			}
 			refreshTask(true);
@@ -171,10 +179,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		lastBankItems = null;
 		lastInventoryItems = EMPTY_ITEMS;
 		lastWornItems = EMPTY_ITEMS;
+		bankSessionGearPool = null;
 		lastTaskName = null;
 		lastTaskLocation = "";
 		lastTaskAmount = -1;
 		bankFlow.resetSession();
+		tripPreparation.reset();
 		recommendations = GearRecommendations.noTask();
 		panel.display(recommendations);
 	}
@@ -190,10 +200,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			lastBankItems = null;
 			lastInventoryItems = EMPTY_ITEMS;
 			lastWornItems = EMPTY_ITEMS;
+			bankSessionGearPool = null;
 			lastTaskName = null;
 			lastTaskLocation = "";
 			lastTaskAmount = -1;
 			bankFlow.resetSession();
+			tripPreparation.reset();
 			recommendations = GearRecommendations.noTask();
 			prepReminderOverlay.hide();
 			panel.display(recommendations);
@@ -227,6 +239,10 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		// Bank withdrawals commonly emit BANK + INV/WORN changes in the same client
 		// cycle. Defer a single rescore so the withdrawn Tier 1 item remains part of
 		// the active loadout pool instead of promoting Tier 2 into its place.
+		if (bankFlow.isLoadoutLocked() && bankFlow.isLoadoutRefreshPending())
+		{
+			return;
+		}
 		queueRecalculate();
 	}
 
@@ -235,6 +251,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	{
 		if (event.getGroupId() == InterfaceID.BANKMAIN)
 		{
+			tripPreparation.reset();
 			bankFlow.openBank();
 			clientThread.invokeLater(() ->
 			{
@@ -245,6 +262,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				}
 				lastInventoryItems = snapshotContainer(InventoryID.INV);
 				lastWornItems = snapshotContainer(InventoryID.WORN);
+				bankSessionGearPool = bank == null
+					? null
+					: combineGearPool(lastBankItems, lastInventoryItems, lastWornItems);
 				recalculate(false);
 				bankButton.install();
 			});
@@ -269,7 +289,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		// Rebuild once from the latest BANK + INV/WORN snapshots before deciding
 		// whether anything useful was actually left behind.
 		bankFlow.closeBank();
+		bankSessionGearPool = null;
 		recalculate(false);
+		tripPreparation.arm(
+			recommendations,
+			combineGearPool(EMPTY_ITEMS, lastInventoryItems, lastWornItems),
+			itemManager::canonicalize);
 		prepReminderOverlay.show(recommendations);
 		bankButton.hide();
 	}
@@ -372,10 +397,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		else if (isRecommendationConfigKey(event.getKey()))
 		{
 			// RuneLite configuration changes can originate outside the client thread.
-			// Re-score on the client thread, then queue the bank rebuild after the
-			// current bank script has finished. This makes Balanced <-> Prayer First
-			// update immediately without closing/reopening the bank.
-			clientThread.invokeLater(() -> recalculate());
+			// Re-score on the client thread. An open bank keeps its current plan
+			// stable and exposes the change through the explicit Refresh action.
+			clientThread.invokeLater(this::recalculateOrMarkBankRefresh);
 		}
 	}
 
@@ -387,7 +411,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		clientThread.invokeLater(() ->
 		{
 			highlightsActive = config.highlightsEnabled();
-			recalculate();
+			recalculateOrMarkBankRefresh();
 		});
 	}
 
@@ -398,7 +422,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		// and game-mode profile changes must not retain the previous profile's plan.
 		clientThread.invokeLater(() ->
 		{
-			recalculate();
+			recalculateOrMarkBankRefresh();
 		});
 	}
 
@@ -515,9 +539,24 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			return;
 		}
 
+		if (TripPreparationState.assignmentChanged(
+			lastTaskName,
+			lastTaskLocation,
+			lastTaskAmount,
+			taskName,
+			taskLocation,
+			taskAmount))
+		{
+			tripPreparation.reset();
+		}
 		lastTaskName = taskName;
 		lastTaskLocation = taskLocation;
 		lastTaskAmount = taskAmount;
+		if (bankFlow.isLoadoutLocked())
+		{
+			markBankRefreshPending();
+			return;
+		}
 		recalculate();
 	}
 
@@ -538,6 +577,60 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		});
 	}
 
+	private void recalculateOrMarkBankRefresh()
+	{
+		if (bankFlow.isLoadoutLocked())
+		{
+			markBankRefreshPending();
+			return;
+		}
+		recalculate();
+	}
+
+	private void markBankRefreshPending()
+	{
+		bankFlow.markLoadoutRefreshPending();
+		if (recommendations.getState() == GearRecommendations.State.READY)
+		{
+			recommendations = recommendations.withBankSessionState(
+				bankFlow.isLoadoutLocked(),
+				bankFlow.isLoadoutRefreshPending());
+			panel.display(recommendations);
+		}
+	}
+
+	void queueRefreshBankLoadout()
+	{
+		if (!bankFlow.isBankOpen())
+		{
+			clientThread.invokeLater(() ->
+			{
+				tripPreparation.reset();
+				recalculate();
+			});
+			return;
+		}
+		if (!bankFlow.queueLoadoutRefresh())
+		{
+			return;
+		}
+
+		clientThread.invokeLater(() ->
+		{
+			try
+			{
+				bankFlow.unlockLoadout();
+				bankSessionGearPool = combineGearPool(
+					lastBankItems, lastInventoryItems, lastWornItems);
+				recalculate();
+			}
+			finally
+			{
+				bankFlow.completeLoadoutRefresh();
+			}
+		});
+	}
+
 	private void recalculate()
 	{
 		recalculate(true);
@@ -548,6 +641,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		if (lastTaskName == null || lastTaskName.isEmpty())
 		{
 			closeBankFilter();
+			bankFlow.unlockLoadout();
 			recommendations = GearRecommendations.noTask();
 			panel.display(recommendations);
 			return;
@@ -557,6 +651,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		if (!profile.isPresent())
 		{
 			closeBankFilter();
+			bankFlow.unlockLoadout();
 			recommendations = GearRecommendations.unsupported(
 				lastTaskName, lastTaskAmount);
 			panel.display(recommendations);
@@ -566,6 +661,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		if (lastBankItems == null)
 		{
 			closeBankFilter();
+			bankFlow.unlockLoadout();
 			recommendations = GearRecommendations.openBank(
 				lastTaskName, lastTaskAmount, profile.get());
 			panel.display(recommendations);
@@ -574,13 +670,26 @@ public class SlayerGearAdvisorPlugin extends Plugin
 
 		String strategyOverride = configManager.getConfiguration(
 			SlayerGearAdvisorConfig.GROUP, strategyKey(lastTaskName));
-		recommendations = gearScorer.score(
+		if (bankFlow.isBankOpen() && bankSessionGearPool == null)
+		{
+			bankSessionGearPool = combineGearPool(
+				lastBankItems, lastInventoryItems, lastWornItems);
+		}
+		Item[] scoringPool = bankFlow.isBankOpen() && bankSessionGearPool != null
+			? bankSessionGearPool
+			: combineGearPool(lastBankItems, lastInventoryItems, lastWornItems);
+		Item[] livePackedItems =
+			combineGearPool(EMPTY_ITEMS, lastInventoryItems, lastWornItems);
+		Item[] packedSupplyItems =
+			tripPreparation.suppliesForScoring(livePackedItems, itemManager::canonicalize);
+		GearRecommendations scored = gearScorer.score(
 			lastTaskName,
 			lastTaskAmount,
 			profile.get(),
-			combineGearPool(lastBankItems, lastInventoryItems, lastWornItems),
+			scoringPool,
 			lastBankItems,
-			combineGearPool(EMPTY_ITEMS, lastInventoryItems, lastWornItems),
+			livePackedItems,
+			packedSupplyItems,
 			config.alternativesPerSlot(),
 			client.getRealSkillLevel(Skill.MAGIC),
 			client.getRealSkillLevel(Skill.RANGED),
@@ -592,6 +701,15 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			config.excludedItems(),
 			config.lowRiskMode(),
 			config.riskCapThousands() * 1_000);
+		if (bankFlow.isBankOpen())
+		{
+			bankFlow.lockLoadout();
+		}
+		recommendations = inventoryCapacityPlanner.apply(
+			scored,
+			lastInventoryItems,
+			bankFlow.isLoadoutLocked(),
+			bankFlow.isLoadoutRefreshPending());
 		panel.display(recommendations);
 		if (bankFlow.isFilterActive() && rebuildBankView)
 		{
@@ -733,7 +851,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				configManager.setRSProfileConfiguration(
 					SlayerGearAdvisorConfig.GROUP, key, next);
 			}
-			recalculate();
+			recalculateOrMarkBankRefresh();
 		});
 	}
 
@@ -821,14 +939,11 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		}
 
 		/*
-		 * Re-score immediately from the cached bank/inventory/equipment snapshot.
-		 * panel.display() then schedules the new method on the Swing EDT.
-		 *
-		 * If Best-in-Bank is active, recalculate() also calls
-		 * queueBankViewRefresh(), so the currently-open bank changes in place
-		 * instead of waiting for a close/reopen.
+		 * Outside the bank, re-score immediately from the cached snapshots. During
+		 * a locked bank session, keep the active withdrawal plan in place and mark
+		 * the selected method as waiting for the explicit Refresh action.
 		 */
-		recalculate();
+		recalculateOrMarkBankRefresh();
 	}
 
 	private static String strategyKey(String taskName)

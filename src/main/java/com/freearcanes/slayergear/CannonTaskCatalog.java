@@ -137,9 +137,9 @@ final class CannonTaskCatalog
 			new String[] {"meiyerditch", "stronghold slayer cave", "iorwerth dungeon"}, "bloodveld", "bloodvelds");
 		route("Cave horrors", "Mos Le'Harmless Caves", CombatStyle.MELEE, AttackType.SLASH,
 			"Cannon increases kills per hour while the witchwood-icon safety requirement remains enforced.", "cave horrors", "cave horror");
-		routeAt("Dagannoth", "Lighthouse / Jormungand's Prison / Waterbirth Island Dungeon", CombatStyle.MELEE, AttackType.SLASH,
-			"Classic high-throughput cannon Slayer routes; Jormungand's Prison, the Lighthouse, and Waterbirth Island Dungeon all permit cannon use, while the Catacombs do not.",
-			new String[] {"lighthouse", "jormungand", "waterbirth island dungeon", "waterbirth dungeon"}, "dagannoth", "dagannoths");
+		routeAt("Dagannoth", "Lighthouse / Island of Stone (Jormungand's Prison) / Waterbirth Island Dungeon", CombatStyle.MELEE, AttackType.SLASH,
+			"Classic high-throughput cannon Slayer routes; Jormungand's Prison on the Island of Stone, the Lighthouse, and Waterbirth Island Dungeon all permit cannon use, while the Catacombs do not.",
+			new String[] {"lighthouse", "jormungand", "island of stone", "islands of stone", "waterbirth island dungeon", "waterbirth dungeon"}, "dagannoth", "dagannoths");
 		route("Dark beasts", "Iorwerth Dungeon / Mourner Tunnels", CombatStyle.MELEE, AttackType.SLASH,
 			"Both standard dark-beast locations permit a dwarf multicannon.", "dark beasts", "dark beast");
 		routeAt("Dust devils", "Smoke Dungeon / Wilderness Slayer Cave", CombatStyle.MAGIC, AttackType.BALANCED,
