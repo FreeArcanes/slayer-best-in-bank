@@ -132,7 +132,7 @@ final class CannonTaskCatalog
 			"red dragons", "red dragon");
 		route("Black demons", "Chasm of Fire / Taverley Dungeon / Wilderness Slayer Cave", CombatStyle.MELEE, AttackType.SLASH,
 			"Cannon-supported demonbane route; do not use the Catacombs when cannoning.", "black demons", "black demon");
-		routeAt("Bloodveld", "Meiyerditch Laboratory / Stronghold Slayer Cave / Iorwerth Dungeon", CombatStyle.RANGED, AttackType.BALANCED,
+		routeAt("Bloodveld", "Meiyerditch Laboratories / Stronghold Slayer Dungeon / Iorwerth Dungeon", CombatStyle.RANGED, AttackType.BALANCED,
 			"Cannon-supported route; mutated Bloodvelds pair especially well with multi-target damage.",
 			new String[] {"meiyerditch", "stronghold slayer cave", "iorwerth dungeon"}, "bloodveld", "bloodvelds");
 		route("Cave horrors", "Mos Le'Harmless Caves", CombatStyle.MELEE, AttackType.SLASH,
@@ -253,22 +253,12 @@ final class CannonTaskCatalog
 	{
 		String location = normalize(assignedLocation);
 		if (location.isEmpty()) return true;
-		return !(location.contains("catacombs of kourend")
-			|| location.contains("slayer tower")
-			|| location.contains("fremennik slayer dungeon")
-			|| location.contains("god wars dungeon")
-			|| location.contains("wyvern cave")
-			|| location.contains("revenant cave")
-			|| location.contains("forthos dungeon")
-			|| location.contains("killerwatt plane")
-			|| location.contains("kraken cove")
-			|| location.contains("lair of tarn")
-			|| location.contains("mogre camp")
-			|| location.contains("lizardman caves")
-			|| location.contains("lizardman temple")
-			|| location.contains("mor ul rek")
-			|| location.contains("fight cave")
-			|| location.contains("fight pit"));
+		Optional<SlayerAreaCatalog.Area> area = SlayerAreaCatalog.find(assignedLocation);
+		if (area.isPresent())
+		{
+			return area.get().getCannonPolicy() == SlayerAreaCatalog.CannonPolicy.ALLOWED;
+		}
+		return false;
 	}
 
 	static int routeCount()
@@ -328,9 +318,18 @@ final class CannonTaskCatalog
 
 		private boolean supportsAssignedLocation(String assignedLocation)
 		{
-			if (!isCannonAllowedAtAssignedLocation(assignedLocation)) return false;
 			String locationName = normalize(assignedLocation);
-			if (locationName.isEmpty() || assignedLocationTokens.length == 0) return true;
+			if (locationName.isEmpty()) return true;
+			Optional<SlayerAreaCatalog.Area> area = SlayerAreaCatalog.find(assignedLocation);
+			if (area.isPresent()
+				&& area.get().getCannonPolicy() == SlayerAreaCatalog.CannonPolicy.DENIED)
+			{
+				return false;
+			}
+			if (assignedLocationTokens.length == 0)
+			{
+				return isCannonAllowedAtAssignedLocation(assignedLocation);
+			}
 			for (String token : assignedLocationTokens)
 			{
 				if (locationName.contains(normalize(token))) return true;

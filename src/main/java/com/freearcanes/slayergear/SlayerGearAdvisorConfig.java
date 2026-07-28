@@ -35,16 +35,30 @@ public interface SlayerGearAdvisorConfig extends Config
 	String tripPlanningSection = "tripPlanning";
 
 	@ConfigSection(
+		name = "Teleport settings",
+		description = "Controls optional location-aware travel suggestions.",
+		position = 3
+	)
+	String teleportSection = "teleportSettings";
+
+	@ConfigSection(
 		name = "Bank highlights",
 		description = "Controls normal-bank recommendation markers and their colors.",
-		position = 3
+		position = 4
 	)
 	String highlightSection = "bankHighlights";
 
 	@ConfigSection(
+		name = "Appearance",
+		description = "Controls the Slayer side-panel appearance.",
+		position = 5
+	)
+	String appearanceSection = "appearance";
+
+	@ConfigSection(
 		name = "Prep reminder",
 		description = "Controls the reminder shown after closing the bank.",
-		position = 4
+		position = 6
 	)
 	String reminderSection = "prepReminder";
 
@@ -158,7 +172,7 @@ public interface SlayerGearAdvisorConfig extends Config
 
 	@ConfigItem(
 		keyName = "useGoading",
-		name = "Suggest Goading",
+		name = "Goading potion",
 		description = "Include owned Goading potions in automatic trip preparation.",
 		position = 6,
 		section = tripPlanningSection
@@ -167,7 +181,7 @@ public interface SlayerGearAdvisorConfig extends Config
 
 	@ConfigItem(
 		keyName = "usePrayerRegen",
-		name = "Suggest Prayer regeneration",
+		name = "Prayer regeneration",
 		description = "Include owned Prayer regeneration potions in automatic trip preparation.",
 		position = 7,
 		section = tripPlanningSection
@@ -182,6 +196,75 @@ public interface SlayerGearAdvisorConfig extends Config
 		section = tripPlanningSection
 	)
 	default boolean preferDivineBoosts() { return true; }
+
+	@ConfigItem(
+		keyName = "travelSuggestionsEnabled",
+		name = "Travel suggestions",
+		description = "Recommend optional teleport items for the assigned or selected Slayer location.",
+		position = 1,
+		section = teleportSection
+	)
+	default boolean travelSuggestionsEnabled() { return true; }
+
+	@ConfigItem(
+		keyName = "homeTeleportPreference",
+		name = "Home teleport",
+		description = "Preferred way to carry a Teleport to House option. Runes uses a Law rune as the visible reminder.",
+		position = 2,
+		section = teleportSection
+	)
+	default HomeTeleportPreference homeTeleportPreference()
+	{
+		return HomeTeleportPreference.TELEPORT_TO_HOUSE;
+	}
+
+	@ConfigItem(
+		keyName = "spellTeleportPreference",
+		name = "Spell teleports",
+		description = "Prefer teleport tablets or rune-based spell teleports when both are available.",
+		position = 3,
+		section = teleportSection
+	)
+	default SpellTeleportPreference spellTeleportPreference()
+	{
+		return SpellTeleportPreference.TABLETS_FIRST;
+	}
+
+	@ConfigItem(
+		keyName = "slayerRingPreference",
+		name = "Slayer ring",
+		description = "Prefer the eternal or charged Slayer ring for supported Slayer destinations.",
+		position = 4,
+		section = teleportSection
+	)
+	default SlayerRingPreference slayerRingPreference()
+	{
+		return SlayerRingPreference.ETERNAL_FIRST;
+	}
+
+	@ConfigItem(
+		keyName = "fairyRingPreference",
+		name = "Fairy ring access",
+		description = "Preferred carried item for routes that use a nearby fairy ring.",
+		position = 5,
+		section = teleportSection
+	)
+	default FairyRingPreference fairyRingPreference()
+	{
+		return FairyRingPreference.QUEST_CAPE_FIRST;
+	}
+
+	@ConfigItem(
+		keyName = "kourendTeleportPreference",
+		name = "Kourend travel",
+		description = "Preferred travel item for the Catacombs, Chasm of Fire, and nearby Kourend routes.",
+		position = 6,
+		section = teleportSection
+	)
+	default KourendTeleportPreference kourendTeleportPreference()
+	{
+		return KourendTeleportPreference.XERICS_TALISMAN_FIRST;
+	}
 
 	@ConfigItem(
 		keyName = "highlightsEnabled",
@@ -232,6 +315,18 @@ public interface SlayerGearAdvisorConfig extends Config
 	default Color tierThreeColor()
 	{
 		return new Color(170, 170, 170, 255);
+	}
+
+	@ConfigItem(
+		keyName = "panelTheme",
+		name = "Panel theme",
+		description = "Select the color and shape theme used by the Slayer side panel.",
+		position = 1,
+		section = appearanceSection
+	)
+	default PanelTheme panelTheme()
+	{
+		return PanelTheme.MIDNIGHT;
 	}
 
 	@ConfigItem(

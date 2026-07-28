@@ -39,6 +39,7 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
 
 /**
@@ -50,25 +51,32 @@ import net.runelite.client.util.ImageUtil;
  */
 class SlayerGearPanel extends PluginPanel
 {
-	private static final Color PANEL_BG = new Color(25, 26, 29);
-	private static final Color SURFACE = new Color(31, 33, 37);
-	private static final Color SURFACE_RAISED = new Color(36, 38, 43);
-	private static final Color ROW = new Color(34, 36, 40);
-	private static final Color ROW_HOVER = new Color(41, 44, 49);
-	private static final Color BORDER = new Color(50, 53, 59);
-	private static final Color TEXT = new Color(238, 239, 241);
-	private static final Color SOFT_TEXT = new Color(193, 196, 201);
-	private static final Color MUTED_TEXT = new Color(132, 136, 144);
-	private static final Color FAINT_TEXT = new Color(96, 100, 108);
-	private static final Color GOLD = new Color(239, 181, 74);
-	private static final Color TEAL = new Color(72, 201, 190);
-	private static final Color BLUE = new Color(100, 157, 235);
-	private static final Color SUCCESS = new Color(97, 194, 123);
-	private static final Color WARNING = new Color(231, 166, 74);
-	private static final Color DANGER = new Color(220, 103, 93);
-	private static final int CARD_RADIUS = 12;
-	private static final int ROW_RADIUS = 9;
+	private static Color PANEL_BG;
+	private static Color SURFACE;
+	private static Color SURFACE_RAISED;
+	private static Color ROW;
+	private static Color ROW_HOVER;
+	private static Color BORDER;
+	private static Color TEXT;
+	private static Color SOFT_TEXT;
+	private static Color MUTED_TEXT;
+	private static Color FAINT_TEXT;
+	private static Color GOLD;
+	private static Color TEAL;
+	private static Color BLUE;
+	private static Color SUCCESS;
+	private static Color WARNING;
+	private static Color DANGER;
+	private static Color SCROLL_THUMB;
+	private static Color SCROLL_THUMB_ACTIVE;
+	private static int CARD_RADIUS;
+	private static int ROW_RADIUS;
 	private static final int WRAP_WIDTH = 178;
+
+	static
+	{
+		applyThemeColors(PanelTheme.MIDNIGHT);
+	}
 
 	private static final List<EquipmentInventorySlot> SLOT_ORDER = Arrays.asList(
 		EquipmentInventorySlot.HEAD,
@@ -94,6 +102,7 @@ class SlayerGearPanel extends PluginPanel
 	private boolean showTaskDetails;
 	private PrepFocusMode prepFocusMode = PrepFocusMode.ALL;
 	private GearRecommendations lastRecommendations;
+	private PanelTheme panelTheme = PanelTheme.MIDNIGHT;
 
 	@Inject
 	SlayerGearPanel(ItemManager itemManager)
@@ -131,10 +140,45 @@ class SlayerGearPanel extends PluginPanel
 		this.loadoutRefreshHandler = handler == null ? () -> { } : handler;
 	}
 
+	void setTheme(PanelTheme theme)
+	{
+		PanelTheme selected = theme == null ? PanelTheme.MIDNIGHT : theme;
+		SwingUtilities.invokeLater(() -> setThemeOnEdt(selected));
+	}
+
 	void display(GearRecommendations recommendations)
 	{
-		lastRecommendations = recommendations;
 		SwingUtilities.invokeLater(() -> displayOnEdt(recommendations));
+	}
+
+	private void setThemeOnEdt(PanelTheme selected)
+	{
+		if (panelTheme == selected)
+		{
+			return;
+		}
+
+		panelTheme = selected;
+		applyThemeColors(selected);
+		setBackground(PANEL_BG);
+		styleScrollPane();
+
+		removeAll();
+		add(buildHeader(), BorderLayout.NORTH);
+		add(content, BorderLayout.CENTER);
+		if (lastRecommendations == null)
+		{
+			content.removeAll();
+			showEmpty(
+				"No Slayer task detected",
+				"Best-in-Bank will wake up when RuneLite detects an assignment.");
+		}
+		else
+		{
+			displayOnEdt(lastRecommendations);
+		}
+		revalidate();
+		repaint();
 	}
 
 	private void styleScrollPane()
@@ -164,12 +208,14 @@ class SlayerGearPanel extends PluginPanel
 
 		JPanel identity = transparentPanel(new BorderLayout(9, 0));
 		identity.setAlignmentX(Component.LEFT_ALIGNMENT);
-		identity.setMaximumSize(new Dimension(Integer.MAX_VALUE, 43));
+		identity.setMaximumSize(new Dimension(Integer.MAX_VALUE, 49));
 
 		JLabel icon = new JLabel();
 		icon.setHorizontalAlignment(SwingConstants.CENTER);
-		icon.setPreferredSize(new Dimension(34, 34));
-		itemManager.getImage(ItemID.SLAYER_HELM).addTo(icon);
+		icon.setPreferredSize(new Dimension(46, 42));
+		AsyncBufferedImage helmImage = itemManager.getImage(ItemID.SLAYER_HELM);
+		helmImage.onLoaded(() -> SwingUtilities.invokeLater(() ->
+			icon.setIcon(new ImageIcon(ImageUtil.resizeImage(helmImage, 44, 40)))));
 		identity.add(icon, BorderLayout.WEST);
 
 		JPanel names = transparentPanel();
@@ -718,11 +764,11 @@ class SlayerGearPanel extends PluginPanel
 	{
 		if (recommendation.isPacked())
 		{
-			return new StatusPill("PACKED", SUCCESS);
+			return new StatusPill("R", SUCCESS);
 		}
 		if (recommendation.isBanked())
 		{
-			return new StatusPill("BANK", BLUE);
+			return new StatusPill("B", BLUE);
 		}
 		return new StatusPill("T" + recommendation.getRank(), GOLD);
 	}
@@ -882,26 +928,32 @@ class SlayerGearPanel extends PluginPanel
 		}
 		if (supply.hasQuantityTarget() && supply.hasRecommendedQuantityPacked())
 		{
-			return new StatusPill("READY", SUCCESS);
+			return new StatusPill("R", SUCCESS);
 		}
 		if (supply.hasQuantityTarget() && supply.getStatus() != SupplyStatus.MISSING)
 		{
-			String needed = "shots".equals(supply.getQuantityUnit())
-				? Integer.toString(supply.getQuantityStillNeeded())
-				: "×" + supply.getWithdrawalsStillNeeded();
-			return new StatusPill("NEED " + needed, WARNING);
+			boolean countUnits = "shots".equals(supply.getQuantityUnit());
+			int needed = countUnits
+				? supply.getQuantityStillNeeded()
+				: supply.getWithdrawalsStillNeeded();
+			StatusPill shortage = new StatusPill("+" + needed, WARNING);
+			shortage.setToolTipText(countUnits
+				? "Need " + needed + " more " + supply.getQuantityUnit()
+				: "Need " + needed + " more withdrawal"
+					+ (needed == 1 ? "" : "s"));
+			return shortage;
 		}
 		switch (supply.getStatus())
 		{
 			case PACKED_BANKED:
-				return new StatusPill("PACKED+", SUCCESS);
+				return new StatusPill("R", SUCCESS);
 			case PACKED:
-				return new StatusPill("PACKED", SUCCESS);
+				return new StatusPill("R", SUCCESS);
 			case BANKED:
-				return new StatusPill("BANK", BLUE);
+				return new StatusPill("B", BLUE);
 			case MISSING:
 			default:
-				return new StatusPill("MISSING", DANGER);
+				return new StatusPill("X", DANGER);
 		}
 	}
 
@@ -1261,7 +1313,7 @@ class SlayerGearPanel extends PluginPanel
 		protected void configureScrollBarColors()
 		{
 			trackColor = PANEL_BG;
-			thumbColor = new Color(82, 85, 92);
+			thumbColor = SCROLL_THUMB;
 		}
 
 		@Override
@@ -1294,7 +1346,7 @@ class SlayerGearPanel extends PluginPanel
 			}
 			Graphics2D g = (Graphics2D) graphics.create();
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			g.setColor(isDragging ? new Color(118, 122, 132) : new Color(78, 81, 89));
+			g.setColor(isDragging ? SCROLL_THUMB_ACTIVE : SCROLL_THUMB);
 			int x = bounds.x + 1;
 			int width = Math.max(3, bounds.width - 2);
 			g.fillRoundRect(x, bounds.y + 1, width, Math.max(4, bounds.height - 2), 7, 7);
@@ -1309,6 +1361,30 @@ class SlayerGearPanel extends PluginPanel
 			button.setMaximumSize(new Dimension(0, 0));
 			return button;
 		}
+	}
+
+	private static void applyThemeColors(PanelTheme theme)
+	{
+		PANEL_BG = theme.panelBackground;
+		SURFACE = theme.surface;
+		SURFACE_RAISED = theme.raisedSurface;
+		ROW = theme.row;
+		ROW_HOVER = theme.rowHover;
+		BORDER = theme.border;
+		TEXT = theme.text;
+		SOFT_TEXT = theme.softText;
+		MUTED_TEXT = theme.mutedText;
+		FAINT_TEXT = theme.faintText;
+		GOLD = theme.gold;
+		TEAL = theme.teal;
+		BLUE = theme.blue;
+		SUCCESS = theme.success;
+		WARNING = theme.warning;
+		DANGER = theme.danger;
+		SCROLL_THUMB = theme.scrollThumb;
+		SCROLL_THUMB_ACTIVE = theme.activeScrollThumb;
+		CARD_RADIUS = theme.cardRadius;
+		ROW_RADIUS = theme.rowRadius;
 	}
 
 	private static Color withAlpha(Color color, int alpha)

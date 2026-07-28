@@ -1,9 +1,12 @@
 package com.freearcanes.slayergear;
 
 import com.google.inject.Provides;
+import java.awt.image.BufferedImage;
 import java.util.Optional;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
+import javax.swing.SwingUtilities;
 import net.runelite.api.Client;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
@@ -31,8 +34,11 @@ import net.runelite.client.events.ProfileChanged;
 import net.runelite.client.events.RuneScapeProfileChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
+import net.runelite.client.plugins.PluginDependency;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.plugins.bank.BankSearch;
+import net.runelite.client.plugins.banktags.BankTagsPlugin;
+import net.runelite.client.plugins.banktags.BankTagsService;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -43,12 +49,15 @@ import net.runelite.client.util.AsyncBufferedImage;
 	description = "Builds stable Slayer loadouts from gear and supplies you actually own",
 	tags = {"slayer", "gear", "bank", "equipment", "loadout", "overlay"}
 )
+@PluginDependency(BankTagsPlugin.class)
 public class SlayerGearAdvisorPlugin extends Plugin
 {
 	private static final String SLAYER_CONFIG_GROUP = "slayer";
 	private static final String SLAYER_TASK_KEY = "taskName";
 	private static final String SLAYER_LOCATION_KEY = "taskLocation";
 	private static final String SLAYER_AMOUNT_KEY = "amount";
+	private static final String INVENTORY_SETUPS_CONFIG_GROUP = "inventorysetups";
+	private static final String INVENTORY_SETUPS_LAYOUT_KEY = "useLayouts";
 	private static final Item[] EMPTY_ITEMS = new Item[0];
 
 	@Inject
@@ -91,6 +100,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private BankSearch bankSearch;
 
 	@Inject
+	private BankTagsService bankTagsService;
+
+	@Inject
 	private OverlayManager overlayManager;
 
 	@Inject
@@ -105,9 +117,14 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private String lastTaskName;
 	private String lastTaskLocation = "";
 	private int lastTaskAmount = -1;
-	private boolean highlightsActive;
+	private volatile boolean highlightsActive;
 	private final BankFlowState bankFlow = new BankFlowState();
 	private final TripPreparationState tripPreparation = new TripPreparationState();
+	private final InventorySetupBankTagState inventorySetupBankTagState =
+		new InventorySetupBankTagState();
+	private final AtomicBoolean pluginRunning = new AtomicBoolean();
+	private final AtomicBoolean strategyCycleRequestQueued = new AtomicBoolean();
+	private final AtomicBoolean loadoutRefreshRequestQueued = new AtomicBoolean();
 	private String bankSearchTextBeforeFilter = "";
 
 	@Provides
@@ -119,29 +136,31 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	@Override
 	protected void startUp()
 	{
+		pluginRunning.set(true);
 		highlightsActive = config.highlightsEnabled();
+		panel.setTheme(config.panelTheme());
 		panel.setStrategyCycleHandler(this::queueCycleStrategy);
 		panel.setSupplyQuantityHandler(this::adjustSupplyQuantity);
 		panel.setLoadoutRefreshHandler(this::queueRefreshBankLoadout);
 
 		AsyncBufferedImage icon = itemManager.getImage(ItemID.SLAYER_HELM);
-		final NavigationButton nav = NavigationButton.builder()
-			.tooltip("Slayer Best in Bank")
-			.icon(icon)
-			.priority(6)
-			.panel(panel)
-			.build();
-		navigationButton = nav;
-
 		// RuneLite snapshots/resizes navigation icons as soon as they are added.
-		// Wait for the async item sprite so the toolbar does not cache a blank 16x16 icon.
-		icon.onLoaded(() ->
+		// Trim the item sprite's transparent inventory padding first so the helm
+		// fills more of RuneLite's fixed toolbar icon area.
+		icon.onLoaded(() -> SwingUtilities.invokeLater(() ->
 		{
-			if (navigationButton == nav)
+			if (pluginRunning.get() && navigationButton == null)
 			{
+				NavigationButton nav = NavigationButton.builder()
+					.tooltip("Slayer Best in Bank")
+					.icon(toolbarIcon(icon))
+					.priority(6)
+					.panel(panel)
+					.build();
+				navigationButton = nav;
 				clientToolbar.addNavigation(nav);
 			}
-		});
+		}));
 		overlayManager.add(bankOverlay);
 		overlayManager.add(prepReminderOverlay);
 
@@ -162,31 +181,75 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		});
 	}
 
+	static BufferedImage toolbarIcon(BufferedImage source)
+	{
+		int minX = source.getWidth();
+		int minY = source.getHeight();
+		int maxX = -1;
+		int maxY = -1;
+		for (int y = 0; y < source.getHeight(); y++)
+		{
+			for (int x = 0; x < source.getWidth(); x++)
+			{
+				if ((source.getRGB(x, y) >>> 24) != 0)
+				{
+					minX = Math.min(minX, x);
+					minY = Math.min(minY, y);
+					maxX = Math.max(maxX, x);
+					maxY = Math.max(maxY, y);
+				}
+			}
+		}
+
+		if (maxX < minX || maxY < minY)
+		{
+			return source;
+		}
+
+		int padding = 1;
+		minX = Math.max(0, minX - padding);
+		minY = Math.max(0, minY - padding);
+		maxX = Math.min(source.getWidth() - 1, maxX + padding);
+		maxY = Math.min(source.getHeight() - 1, maxY + padding);
+		return source.getSubimage(
+			minX,
+			minY,
+			maxX - minX + 1,
+			maxY - minY + 1);
+	}
+
 	@Override
 	protected void shutDown()
 	{
-		closeBankFilter();
+		pluginRunning.set(false);
 		overlayManager.remove(bankOverlay);
 		overlayManager.remove(prepReminderOverlay);
-		prepReminderOverlay.hide();
 		NavigationButton nav = navigationButton;
 		navigationButton = null;
 		if (nav != null)
 		{
 			clientToolbar.removeNavigation(nav);
 		}
-		clientThread.invoke(bankButton::hide);
-		lastBankItems = null;
-		lastInventoryItems = EMPTY_ITEMS;
-		lastWornItems = EMPTY_ITEMS;
-		bankSessionGearPool = null;
-		lastTaskName = null;
-		lastTaskLocation = "";
-		lastTaskAmount = -1;
-		bankFlow.resetSession();
-		tripPreparation.reset();
-		recommendations = GearRecommendations.noTask();
-		panel.display(recommendations);
+		strategyCycleRequestQueued.set(false);
+		loadoutRefreshRequestQueued.set(false);
+		clientThread.invoke(() ->
+		{
+			closeBankFilter();
+			bankButton.hide();
+			prepReminderOverlay.hide();
+			lastBankItems = null;
+			lastInventoryItems = EMPTY_ITEMS;
+			lastWornItems = EMPTY_ITEMS;
+			bankSessionGearPool = null;
+			lastTaskName = null;
+			lastTaskLocation = "";
+			lastTaskAmount = -1;
+			bankFlow.resetSession();
+			tripPreparation.reset();
+			inventorySetupBankTagState.clear();
+			recommendations = GearRecommendations.noTask();
+			panel.display(recommendations);
+		});
 	}
 
 	@Subscribe
@@ -285,6 +348,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			bankFlow.deactivateFilter();
 			tieredBankLayout.clear();
 		}
+		inventorySetupBankTagState.clear();
 
 		// Rebuild once from the latest BANK + INV/WORN snapshots before deciding
 		// whether anything useful was actually left behind.
@@ -306,6 +370,23 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			|| !bankFlow.isFilterActive()
 			|| recommendations.getState() != GearRecommendations.State.READY)
 		{
+			return;
+		}
+
+		boolean inventorySetupActive =
+			inventorySetupBankTagState.hasActiveInventorySetup(bankTagsService);
+		if (inventorySetupActive
+			&& inventorySetupBankTagState.activeNeedsNeutralizing(bankTagsService))
+		{
+			queueInventorySetupNeutralization();
+			return;
+		}
+		if (!inventorySetupActive && bankTagsService.getActiveTag() != null)
+		{
+			// A user-selected ordinary Bank Tags view takes precedence. Leaving
+			// both layouts active would recreate the same invalid withdraw-index
+			// mapping that Inventory Setups exposed.
+			queueToggleBankFilter();
 			return;
 		}
 
@@ -385,6 +466,21 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
+		if (INVENTORY_SETUPS_CONFIG_GROUP.equals(event.getGroup())
+			&& INVENTORY_SETUPS_LAYOUT_KEY.equals(event.getKey()))
+		{
+			boolean useLayouts = event.getNewValue() == null
+				|| Boolean.parseBoolean(event.getNewValue());
+			clientThread.invokeLater(() ->
+			{
+				if (bankFlow.isFilterActive())
+				{
+					inventorySetupBankTagState.updateLayoutPreference(useLayouts);
+				}
+			});
+			return;
+		}
+
 		if (!SlayerGearAdvisorConfig.GROUP.equals(event.getGroup()))
 		{
 			return;
@@ -393,6 +489,10 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		if ("highlightsEnabled".equals(event.getKey()))
 		{
 			highlightsActive = config.highlightsEnabled();
+		}
+		else if ("panelTheme".equals(event.getKey()))
+		{
+			panel.setTheme(config.panelTheme());
 		}
 		else if (isRecommendationConfigKey(event.getKey()))
 		{
@@ -411,6 +511,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		clientThread.invokeLater(() ->
 		{
 			highlightsActive = config.highlightsEnabled();
+			panel.setTheme(config.panelTheme());
 			recalculateOrMarkBankRefresh();
 		});
 	}
@@ -443,6 +544,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			|| "useGoading".equals(key)
 			|| "usePrayerRegen".equals(key)
 			|| "preferDivineBoosts".equals(key)
+			|| "travelSuggestionsEnabled".equals(key)
+			|| "homeTeleportPreference".equals(key)
+			|| "spellTeleportPreference".equals(key)
+			|| "slayerRingPreference".equals(key)
+			|| "fairyRingPreference".equals(key)
+			|| "kourendTeleportPreference".equals(key)
 			|| key.startsWith("supply.");
 	}
 
@@ -451,13 +558,18 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		// The button listener runs from a game widget callback. Rebuilding the bank
 		// synchronously from that callback can invalidate the widget currently being
 		// clicked, especially while a bank-tab rebuild is also in flight.
-		if (!bankFlow.beginFilterTransition())
+		if (!pluginRunning.get() || !bankFlow.beginFilterTransition())
 		{
 			return;
 		}
 
 		clientThread.invokeLater(() ->
 		{
+			if (!pluginRunning.get())
+			{
+				bankFlow.completeFilterTransition();
+				return;
+			}
 			if (bankFlow.isFilterActive())
 			{
 				closeBankFilter();
@@ -475,9 +587,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			}
 
 			bankSearchTextBeforeFilter = client.getVarcStrValue(VarClientID.MESLAYERINPUT);
+			inventorySetupBankTagState.clear();
+			inventorySetupBankTagState.captureActive(bankTagsService);
 			bankFlow.activateFilter();
 			tieredBankLayout.activate();
 			bankSearch.initSearch();
+			inventorySetupBankTagState.reopenNeutralized(bankTagsService);
 
 			// One more client-cycle boundary lets initSearch/reset and any tab script
 			// settle before we lay out the custom Best-in-Bank view.
@@ -485,7 +600,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			{
 				try
 				{
-					if (!bankFlow.isFilterActive()
+					if (!pluginRunning.get()
+						|| !bankFlow.isFilterActive()
 						|| client.getWidget(InterfaceID.Bankmain.ITEMS) == null)
 					{
 						return;
@@ -601,16 +717,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 
 	void queueRefreshBankLoadout()
 	{
-		if (!bankFlow.isBankOpen())
-		{
-			clientThread.invokeLater(() ->
-			{
-				tripPreparation.reset();
-				recalculate();
-			});
-			return;
-		}
-		if (!bankFlow.queueLoadoutRefresh())
+		if (!pluginRunning.get()
+			|| !loadoutRefreshRequestQueued.compareAndSet(false, true))
 		{
 			return;
 		}
@@ -619,16 +727,42 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		{
 			try
 			{
-				bankFlow.unlockLoadout();
-				bankSessionGearPool = combineGearPool(
-					lastBankItems, lastInventoryItems, lastWornItems);
-				recalculate();
+				if (pluginRunning.get())
+				{
+					refreshBankLoadoutOnClientThread();
+				}
 			}
 			finally
 			{
-				bankFlow.completeLoadoutRefresh();
+				loadoutRefreshRequestQueued.set(false);
 			}
 		});
+	}
+
+	private void refreshBankLoadoutOnClientThread()
+	{
+		if (!bankFlow.isBankOpen())
+		{
+			tripPreparation.reset();
+			recalculate();
+			return;
+		}
+		if (!bankFlow.queueLoadoutRefresh())
+		{
+			return;
+		}
+
+		try
+		{
+			bankFlow.unlockLoadout();
+			bankSessionGearPool = combineGearPool(
+				lastBankItems, lastInventoryItems, lastWornItems);
+			recalculate();
+		}
+		finally
+		{
+			bankFlow.completeLoadoutRefresh();
+		}
 	}
 
 	private void recalculate()
@@ -685,6 +819,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		GearRecommendations scored = gearScorer.score(
 			lastTaskName,
 			lastTaskAmount,
+			lastTaskLocation,
 			profile.get(),
 			scoringPool,
 			lastBankItems,
@@ -785,6 +920,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			return;
 		}
 
+		boolean restoreInventorySetup =
+			inventorySetupBankTagState.shouldRestore(bankTagsService);
 		bankFlow.deactivateFilter();
 		tieredBankLayout.clear();
 		if (client.getWidget(InterfaceID.Bankmain.ITEMS) != null)
@@ -795,8 +932,42 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				client.setVarcStrValue(VarClientID.MESLAYERINPUT, bankSearchTextBeforeFilter);
 			}
 			bankSearchTextBeforeFilter = "";
+			inventorySetupBankTagState.restore(
+				bankTagsService, restoreInventorySetup);
 			bankButton.update();
 		}
+		else
+		{
+			inventorySetupBankTagState.clear();
+		}
+	}
+
+	private void neutralizeInventorySetupBankFilter()
+	{
+		inventorySetupBankTagState.neutralizeActive(bankTagsService);
+	}
+
+	private void queueInventorySetupNeutralization()
+	{
+		if (!bankFlow.queueInventorySetupNeutralization())
+		{
+			return;
+		}
+
+		clientThread.invokeLater(() ->
+		{
+			try
+			{
+				if (bankFlow.isFilterActive())
+				{
+					neutralizeInventorySetupBankFilter();
+				}
+			}
+			finally
+			{
+				bankFlow.completeInventorySetupNeutralization();
+			}
+		});
 	}
 
 	void queueCycleStrategy()
@@ -807,20 +978,32 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		 * client state and an active Best-in-Bank view may need to rebuild bank
 		 * widgets, so the entire strategy transition belongs on the client thread.
 		 */
-		if (!bankFlow.queueStrategyCycle())
+		if (!pluginRunning.get()
+			|| !strategyCycleRequestQueued.compareAndSet(false, true))
 		{
 			return;
 		}
 
 		clientThread.invokeLater(() ->
 		{
+			boolean strategyCycleStarted = false;
 			try
 			{
+				if (!pluginRunning.get()
+					|| !bankFlow.queueStrategyCycle())
+				{
+					return;
+				}
+				strategyCycleStarted = true;
 				cycleStrategyOnClientThread();
 			}
 			finally
 			{
-				bankFlow.completeStrategyCycle();
+				if (strategyCycleStarted)
+				{
+					bankFlow.completeStrategyCycle();
+				}
+				strategyCycleRequestQueued.set(false);
 			}
 		});
 	}
@@ -830,12 +1013,17 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		SupplyQuantityAction action)
 	{
 		if (supply == null || action == null) return;
-		SlayerTaskProfile clickedProfile = recommendations.getProfile();
-		if (clickedProfile == null) return;
-		String key = SmartSupplyAdvisor.quantityOverrideKey(
-			clickedProfile.getKey(), supply.getCategory());
 		clientThread.invokeLater(() ->
 		{
+			if (!pluginRunning.get()
+				|| !recommendations.getSupplies().contains(supply)
+				|| recommendations.getProfile() == null)
+			{
+				return;
+			}
+
+			String key = SmartSupplyAdvisor.quantityOverrideKey(
+				recommendations.getProfile().getKey(), supply.getCategory());
 			if (action == SupplyQuantityAction.AUTO)
 			{
 				configManager.unsetRSProfileConfiguration(

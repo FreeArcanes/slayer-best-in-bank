@@ -16,6 +16,7 @@ final class BankFlowState
 	private boolean loadoutLocked;
 	private boolean loadoutRefreshPending;
 	private boolean loadoutRefreshQueued;
+	private boolean inventorySetupNeutralizationQueued;
 
 	void openBank()
 	{
@@ -24,6 +25,7 @@ final class BankFlowState
 			loadoutLocked = false;
 			loadoutRefreshPending = false;
 			loadoutRefreshQueued = false;
+			inventorySetupNeutralizationQueued = false;
 		}
 		bankOpen = true;
 	}
@@ -38,6 +40,7 @@ final class BankFlowState
 		loadoutLocked = false;
 		loadoutRefreshPending = false;
 		loadoutRefreshQueued = false;
+		inventorySetupNeutralizationQueued = false;
 	}
 
 	void resetSession()
@@ -51,6 +54,7 @@ final class BankFlowState
 		loadoutLocked = false;
 		loadoutRefreshPending = false;
 		loadoutRefreshQueued = false;
+		inventorySetupNeutralizationQueued = false;
 	}
 
 	boolean isBankOpen() { return bankOpen; }
@@ -65,6 +69,7 @@ final class BankFlowState
 	{
 		filterActive = false;
 		bankViewRefreshQueued = false;
+		inventorySetupNeutralizationQueued = false;
 	}
 
 	boolean queueRecalculation()
@@ -135,5 +140,17 @@ final class BankFlowState
 	void completeLoadoutRefresh()
 	{
 		loadoutRefreshQueued = false;
+	}
+
+	boolean queueInventorySetupNeutralization()
+	{
+		if (!bankOpen || !filterActive || inventorySetupNeutralizationQueued) return false;
+		inventorySetupNeutralizationQueued = true;
+		return true;
+	}
+
+	void completeInventorySetupNeutralization()
+	{
+		inventorySetupNeutralizationQueued = false;
 	}
 }
