@@ -44,7 +44,24 @@ class SmartSupplyAdvisor
 		Item[] bankItems,
 		Item[] packedItems)
 	{
-		List<SupplyRule> rules = buildRules(profile, strategy);
+		return recommend(
+			profile,
+			strategy,
+			null,
+			taskAmount,
+			bankItems,
+			packedItems);
+	}
+
+	List<SupplyRecommendation> recommend(
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		String assignedLocation,
+		int taskAmount,
+		Item[] bankItems,
+		Item[] packedItems)
+	{
+		List<SupplyRule> rules = buildRules(profile, strategy, assignedLocation);
 		int plannedKills = plannedKillCount(taskAmount);
 		Map<Integer, OwnedItem> bank = collect(bankItems);
 		Map<Integer, OwnedItem> packed = collect(packedItems);
@@ -153,6 +170,14 @@ class SmartSupplyAdvisor
 
 	List<SupplyRule> buildRules(SlayerTaskProfile profile, GearStrategy strategy)
 	{
+		return buildRules(profile, strategy, null);
+	}
+
+	List<SupplyRule> buildRules(
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		String assignedLocation)
+	{
 		List<SupplyRule> rules = new ArrayList<>();
 		String key = profile == null ? "" : profile.getKey().toLowerCase(Locale.ENGLISH);
 		boolean ancientAoe = strategy != null && strategy.isAncientAoe();
@@ -259,6 +284,16 @@ class SmartSupplyAdvisor
 				"Antifire potion / dragonfire shield", "extended super antifire potion", "super antifire potion", "extended antifire", "antifire potion"));
 		}
 
+		for (TravelItemAdvisor.TravelRule travel
+			: TravelItemAdvisor.recommend(assignedLocation, strategy, config))
+		{
+			rules.add(rule(
+				"Travel",
+				travel.getReason(),
+				false,
+				travel.getFallback(),
+				travel.getPreferredNames()));
+		}
 
 		if (config.lowRiskMode())
 		{

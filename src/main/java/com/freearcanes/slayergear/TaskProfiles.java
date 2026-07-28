@@ -96,9 +96,9 @@ final class TaskProfiles
 		register(profile("bloodveld", "Bloodveld",
 				"Cannon and Venator bow at mutated Bloodvelds is prioritized for XP.",
 				"Protect from Melee prevents damage; otherwise favor magic defence.",
-				venator("Cannon + Venator", "Meiyerditch Laboratory / Iorwerth Dungeon",
+				venator("Cannon + Venator", "Meiyerditch Laboratories / Iorwerth Dungeon",
 					"Current top multi-target XP method when a Venator bow is owned."),
-				meleeMagicDef("Cannon + melee", "Meiyerditch Laboratory", AttackType.SLASH,
+				meleeMagicDef("Cannon + melee", "Meiyerditch Laboratories", AttackType.SLASH,
 					"Strong fallback using melee damage and magic-defence armour")),
 			"bloodveld", "bloodvelds");
 
@@ -230,7 +230,7 @@ final class TaskProfiles
 		register(profile("gryphons", "Gryphons",
 				"Heavy melee equipment avoids knockback while preserving offensive strength.",
 				"Aim for at least 30 kg worn weight; the superior/boss requires a tortugan shield.",
-				melee("Heavy melee + cannon", "The Great Conch", AttackType.CRUSH,
+				melee("Heavy melee + cannon", "Great Conch", AttackType.CRUSH,
 					"Balances melee damage with heavy armour", "tortugan shield", "dragonfire shield")),
 			"gryphons", "gryphon", "the shellbane gryphon");
 
@@ -250,7 +250,7 @@ final class TaskProfiles
 				"Bring poison protection for stronger variants.",
 				GearStrategy.builder()
 					.name("Cannon + Keris melee")
-					.location("Kalphite Slayer Cave")
+					.location("task-only Kalphite Cave")
 					.rationale("Keris/partisan effects receive priority against Kalphites.")
 					.combatStyle(CombatStyle.MELEE)
 					.attackType(AttackType.STAB)
@@ -358,7 +358,7 @@ final class TaskProfiles
 		register(profile("trolls", "Trolls",
 				"Cannon-assisted melee at dense spawns is prioritized.",
 				"Use protection prayers against high-damage ice trolls.",
-				melee("Cannon + melee", "Jatizso / Mount Quidamortem", AttackType.SLASH,
+				melee("Cannon + melee", "Fremennik Isles / South of Mount Quidamortem", AttackType.SLASH,
 					"Fast normal-task setup")),
 			"trolls", "troll");
 

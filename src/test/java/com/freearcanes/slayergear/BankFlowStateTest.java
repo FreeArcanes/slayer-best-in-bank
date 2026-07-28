@@ -119,4 +119,21 @@ public class BankFlowStateTest
 		assertFalse(state.isLoadoutRefreshPending());
 		assertFalse(state.queueLoadoutRefresh());
 	}
+
+	@Test
+	public void inventorySetupNeutralizationIsDebouncedAndFilterScoped()
+	{
+		BankFlowState state = new BankFlowState();
+		assertFalse(state.queueInventorySetupNeutralization());
+
+		state.openBank();
+		state.activateFilter();
+		assertTrue(state.queueInventorySetupNeutralization());
+		assertFalse(state.queueInventorySetupNeutralization());
+
+		state.completeInventorySetupNeutralization();
+		assertTrue(state.queueInventorySetupNeutralization());
+		state.deactivateFilter();
+		assertFalse(state.queueInventorySetupNeutralization());
+	}
 }
