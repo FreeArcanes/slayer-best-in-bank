@@ -134,8 +134,14 @@ final class TaskProfiles
 				"Protection choice depends on location.",
 				venator("Venator multi-target", "Lighthouse / Catacombs",
 					"Low-effort multi-target XP when the bow is owned."),
-				melee("Cannon + melee", "Lighthouse", AttackType.SLASH,
-					"High-throughput fallback for normal Dagannoths")),
+				melee("Cannon + melee — Lighthouse", "Lighthouse", AttackType.SLASH,
+					"Classic high-throughput cannon route."),
+				melee("Cannon + melee — Island of Stone", "Island of Stone",
+					AttackType.SLASH,
+					"Cannon route through Jormungand's Prison on the Island of Stone."),
+				melee("Cannon + melee — Waterbirth", "Waterbirth Island Dungeon",
+					AttackType.SLASH,
+					"Cannon-compatible route in Waterbirth Island Dungeon.")),
 			"dagannoth", "dagannoths");
 
 		register(profile("dark-beasts", "Dark beasts",
@@ -591,6 +597,7 @@ final class TaskProfiles
 			.displayName(profile.getDisplayName())
 			.summary(summary)
 			.protectionAdvice(profile.getProtectionAdvice());
+		boolean assignedCannonAdded = false;
 		for (GearStrategy strategy : profile.getStrategies())
 		{
 			// When RuneLite provides a location-locked assignment, keep curated
@@ -600,7 +607,11 @@ final class TaskProfiles
 			if (alreadyHasCannon && SmartSupplyAdvisor.isCannon(strategy)
 				&& assignedLocation != null && !assignedLocation.trim().isEmpty())
 			{
-				builder.strategy(copyStrategyAtLocation(strategy, cannonLocation));
+				if (!assignedCannonAdded)
+				{
+					builder.strategy(copyStrategyAtLocation(strategy, cannonLocation));
+					assignedCannonAdded = true;
+				}
 			}
 			else
 			{

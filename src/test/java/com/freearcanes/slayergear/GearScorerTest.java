@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.Item;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.client.game.ItemEquipmentStats;
 import org.junit.Test;
 
@@ -161,6 +162,142 @@ public class GearScorerTest
 		assertEquals(2002, combined[0].getId());
 		assertEquals(1001, combined[1].getId());
 		assertEquals(3003, combined[2].getId());
+	}
+
+	@Test
+	public void bankSessionSnapshotKeepsCannonSuppliesStableDuringWithdrawals()
+	{
+		Item[] session = {
+			new Item(ItemID.TWPART1, 1),
+			new Item(ItemID.MCANNONBALL, 2_000)
+		};
+		Item[] liveAfterBankEvent = new Item[0];
+
+		Item[] scoring = SlayerGearAdvisorPlugin.bankItemsForScoring(
+			true, session, liveAfterBankEvent);
+
+		assertEquals(2, scoring.length);
+		assertEquals(ItemID.TWPART1, scoring[0].getId());
+		assertEquals(ItemID.MCANNONBALL, scoring[1].getId());
+		assertEquals(liveAfterBankEvent, SlayerGearAdvisorPlugin.bankItemsForScoring(
+			false, session, liveAfterBankEvent));
+	}
+
+	@Test
+	public void loadedDizanasQuiverAmmoCountsAsPackedForEveryWearableType()
+	{
+		int[] quiverTypes = {
+			ItemID.DIZANAS_QUIVER_CHARGED,
+			ItemID.DIZANAS_QUIVER_INFINITE,
+			ItemID.SKILLCAPE_MAX_DIZANAS
+		};
+		for (int quiverId : quiverTypes)
+		{
+			Item[] worn = new Item[EquipmentInventorySlot.CAPE.getSlotIdx() + 1];
+			worn[EquipmentInventorySlot.CAPE.getSlotIdx()] = new Item(quiverId, 1);
+
+			Item[] ammo = SlayerGearAdvisorPlugin.loadedQuiverAmmo(worn, ItemID.RUNE_ARROW, 1_250);
+
+			assertEquals(1, ammo.length);
+			assertEquals(ItemID.RUNE_ARROW, ammo[0].getId());
+			assertEquals(1_250, ammo[0].getQuantity());
+		}
+	}
+
+	@Test
+	public void quiverAmmoIsIgnoredWithoutAWearableLoadedQuiver()
+	{
+		Item[] ordinaryCape = new Item[EquipmentInventorySlot.CAPE.getSlotIdx() + 1];
+		ordinaryCape[EquipmentInventorySlot.CAPE.getSlotIdx()] = new Item(ItemID.SLAYER_HELM, 1);
+
+		assertEquals(0, SlayerGearAdvisorPlugin.loadedQuiverAmmo(
+			ordinaryCape, ItemID.RUNE_ARROW, 1_250).length);
+		ordinaryCape[EquipmentInventorySlot.CAPE.getSlotIdx()] =
+			new Item(ItemID.DIZANAS_QUIVER_CHARGED, 1);
+		assertEquals(0, SlayerGearAdvisorPlugin.loadedQuiverAmmo(
+			ordinaryCape, ItemID.RUNE_ARROW, 0).length);
+	}
+
+	@Test
+	public void loadedQuiverUsesHighestPrayerBlessingInAmmoSlot()
+	{
+		GearStrategy strategy = GearStrategy.builder()
+			.name("Ranged")
+			.combatStyle(CombatStyle.RANGED)
+			.build();
+		GearScorer.BankEquipment godBlessing = riskItem(
+			1, "Holy blessing", EquipmentInventorySlot.AMMO, 0, 100, false);
+		GearScorer.BankEquipment radasBlessing = new GearScorer.BankEquipment(
+			2,
+			2,
+			"Rada's blessing 4",
+			EquipmentInventorySlot.AMMO,
+			ItemEquipmentStats.builder()
+				.slot(EquipmentInventorySlot.AMMO.getSlotIdx())
+				.prayer(2)
+				.build(),
+			true,
+			false);
+		radasBlessing.score = 1;
+
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(
+			EquipmentInventorySlot.AMMO,
+			Arrays.asList(godBlessing, radasBlessing));
+		Map<EquipmentInventorySlot, GearRecommendation> loadout =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		loadout.put(
+			EquipmentInventorySlot.CAPE,
+			GearRecommendation.builder()
+				.itemName("Blessed Dizana's quiver")
+				.slot(EquipmentInventorySlot.CAPE)
+				.build());
+
+		new GearScorer(null, null).usePrayerBlessings(
+			Collections.singletonList(loadout), candidates, strategy);
+
+		assertEquals(
+			"Rada's blessing 4",
+			loadout.get(EquipmentInventorySlot.AMMO).getItemName());
+	}
+
+	@Test
+	public void loadedQuiverDoesNotReplaceAmmoWhenLoadoutChangesCape()
+	{
+		GearStrategy strategy = GearStrategy.builder()
+			.name("Ranged")
+			.combatStyle(CombatStyle.RANGED)
+			.build();
+		GearScorer.BankEquipment blessing = new GearScorer.BankEquipment(
+			2,
+			2,
+			"Rada's blessing 4",
+			EquipmentInventorySlot.AMMO,
+			ItemEquipmentStats.builder()
+				.slot(EquipmentInventorySlot.AMMO.getSlotIdx())
+				.prayer(2)
+				.build(),
+			true,
+			false);
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(
+			EquipmentInventorySlot.AMMO,
+			Collections.singletonList(blessing));
+		Map<EquipmentInventorySlot, GearRecommendation> loadout =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		loadout.put(
+			EquipmentInventorySlot.CAPE,
+			GearRecommendation.builder()
+				.itemName("Ava's assembler")
+				.slot(EquipmentInventorySlot.CAPE)
+				.build());
+
+		new GearScorer(null, null).usePrayerBlessings(
+			Collections.singletonList(loadout), candidates, strategy);
+
+		assertFalse(loadout.containsKey(EquipmentInventorySlot.AMMO));
 	}
 
 	@Test

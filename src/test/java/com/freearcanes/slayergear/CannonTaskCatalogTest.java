@@ -51,6 +51,8 @@ public class CannonTaskCatalogTest
 		SlayerTaskProfile dagannoth = TaskProfiles.find("Dagannoth", "Jormungand's Prison").orElseThrow();
 		GearStrategy cannon = dagannoth.getStrategies().stream().filter(SmartSupplyAdvisor::isCannon).findFirst().orElseThrow();
 		assertEquals("Jormungand's Prison", cannon.getLocation());
+		assertEquals(1, dagannoth.getStrategies().stream()
+			.filter(SmartSupplyAdvisor::isCannon).count());
 
 		SlayerTaskProfile bloodveld = TaskProfiles.find("Bloodveld", "Iorwerth Dungeon").orElseThrow();
 		GearStrategy bloodveldCannon = bloodveld.getStrategies().stream().filter(SmartSupplyAdvisor::isCannon).findFirst().orElseThrow();
@@ -69,6 +71,17 @@ public class CannonTaskCatalogTest
 			.findFirst()
 			.orElseThrow();
 		assertEquals("Island of Stone", cannon.getLocation());
+	}
+
+	@Test
+	public void unrestrictedDagannothsExposeEachCannonLocation()
+	{
+		SlayerTaskProfile profile = TaskProfiles.find("Dagannoth").orElseThrow();
+
+		assertTrue(hasCannonAt(profile.getStrategies(), "Lighthouse"));
+		assertTrue(hasCannonAt(profile.getStrategies(), "Island of Stone"));
+		assertTrue(hasCannonAt(
+			profile.getStrategies(), "Waterbirth Island Dungeon"));
 	}
 
 	@Test
@@ -107,5 +120,14 @@ public class CannonTaskCatalogTest
 	private static boolean hasCannon(List<GearStrategy> strategies)
 	{
 		return strategies.stream().anyMatch(SmartSupplyAdvisor::isCannon);
+	}
+
+	private static boolean hasCannonAt(
+		List<GearStrategy> strategies,
+		String location)
+	{
+		return strategies.stream()
+			.anyMatch(strategy -> SmartSupplyAdvisor.isCannon(strategy)
+				&& location.equals(strategy.getLocation()));
 	}
 }
