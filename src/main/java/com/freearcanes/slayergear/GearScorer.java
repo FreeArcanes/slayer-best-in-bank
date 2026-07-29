@@ -107,6 +107,36 @@ class GearScorer
 		boolean lowRiskMode,
 		int riskCapGp)
 	{
+		return score(
+			taskName, taskAmount, assignedLocation, profile, gearPool, bankItems,
+			packedGearItems, packedSupplyItems, alternativesPerSlot, magicLevel,
+			rangedLevel, kourendEliteComplete, ancientSpellbookActive,
+			preferredStrategy, gearPriority, pinnedItems, excludedItems,
+			lowRiskMode, riskCapGp, false);
+	}
+
+	GearRecommendations score(
+		String taskName,
+		int taskAmount,
+		String assignedLocation,
+		SlayerTaskProfile profile,
+		Item[] gearPool,
+		Item[] bankItems,
+		Item[] packedGearItems,
+		Item[] packedSupplyItems,
+		int alternativesPerSlot,
+		int magicLevel,
+		int rangedLevel,
+		boolean kourendEliteComplete,
+		boolean ancientSpellbookActive,
+		String preferredStrategy,
+		GearPriority gearPriority,
+		String pinnedItems,
+		String excludedItems,
+		boolean lowRiskMode,
+		int riskCapGp,
+		boolean loadedDizanasQuiver)
+	{
 		Set<Integer> bankCanonical = canonicalIds(bankItems);
 		Set<Integer> packedCanonical = canonicalIds(packedGearItems);
 		List<BankEquipment> equipment = collectEquipment(gearPool, bankCanonical, packedCanonical);
@@ -134,6 +164,10 @@ class GearScorer
 				pinned,
 				lowRiskMode,
 				riskCapGp);
+		if (loadedDizanasQuiver)
+		{
+			usePrayerBlessings(coherentLoadouts, candidates, selected);
+		}
 		for (int index = 0; index < coherentLoadouts.size(); index++)
 		{
 			int rank = index + 1;
@@ -155,6 +189,8 @@ class GearScorer
 
 		Map<EquipmentInventorySlot, GearRecommendation> best = loadoutTiers.isEmpty()
 			? Collections.emptyMap() : loadoutTiers.get(0).getItems();
+		boolean bestUsesLoadedDizanasQuiver =
+			loadedDizanasQuiver && usesDizanasQuiver(best);
 		List<SupplyRecommendation> supplies = supplyAdvisor.recommend(
 			profile,
 			selected,
@@ -168,10 +204,60 @@ class GearScorer
 		{
 			supplies = withoutCategory(supplies, "Antifire");
 		}
-		ReadinessReport readiness = readiness(best, requirements, supplies, selected, magicLevel, ancientSpellbookActive);
+		ReadinessReport readiness = readiness(
+			best, requirements, supplies, selected, magicLevel,
+			ancientSpellbookActive, bestUsesLoadedDizanasQuiver);
 
 		return GearRecommendations.ready(taskName, taskAmount, profile, selected, alternatives,
 			bySlot, loadoutTiers, supplies, readiness, equipment.size());
+	}
+
+	void usePrayerBlessings(
+		List<Map<EquipmentInventorySlot, GearRecommendation>> loadouts,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy)
+	{
+		List<BankEquipment> blessings = new ArrayList<>();
+		for (BankEquipment item :
+			candidates.getOrDefault(EquipmentInventorySlot.AMMO, Collections.emptyList()))
+		{
+			if (NameMatcher.normalize(item.name).contains("blessing"))
+			{
+				blessings.add(item);
+			}
+		}
+		blessings.sort(Comparator
+			.comparingInt((BankEquipment item) -> item.stats.getPrayer()).reversed()
+			.thenComparing(Comparator.comparingDouble(
+				(BankEquipment item) -> item.score).reversed()));
+		int blessingIndex = 0;
+		for (int index = 0;
+			index < loadouts.size() && blessingIndex < blessings.size();
+			index++)
+		{
+			Map<EquipmentInventorySlot, GearRecommendation> loadout = loadouts.get(index);
+			if (!usesDizanasQuiver(loadout))
+			{
+				continue;
+			}
+			loadout.put(
+				EquipmentInventorySlot.AMMO,
+				recommendation(blessings.get(blessingIndex), index + 1, strategy));
+			blessingIndex++;
+		}
+	}
+
+	static boolean usesDizanasQuiver(
+		Map<EquipmentInventorySlot, GearRecommendation> loadout)
+	{
+		GearRecommendation cape = loadout.get(EquipmentInventorySlot.CAPE);
+		if (cape == null)
+		{
+			return false;
+		}
+		String name = NameMatcher.normalize(cape.getItemName());
+		return name.contains("dizana")
+			&& (name.contains("quiver") || name.contains("max cape"));
 	}
 
 	private List<GearStrategy> eligibleStrategies(SlayerTaskProfile profile, Set<String> names, int magic, int ranged)
@@ -734,7 +820,9 @@ class GearScorer
 	}
 
 	private ReadinessReport readiness(Map<EquipmentInventorySlot, GearRecommendation> selected,
-		List<GearRequirement> requirements, List<SupplyRecommendation> supplies, GearStrategy strategy, int magicLevel, boolean ancientSpellbookActive)
+		List<GearRequirement> requirements, List<SupplyRecommendation> supplies,
+		GearStrategy strategy, int magicLevel, boolean ancientSpellbookActive,
+		boolean loadedDizanasQuiver)
 	{
 		List<String> missing = new ArrayList<>();
 		boolean protection = true;
@@ -750,7 +838,8 @@ class GearScorer
 		}
 		if (weapon != null && strategy.getCombatStyle() == CombatStyle.RANGED && !usesNoAmmoSlot(NameMatcher.normalize(weapon.getItemName())))
 		{
-			ammoReady = selected.containsKey(EquipmentInventorySlot.AMMO);
+			ammoReady = loadedDizanasQuiver
+				|| selected.containsKey(EquipmentInventorySlot.AMMO);
 			if (!ammoReady) missing.add("Compatible ammunition");
 		}
 		int packedGear = 0;

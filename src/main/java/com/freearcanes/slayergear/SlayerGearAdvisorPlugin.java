@@ -2,12 +2,15 @@ package com.freearcanes.slayergear;
 
 import com.google.inject.Provides;
 import java.awt.image.BufferedImage;
-import java.util.Optional;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import net.runelite.api.Client;
+import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.GameState;
@@ -18,6 +21,7 @@ import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.ScriptCallbackEvent;
 import net.runelite.api.events.ScriptPostFired;
+import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
@@ -25,6 +29,7 @@ import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.gameval.VarbitID;
+import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -33,6 +38,7 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.events.ProfileChanged;
 import net.runelite.client.events.RuneScapeProfileChanged;
 import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.ItemVariationMapping;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDependency;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -56,9 +62,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private static final String SLAYER_TASK_KEY = "taskName";
 	private static final String SLAYER_LOCATION_KEY = "taskLocation";
 	private static final String SLAYER_AMOUNT_KEY = "amount";
-	private static final String INVENTORY_SETUPS_CONFIG_GROUP = "inventorysetups";
-	private static final String INVENTORY_SETUPS_LAYOUT_KEY = "useLayouts";
 	private static final Item[] EMPTY_ITEMS = new Item[0];
+	private static final Set<Integer> DIZANAS_QUIVER_IDS = dizanasQuiverIds();
 
 	@Inject
 	private Client client;
@@ -114,14 +119,13 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private Item[] lastInventoryItems = EMPTY_ITEMS;
 	private Item[] lastWornItems = EMPTY_ITEMS;
 	private Item[] bankSessionGearPool;
+	private Item[] bankSessionBankItems;
 	private String lastTaskName;
 	private String lastTaskLocation = "";
 	private int lastTaskAmount = -1;
 	private volatile boolean highlightsActive;
 	private final BankFlowState bankFlow = new BankFlowState();
 	private final TripPreparationState tripPreparation = new TripPreparationState();
-	private final InventorySetupBankTagState inventorySetupBankTagState =
-		new InventorySetupBankTagState();
 	private final AtomicBoolean pluginRunning = new AtomicBoolean();
 	private final AtomicBoolean strategyCycleRequestQueued = new AtomicBoolean();
 	private final AtomicBoolean loadoutRefreshRequestQueued = new AtomicBoolean();
@@ -173,6 +177,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			{
 				bankFlow.openBank();
 				lastBankItems = bank.getItems().clone();
+				bankSessionBankItems = lastBankItems.clone();
 				bankSessionGearPool = combineGearPool(
 					lastBankItems, lastInventoryItems, lastWornItems);
 				bankButton.install();
@@ -241,12 +246,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			lastInventoryItems = EMPTY_ITEMS;
 			lastWornItems = EMPTY_ITEMS;
 			bankSessionGearPool = null;
+			bankSessionBankItems = null;
 			lastTaskName = null;
 			lastTaskLocation = "";
 			lastTaskAmount = -1;
 			bankFlow.resetSession();
 			tripPreparation.reset();
-			inventorySetupBankTagState.clear();
 			recommendations = GearRecommendations.noTask();
 			panel.display(recommendations);
 		});
@@ -264,6 +269,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			lastInventoryItems = EMPTY_ITEMS;
 			lastWornItems = EMPTY_ITEMS;
 			bankSessionGearPool = null;
+			bankSessionBankItems = null;
 			lastTaskName = null;
 			lastTaskLocation = "";
 			lastTaskAmount = -1;
@@ -310,6 +316,16 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onVarbitChanged(VarbitChanged event)
+	{
+		if (event.getVarpId() == VarPlayerID.DIZANAS_QUIVER_TEMP_AMMO
+			|| event.getVarpId() == VarPlayerID.DIZANAS_QUIVER_TEMP_AMMO_AMOUNT)
+		{
+			queueRecalculate();
+		}
+	}
+
+	@Subscribe
 	public void onWidgetLoaded(WidgetLoaded event)
 	{
 		if (event.getGroupId() == InterfaceID.BANKMAIN)
@@ -328,6 +344,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				bankSessionGearPool = bank == null
 					? null
 					: combineGearPool(lastBankItems, lastInventoryItems, lastWornItems);
+				bankSessionBankItems = bank == null ? null : lastBankItems.clone();
 				recalculate(false);
 				bankButton.install();
 			});
@@ -348,16 +365,19 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			bankFlow.deactivateFilter();
 			tieredBankLayout.clear();
 		}
-		inventorySetupBankTagState.clear();
 
 		// Rebuild once from the latest BANK + INV/WORN snapshots before deciding
 		// whether anything useful was actually left behind.
 		bankFlow.closeBank();
 		bankSessionGearPool = null;
+		bankSessionBankItems = null;
 		recalculate(false);
 		tripPreparation.arm(
 			recommendations,
-			combineGearPool(EMPTY_ITEMS, lastInventoryItems, lastWornItems),
+			combineGearPool(
+				combineGearPool(EMPTY_ITEMS, lastInventoryItems, lastWornItems),
+				snapshotLoadedQuiverAmmo(),
+				EMPTY_ITEMS),
 			itemManager::canonicalize);
 		prepReminderOverlay.show(recommendations);
 		bankButton.hide();
@@ -373,19 +393,10 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			return;
 		}
 
-		boolean inventorySetupActive =
-			inventorySetupBankTagState.hasActiveInventorySetup(bankTagsService);
-		if (inventorySetupActive
-			&& inventorySetupBankTagState.activeNeedsNeutralizing(bankTagsService))
+		if (bankTagsService.getActiveTag() != null)
 		{
-			queueInventorySetupNeutralization();
-			return;
-		}
-		if (!inventorySetupActive && bankTagsService.getActiveTag() != null)
-		{
-			// A user-selected ordinary Bank Tags view takes precedence. Leaving
-			// both layouts active would recreate the same invalid withdraw-index
-			// mapping that Inventory Setups exposed.
+			// Bank Tags and Inventory Setups own their active view. Never rewrite,
+			// reopen, or overlay it with Best-in-Bank's widget layout.
 			queueToggleBankFilter();
 			return;
 		}
@@ -466,21 +477,6 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (INVENTORY_SETUPS_CONFIG_GROUP.equals(event.getGroup())
-			&& INVENTORY_SETUPS_LAYOUT_KEY.equals(event.getKey()))
-		{
-			boolean useLayouts = event.getNewValue() == null
-				|| Boolean.parseBoolean(event.getNewValue());
-			clientThread.invokeLater(() ->
-			{
-				if (bankFlow.isFilterActive())
-				{
-					inventorySetupBankTagState.updateLayoutPreference(useLayouts);
-				}
-			});
-			return;
-		}
-
 		if (!SlayerGearAdvisorConfig.GROUP.equals(event.getGroup()))
 		{
 			return;
@@ -579,7 +575,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			}
 
 			if (recommendations.getState() != GearRecommendations.State.READY
-				|| client.getWidget(InterfaceID.Bankmain.ITEMS) == null)
+				|| client.getWidget(InterfaceID.Bankmain.ITEMS) == null
+				|| bankTagsService.getActiveTag() != null)
 			{
 				bankFlow.completeFilterTransition();
 				bankButton.update();
@@ -587,12 +584,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			}
 
 			bankSearchTextBeforeFilter = client.getVarcStrValue(VarClientID.MESLAYERINPUT);
-			inventorySetupBankTagState.clear();
-			inventorySetupBankTagState.captureActive(bankTagsService);
 			bankFlow.activateFilter();
 			tieredBankLayout.activate();
 			bankSearch.initSearch();
-			inventorySetupBankTagState.reopenNeutralized(bankTagsService);
 
 			// One more client-cycle boundary lets initSearch/reset and any tab script
 			// settle before we lay out the custom Best-in-Bank view.
@@ -757,6 +751,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			bankFlow.unlockLoadout();
 			bankSessionGearPool = combineGearPool(
 				lastBankItems, lastInventoryItems, lastWornItems);
+			bankSessionBankItems = lastBankItems == null
+				? null
+				: lastBankItems.clone();
 			recalculate();
 		}
 		finally
@@ -809,11 +806,21 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			bankSessionGearPool = combineGearPool(
 				lastBankItems, lastInventoryItems, lastWornItems);
 		}
-		Item[] scoringPool = bankFlow.isBankOpen() && bankSessionGearPool != null
+		if (bankFlow.isBankOpen() && bankSessionBankItems == null)
+		{
+			bankSessionBankItems = lastBankItems.clone();
+		}
+		Item[] baseScoringPool = bankFlow.isBankOpen() && bankSessionGearPool != null
 			? bankSessionGearPool
 			: combineGearPool(lastBankItems, lastInventoryItems, lastWornItems);
-		Item[] livePackedItems =
-			combineGearPool(EMPTY_ITEMS, lastInventoryItems, lastWornItems);
+		Item[] loadedQuiverAmmo = snapshotLoadedQuiverAmmo();
+		Item[] scoringPool = combineGearPool(baseScoringPool, loadedQuiverAmmo, EMPTY_ITEMS);
+		Item[] scoringBankItems = bankItemsForScoring(
+			bankFlow.isBankOpen(), bankSessionBankItems, lastBankItems);
+		Item[] livePackedItems = combineGearPool(
+			combineGearPool(EMPTY_ITEMS, lastInventoryItems, lastWornItems),
+			loadedQuiverAmmo,
+			EMPTY_ITEMS);
 		Item[] packedSupplyItems =
 			tripPreparation.suppliesForScoring(livePackedItems, itemManager::canonicalize);
 		GearRecommendations scored = gearScorer.score(
@@ -822,7 +829,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			lastTaskLocation,
 			profile.get(),
 			scoringPool,
-			lastBankItems,
+			scoringBankItems,
 			livePackedItems,
 			packedSupplyItems,
 			config.alternativesPerSlot(),
@@ -835,7 +842,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			config.pinnedItems(),
 			config.excludedItems(),
 			config.lowRiskMode(),
-			config.riskCapThousands() * 1_000);
+			config.riskCapThousands() * 1_000,
+			loadedQuiverAmmo.length > 0);
 		if (bankFlow.isBankOpen())
 		{
 			bankFlow.lockLoadout();
@@ -889,6 +897,38 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		return container == null ? EMPTY_ITEMS : container.getItems().clone();
 	}
 
+	private Item[] snapshotLoadedQuiverAmmo()
+	{
+		return loadedQuiverAmmo(
+			lastWornItems,
+			client.getVarpValue(VarPlayerID.DIZANAS_QUIVER_TEMP_AMMO),
+			client.getVarpValue(VarPlayerID.DIZANAS_QUIVER_TEMP_AMMO_AMOUNT));
+	}
+
+	static Item[] loadedQuiverAmmo(Item[] worn, int ammoId, int ammoCount)
+	{
+		int capeSlot = EquipmentInventorySlot.CAPE.getSlotIdx();
+		if (worn == null || capeSlot >= worn.length || worn[capeSlot] == null
+			|| !DIZANAS_QUIVER_IDS.contains(worn[capeSlot].getId())
+			|| ammoId < 0 || ammoCount <= 0)
+		{
+			return EMPTY_ITEMS;
+		}
+		return new Item[] {new Item(ammoId, ammoCount)};
+	}
+
+	private static Set<Integer> dizanasQuiverIds()
+	{
+		Set<Integer> ids = new HashSet<>();
+		ids.addAll(ItemVariationMapping.getVariations(
+			ItemVariationMapping.map(ItemID.DIZANAS_QUIVER_CHARGED)));
+		ids.addAll(ItemVariationMapping.getVariations(
+			ItemVariationMapping.map(ItemID.DIZANAS_QUIVER_INFINITE)));
+		ids.addAll(ItemVariationMapping.getVariations(
+			ItemVariationMapping.map(ItemID.SKILLCAPE_MAX_DIZANAS)));
+		return ids;
+	}
+
 	static Item[] combineGearPool(Item[] bank, Item[] inventory, Item[] worn)
 	{
 		int bankLength = bank == null ? 0 : bank.length;
@@ -913,6 +953,16 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		return combined;
 	}
 
+	static Item[] bankItemsForScoring(
+		boolean bankOpen,
+		Item[] bankSessionItems,
+		Item[] liveBankItems)
+	{
+		return bankOpen && bankSessionItems != null
+			? bankSessionItems
+			: liveBankItems;
+	}
+
 	private void closeBankFilter()
 	{
 		if (!bankFlow.isFilterActive())
@@ -920,54 +970,26 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			return;
 		}
 
-		boolean restoreInventorySetup =
-			inventorySetupBankTagState.shouldRestore(bankTagsService);
+		boolean bankTagActive = bankTagsService.getActiveTag() != null;
 		bankFlow.deactivateFilter();
 		tieredBankLayout.clear();
 		if (client.getWidget(InterfaceID.Bankmain.ITEMS) != null)
 		{
-			bankSearch.reset(true);
-			if (bankSearchTextBeforeFilter != null && !bankSearchTextBeforeFilter.isEmpty())
+			// Selecting a tag/setup already rebuilt the bank view. Resetting search
+			// here could close or replace the newly selected external tag.
+			if (!bankTagActive)
 			{
-				client.setVarcStrValue(VarClientID.MESLAYERINPUT, bankSearchTextBeforeFilter);
-			}
-			bankSearchTextBeforeFilter = "";
-			inventorySetupBankTagState.restore(
-				bankTagsService, restoreInventorySetup);
-			bankButton.update();
-		}
-		else
-		{
-			inventorySetupBankTagState.clear();
-		}
-	}
-
-	private void neutralizeInventorySetupBankFilter()
-	{
-		inventorySetupBankTagState.neutralizeActive(bankTagsService);
-	}
-
-	private void queueInventorySetupNeutralization()
-	{
-		if (!bankFlow.queueInventorySetupNeutralization())
-		{
-			return;
-		}
-
-		clientThread.invokeLater(() ->
-		{
-			try
-			{
-				if (bankFlow.isFilterActive())
+				bankSearch.reset(true);
+				if (bankSearchTextBeforeFilter != null
+					&& !bankSearchTextBeforeFilter.isEmpty())
 				{
-					neutralizeInventorySetupBankFilter();
+					client.setVarcStrValue(
+						VarClientID.MESLAYERINPUT, bankSearchTextBeforeFilter);
 				}
 			}
-			finally
-			{
-				bankFlow.completeInventorySetupNeutralization();
-			}
-		});
+			bankSearchTextBeforeFilter = "";
+			bankButton.update();
+		}
 	}
 
 	void queueCycleStrategy()
