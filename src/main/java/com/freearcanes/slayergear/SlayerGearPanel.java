@@ -98,6 +98,9 @@ class SlayerGearPanel extends PluginPanel
 	private BiConsumer<SupplyRecommendation, SupplyQuantityAction> supplyQuantityHandler =
 		(supply, action) -> { };
 	private Runnable loadoutRefreshHandler = () -> { };
+	private Runnable advisorToggleHandler = () -> { };
+	private JButton advisorToggleButton;
+	private boolean advisorEnabled = true;
 	private boolean showAlternatives;
 	private boolean showTaskDetails;
 	private PrepFocusMode prepFocusMode = PrepFocusMode.ALL;
@@ -138,6 +141,24 @@ class SlayerGearPanel extends PluginPanel
 	void setLoadoutRefreshHandler(Runnable handler)
 	{
 		this.loadoutRefreshHandler = handler == null ? () -> { } : handler;
+	}
+
+	void setAdvisorToggleHandler(Runnable handler)
+	{
+		this.advisorToggleHandler = handler == null ? () -> { } : handler;
+	}
+
+	void setAdvisorEnabled(boolean enabled)
+	{
+		SwingUtilities.invokeLater(() ->
+		{
+			advisorEnabled = enabled;
+			updateAdvisorToggle();
+			if (lastRecommendations != null)
+			{
+				displayOnEdt(lastRecommendations);
+			}
+		});
 	}
 
 	void setTheme(PanelTheme theme)
@@ -246,7 +267,29 @@ class SlayerGearPanel extends PluginPanel
 		identity.add(names, BorderLayout.CENTER);
 
 		root.add(identity);
+		root.add(Box.createVerticalStrut(4));
+
+		advisorToggleButton = new RoundedButton();
+		advisorToggleButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+		advisorToggleButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+		advisorToggleButton.addActionListener(event -> advisorToggleHandler.run());
+		updateAdvisorToggle();
+		root.add(advisorToggleButton);
 		return root;
+	}
+
+	private void updateAdvisorToggle()
+	{
+		if (advisorToggleButton == null)
+		{
+			return;
+		}
+		advisorToggleButton.setText(advisorEnabled ? "Advisor enabled" : "Advisor paused");
+		advisorToggleButton.setForeground(advisorEnabled ? SUCCESS : MUTED_TEXT);
+		advisorToggleButton.setToolTipText(
+			advisorEnabled
+				? "Pause recommendations, bank helpers, and prep reminders"
+				: "Enable recommendations, bank helpers, and prep reminders");
 	}
 
 	private void displayOnEdt(GearRecommendations recommendations)
@@ -258,8 +301,10 @@ class SlayerGearPanel extends PluginPanel
 		{
 			case NO_TASK:
 				showEmpty(
-					"No Slayer task detected",
-					"Best-in-Bank will wake up when RuneLite detects an assignment.");
+					advisorEnabled ? "No Slayer task detected" : "Advisor paused",
+					advisorEnabled
+						? "Best-in-Bank will wake up when RuneLite detects an assignment."
+						: "Use the switch above when you want Best-in-Bank to run.");
 				break;
 			case UNSUPPORTED_TASK:
 				showEmpty(

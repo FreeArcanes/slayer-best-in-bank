@@ -330,6 +330,18 @@ public interface SlayerGearAdvisorConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "advisorEnabled",
+		name = "Advisor enabled",
+		description = "Enable gear recommendations, bank helpers, and prep reminders. This can also be switched from the side panel.",
+		position = 2,
+		section = appearanceSection
+	)
+	default boolean advisorEnabled()
+	{
+		return true;
+	}
+
+	@ConfigItem(
 		keyName = "prepReminderEnabled",
 		name = "Show reminder",
 		description = "Show a small in-game prep reminder after closing the bank when required gear is missing or useful task supplies were left behind.",
