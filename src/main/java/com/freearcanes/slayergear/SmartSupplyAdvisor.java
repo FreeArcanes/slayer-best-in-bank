@@ -61,7 +61,27 @@ class SmartSupplyAdvisor
 		Item[] bankItems,
 		Item[] packedItems)
 	{
+		return recommend(
+			profile,
+			strategy,
+			assignedLocation,
+			taskAmount,
+			bankItems,
+			packedItems,
+			false);
+	}
+
+	List<SupplyRecommendation> recommend(
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		String assignedLocation,
+		int taskAmount,
+		Item[] bankItems,
+		Item[] packedItems,
+		boolean allowRadasBlessing)
+	{
 		List<SupplyRule> rules = buildRules(profile, strategy, assignedLocation);
+		boolean wildernessTask = isWildernessTask(assignedLocation, strategy);
 		int plannedKills = plannedKillCount(taskAmount);
 		Map<Integer, OwnedItem> bank = collect(bankItems);
 		Map<Integer, OwnedItem> packed = collect(packedItems);
@@ -87,14 +107,18 @@ class SmartSupplyAdvisor
 				? 0
 				: quantityOverride(profile, rule.category, automaticQuantity);
 			String quantityUnit = quantityUnit(rule.category);
-			int packedQuantity = matchingQuantity(rule, exactPacked, quantityUnit);
-			int bankQuantity = matchingQuantity(rule, exactBank, quantityUnit);
+			int packedQuantity = matchingQuantity(
+				rule, exactPacked, quantityUnit, wildernessTask, allowRadasBlessing);
+			int bankQuantity = matchingQuantity(
+				rule, exactBank, quantityUnit, wildernessTask, allowRadasBlessing);
 			// Resolve inventory/equipment and bank independently. A consumable that is
 			// already packed can still have more doses/food available in the bank.
 			// Keeping both states prevents the filtered bank row from disappearing after
 			// the first withdrawal.
-			OwnedItem packedMatch = findBest(rule, packed.values(), usedCanonicalIds);
-			OwnedItem bankMatch = findBest(rule, bank.values(), usedCanonicalIds);
+			OwnedItem packedMatch = findBest(
+				rule, packed.values(), usedCanonicalIds, wildernessTask, allowRadasBlessing);
+			OwnedItem bankMatch = findBest(
+				rule, bank.values(), usedCanonicalIds, wildernessTask, allowRadasBlessing);
 
 			if (packedMatch != null && bankMatch != null)
 			{
@@ -442,7 +466,12 @@ class SmartSupplyAdvisor
 		return result;
 	}
 
-	private static OwnedItem findBest(SupplyRule rule, Iterable<OwnedItem> items, Set<Integer> used)
+	private static OwnedItem findBest(
+		SupplyRule rule,
+		Iterable<OwnedItem> items,
+		Set<Integer> used,
+		boolean wildernessTask,
+		boolean allowRadasBlessing)
 	{
 		for (String preferred : rule.preferredNames)
 		{
@@ -451,7 +480,8 @@ class SmartSupplyAdvisor
 			{
 				if (used.contains(item.canonicalItemId)) continue;
 				String normalizedName = NameMatcher.normalize(item.name);
-				if ("Food".equals(rule.category) && isUnsafeFoodName(normalizedName)) continue;
+				if (isUnavailableForContext(
+					rule.category, normalizedName, wildernessTask, allowRadasBlessing)) continue;
 				if (matchesPreferredSupply(normalizedName, preferred))
 				{
 					if (best == null || doseScore(item.name) > doseScore(best.name)) best = item;
@@ -476,8 +506,41 @@ class SmartSupplyAdvisor
 
 	static boolean isUnsafeFoodName(String normalizedName)
 	{
+		return isUnsafeFoodName(normalizedName, true);
+	}
+
+	static boolean isUnsafeFoodName(String normalizedName, boolean wildernessTask)
+	{
 		return normalizedName != null
-			&& (normalizedName.startsWith("raw ") || normalizedName.startsWith("burnt "));
+			&& (normalizedName.startsWith("raw ")
+				|| normalizedName.startsWith("burnt ")
+				|| (!wildernessTask && normalizedName.startsWith("blighted ")));
+	}
+
+	static boolean isWildernessTask(String assignedLocation, GearStrategy strategy)
+	{
+		if (strategy != null && strategy.getTargetTraits().contains(TargetTrait.WILDERNESS))
+		{
+			return true;
+		}
+		String location = NameMatcher.normalize(assignedLocation);
+		return location.contains("wilderness") || location.contains("revenant cave");
+	}
+
+	static boolean isUnavailableForContext(
+		String category,
+		String normalizedName,
+		boolean wildernessTask,
+		boolean allowRadasBlessing)
+	{
+		if ("Food".equals(category)
+			&& isUnsafeFoodName(normalizedName, wildernessTask))
+		{
+			return true;
+		}
+		return "Travel".equals(category)
+			&& normalizedName.contains("rada's blessing")
+			&& !allowRadasBlessing;
 	}
 
 	static SupplyStatus resolveStatus(boolean packed, boolean banked)
@@ -637,13 +700,19 @@ class SmartSupplyAdvisor
 			|| !isPotionQuantityCategory(category);
 	}
 
-	private static int matchingQuantity(SupplyRule rule, Iterable<OwnedItem> items, String unit)
+	private static int matchingQuantity(
+		SupplyRule rule,
+		Iterable<OwnedItem> items,
+		String unit,
+		boolean wildernessTask,
+		boolean allowRadasBlessing)
 	{
 		int total = 0;
 		for (OwnedItem item : items)
 		{
 			String normalizedName = NameMatcher.normalize(item.name);
-			if ("Food".equals(rule.category) && isUnsafeFoodName(normalizedName)) continue;
+			if (isUnavailableForContext(
+				rule.category, normalizedName, wildernessTask, allowRadasBlessing)) continue;
 			boolean matches = false;
 			for (String preferred : rule.preferredNames)
 			{

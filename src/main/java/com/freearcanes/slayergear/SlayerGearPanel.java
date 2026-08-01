@@ -414,6 +414,23 @@ class SlayerGearPanel extends PluginPanel
 				switchMethod.addActionListener(event -> strategyCycleHandler.run());
 				hero.add(switchMethod);
 			}
+
+			if (recommendations.isBankRefreshPending())
+			{
+				hero.add(Box.createVerticalStrut(8));
+				RoundedPanel notice = new RoundedPanel(SURFACE_RAISED, ROW_RADIUS, WARNING);
+				notice.setLayout(new BoxLayout(notice, BoxLayout.Y_AXIS));
+				notice.setBorder(new EmptyBorder(7, 8, 7, 8));
+				notice.setAlignmentX(Component.LEFT_ALIGNMENT);
+				notice.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+				notice.add(smallCaps("BANK PLAN OUT OF DATE", WARNING));
+				notice.add(Box.createVerticalStrut(2));
+				notice.add(wrappedLabel(
+					"Method or settings changed. Click Refresh below, or reopen the bank, to rebuild this loadout.",
+					TEXT,
+					158));
+				hero.add(notice);
+			}
 		}
 		else if (profile != null)
 		{

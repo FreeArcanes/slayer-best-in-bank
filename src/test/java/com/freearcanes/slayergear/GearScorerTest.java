@@ -798,6 +798,27 @@ public class GearScorerTest
 		assertFalse(SmartSupplyAdvisor.isUnsafeFoodName("cooked karambwan"));
 	}
 
+	@Test
+	public void blightedFoodIsRestrictedToWildernessTasks()
+	{
+		assertTrue(SmartSupplyAdvisor.isUnsafeFoodName("blighted manta ray", false));
+		assertFalse(SmartSupplyAdvisor.isUnsafeFoodName("blighted manta ray", true));
+		assertFalse(SmartSupplyAdvisor.isUnsafeFoodName("manta ray", false));
+		assertFalse(SmartSupplyAdvisor.isWildernessTask("Catacombs of Kourend", null));
+		assertTrue(SmartSupplyAdvisor.isWildernessTask("Wilderness Slayer Cave", null));
+	}
+
+	@Test
+	public void radasTravelSuggestionRequiresCompatibleLoadedQuiver()
+	{
+		assertTrue(SmartSupplyAdvisor.isUnavailableForContext(
+			"Travel", "rada's blessing 4", false, false));
+		assertFalse(SmartSupplyAdvisor.isUnavailableForContext(
+			"Travel", "rada's blessing 4", false, true));
+		assertFalse(SmartSupplyAdvisor.isUnavailableForContext(
+			"Travel", "xeric's talisman", false, false));
+	}
+
 	private static GearScorer.BankEquipment riskItem(
 		int itemId,
 		String name,
