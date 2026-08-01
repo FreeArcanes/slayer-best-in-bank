@@ -191,13 +191,17 @@ class GearScorer
 			? Collections.emptyMap() : loadoutTiers.get(0).getItems();
 		boolean bestUsesLoadedDizanasQuiver =
 			loadedDizanasQuiver && usesDizanasQuiver(best);
+		// Rada's blessing occupies the ammunition slot. It is a coherent travel
+		// suggestion only when the selected Dizana's quiver already carries the
+		// ranged weapon's ammunition.
 		List<SupplyRecommendation> supplies = supplyAdvisor.recommend(
 			profile,
 			selected,
 			assignedLocation,
 			taskAmount,
 			bankItems,
-			packedSupplyItems);
+			packedSupplyItems,
+			bestUsesLoadedDizanasQuiver);
 		// A protective off-hand already satisfies dragonfire protection. Do not
 		// simultaneously tell the player that antifire is still required.
 		if (hasDragonfireProtection(best))
