@@ -146,6 +146,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		panel.setStrategyCycleHandler(this::queueCycleStrategy);
 		panel.setSupplyQuantityHandler(this::adjustSupplyQuantity);
 		panel.setLoadoutRefreshHandler(this::queueRefreshBankLoadout);
+		panel.setAdvisorToggleHandler(this::toggleAdvisor);
+		panel.setAdvisorEnabled(config.advisorEnabled());
 
 		AsyncBufferedImage icon = itemManager.getImage(ItemID.SLAYER_HELM);
 		// RuneLite snapshots/resizes navigation icons as soon as they are added.
@@ -490,6 +492,11 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		{
 			panel.setTheme(config.panelTheme());
 		}
+		else if ("advisorEnabled".equals(event.getKey()))
+		{
+			panel.setAdvisorEnabled(config.advisorEnabled());
+			clientThread.invokeLater(this::applyAdvisorEnabledState);
+		}
 		else if (isRecommendationConfigKey(event.getKey()))
 		{
 			// RuneLite configuration changes can originate outside the client thread.
@@ -508,7 +515,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		{
 			highlightsActive = config.highlightsEnabled();
 			panel.setTheme(config.panelTheme());
-			recalculateOrMarkBankRefresh();
+			panel.setAdvisorEnabled(config.advisorEnabled());
+			applyAdvisorEnabledState();
 		});
 	}
 
@@ -670,6 +678,31 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		recalculate();
 	}
 
+	private void toggleAdvisor()
+	{
+		configManager.setConfiguration(
+			SlayerGearAdvisorConfig.GROUP,
+			"advisorEnabled",
+			!config.advisorEnabled());
+	}
+
+	private void applyAdvisorEnabledState()
+	{
+		if (config.advisorEnabled())
+		{
+			recalculateOrMarkBankRefresh();
+			return;
+		}
+
+		closeBankFilter();
+		bankFlow.unlockLoadout();
+		tripPreparation.reset();
+		prepReminderOverlay.hide();
+		bankButton.hide();
+		recommendations = GearRecommendations.noTask();
+		panel.display(recommendations);
+	}
+
 	private void queueRecalculate()
 	{
 		if (!bankFlow.queueRecalculation())
@@ -769,7 +802,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 
 	private void recalculate(boolean rebuildBankView)
 	{
-		if (lastTaskName == null || lastTaskName.isEmpty())
+		if (!config.advisorEnabled()
+			|| lastTaskName == null || lastTaskName.isEmpty())
 		{
 			closeBankFilter();
 			bankFlow.unlockLoadout();
