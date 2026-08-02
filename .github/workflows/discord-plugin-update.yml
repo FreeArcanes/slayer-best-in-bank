@@ -1,0 +1,87 @@
+name: Discord plugin update
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    name: Notify Discord
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      PLUGIN_NAME: ${{ github.event.repository.name }}
+      REPOSITORY: ${{ github.repository }}
+      REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+      BRANCH_NAME: ${{ github.ref_name }}
+      PUSHED_BY: ${{ github.actor }}
+      COMMIT_SHA: ${{ github.sha }}
+      COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'Manual workflow notification' }}
+      COMMIT_URL: ${{ github.event.head_commit.url || format('{0}/{1}/commit/{2}', github.server_url, github.repository, github.sha) }}
+    steps:
+      - name: Send plugin update
+        shell: bash
+        run: |
+          if [[ -z "$DISCORD_WEBHOOK_URL" ]]; then
+            echo "::notice::DISCORD_WEBHOOK_URL is not configured; skipping Discord notification."
+            exit 0
+          fi
+
+          payload="$(
+            jq -n \
+              --arg plugin "$PLUGIN_NAME" \
+              --arg repository "$REPOSITORY" \
+              --arg repository_url "$REPOSITORY_URL" \
+              --arg branch "$BRANCH_NAME" \
+              --arg actor "$PUSHED_BY" \
+              --arg sha "$COMMIT_SHA" \
+              --arg message "$COMMIT_MESSAGE" \
+              --arg commit_url "$COMMIT_URL" \
+              '{
+                username: "RuneLite Plugin Updates",
+                allowed_mentions: {parse: []},
+                embeds: [{
+                  title: ($plugin + " updated"),
+                  url: $commit_url,
+                  description: $message[0:3500],
+                  color: 16753920,
+                  fields: [
+                    {
+                      name: "Repository",
+                      value: ("[" + $repository + "](" + $repository_url + ")"),
+                      inline: true
+                    },
+                    {
+                      name: "Branch",
+                      value: ("\u0060" + $branch + "\u0060"),
+                      inline: true
+                    },
+                    {
+                      name: "Pushed by",
+                      value: $actor,
+                      inline: true
+                    },
+                    {
+                      name: "Commit",
+                      value: ("[" + $sha[0:7] + "](" + $commit_url + ")"),
+                      inline: true
+                    }
+                  ],
+                  footer: {text: "GitHub push notification"}
+                }]
+              }'
+          )"
+
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --header "Content-Type: application/json" \
+            --data "$payload" \
+            "$DISCORD_WEBHOOK_URL"
