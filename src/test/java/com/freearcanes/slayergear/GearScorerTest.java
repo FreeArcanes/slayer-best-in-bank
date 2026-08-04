@@ -91,6 +91,56 @@ public class GearScorerTest
 	}
 
 	@Test
+	public void kalphiteMeleePrefersTorsoAndObsidianLegsOverEclipseArmour()
+	{
+		GearStrategy strategy = TaskProfiles.find("Kalphites")
+			.orElseThrow()
+			.getStrategies()
+			.get(0);
+		ItemEquipmentStats fighterTorso = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.BODY.getSlotIdx())
+			.str(4)
+			.dstab(62)
+			.dslash(85)
+			.dcrush(62)
+			.dmagic(-10)
+			.build();
+		ItemEquipmentStats eclipseChestplate = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.BODY.getSlotIdx())
+			.str(3)
+			.dstab(15)
+			.dslash(18)
+			.dcrush(57)
+			.dmagic(55)
+			.build();
+		ItemEquipmentStats obsidianPlatelegs = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.LEGS.getSlotIdx())
+			.str(1)
+			.dstab(46)
+			.dslash(43)
+			.dcrush(41)
+			.dmagic(-10)
+			.build();
+		ItemEquipmentStats eclipseTassets = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.LEGS.getSlotIdx())
+			.str(1)
+			.dstab(9)
+			.dslash(13)
+			.dcrush(37)
+			.dmagic(31)
+			.build();
+
+		assertTrue(GearScorer.scoreStats(strategy, "Fighter torso",
+			EquipmentInventorySlot.BODY, fighterTorso)
+			> GearScorer.scoreStats(strategy, "Eclipse moon chestplate",
+				EquipmentInventorySlot.BODY, eclipseChestplate));
+		assertTrue(GearScorer.scoreStats(strategy, "Obsidian platelegs",
+			EquipmentInventorySlot.LEGS, obsidianPlatelegs)
+			> GearScorer.scoreStats(strategy, "Eclipse moon tassets",
+				EquipmentInventorySlot.LEGS, eclipseTassets));
+	}
+
+	@Test
 	public void everyDuradelAssignmentCategoryHasAProfile()
 	{
 		List<String> tasks = Arrays.asList(
@@ -610,6 +660,7 @@ public class GearScorerTest
 			"Turoth",
 			"Tzhaar",
 			"Vampyres",
+			"Venators",
 			"Vardorvis",
 			"Venenatis",
 			"Vet'ion",
@@ -639,6 +690,7 @@ public class GearScorerTest
 		assertTrue(SlayerMasterCatalog.allAssignments().containsKey("Nieve / Steve"));
 		assertTrue(SlayerMasterCatalog.allAssignments().containsKey("Duradel / Kuradal"));
 		assertTrue(SlayerMasterCatalog.allAssignments().containsKey("Krystilia"));
+		assertTrue(SlayerMasterCatalog.allAssignments().containsKey("Mortimer"));
 	}
 
 	@Test
@@ -725,6 +777,7 @@ public class GearScorerTest
 		assertEquals(46, SlayerMasterCatalog.allAssignments().get("Nieve / Steve").size());
 		assertEquals(43, SlayerMasterCatalog.allAssignments().get("Duradel / Kuradal").size());
 		assertEquals(37, SlayerMasterCatalog.allAssignments().get("Krystilia").size());
+		assertEquals(29, SlayerMasterCatalog.allAssignments().get("Mortimer").size());
 	}
 
 	@Test

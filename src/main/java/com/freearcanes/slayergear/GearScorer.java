@@ -48,6 +48,10 @@ class GearScorer
 	 */
 	private static final double WEAPON_SHARED_DAMAGE_BASE = 500.0;
 	private static final double WEAPON_SHARED_ACCURACY_BASE = 100.0;
+	// All defence styles are a light tie-breaker for otherwise similar armour.
+	// Method-specific weights (for example Bloodvelds' Magic defence) are added
+	// separately and must be explicitly selected by that strategy.
+	private static final double BASE_DEFENCE_WEIGHT = 0.01;
 
 	private final ItemManager itemManager;
 	private final SmartSupplyAdvisor supplyAdvisor;
@@ -956,8 +960,13 @@ class GearScorer
 			? 200.0
 			: strategy.getPrayerWeight();
 
-		double utility = stats.getPrayer() * prayerWeight
-			+ stats.getDmagic() * strategy.getMagicDefenceWeight();
+		double utility = stats.getPrayer() * prayerWeight;
+		if (slot != EquipmentInventorySlot.WEAPON)
+		{
+			utility += (stats.getDstab() + stats.getDslash() + stats.getDcrush()
+				+ stats.getDrange() + stats.getDmagic()) * BASE_DEFENCE_WEIGHT;
+			utility += stats.getDmagic() * strategy.getMagicDefenceWeight();
+		}
 
 		switch (strategy.getCombatStyle())
 		{
@@ -1113,8 +1122,10 @@ class GearScorer
 	}
 	static boolean usesNoAmmoSlot(String weapon)
 	{
-		return has(weapon, "blowpipe", "crystal bow", "bow of faerdhinen", "chinchompa",
-			" dart", "knife", "thrownaxe", "javelin", "toktz-xil-ul", "holy water");
+		String normalized = NameMatcher.normalize(weapon);
+		return has(normalized, "blowpipe", "crystal bow", "bow of faerdhinen", "chinchompa",
+			" dart", "knife", "thrownaxe", "javelin", "toktz-xil-ul", "holy water",
+			"blisterwood stake");
 	}
 
 	private static BankEquipment nthCompatibleAmmo(List<BankEquipment> ammo, String weapon, int rank)
@@ -1153,6 +1164,13 @@ class GearScorer
 		}
 		for(String p:strategy.getPreferredItems())if(NameMatcher.normalize(name).contains(NameMatcher.normalize(p))){r.add("task-method priority");break;}
 		switch(strategy.getCombatStyle()){case MAGIC:add(r,stats.getMdmg(),"% magic dmg");add(r,stats.getAmagic(),"magic");break;case RANGED:add(r,stats.getRstr(),"ranged Str");add(r,stats.getArange(),"ranged");break;default:add(r,stats.getStr(),"melee Str");add(r,attackBonus(strategy.getAttackType(),stats),strategy.getAttackType().name().toLowerCase(Locale.ENGLISH));}
+		if (slot != EquipmentInventorySlot.WEAPON)
+		{
+			int totalDefence = stats.getDstab() + stats.getDslash() + stats.getDcrush()
+				+ stats.getDrange() + stats.getDmagic();
+			add(r, totalDefence, "total defence");
+			if (strategy.getMagicDefenceWeight() > 0) add(r, stats.getDmagic(), "Magic defence focus");
+		}
 		add(r,stats.getPrayer(),"prayer"); if(slot==EquipmentInventorySlot.WEAPON&&stats.getAspeed()>0)r.add(stats.getAspeed()+"-tick speed"); if(r.isEmpty())r.add("best weighted stats available"); return String.join(", ",r);
 	}
 	private static void add(List<String> r,float v,String label){if(v!=0)r.add((v>0?"+":"")+(v==Math.rint(v)?Integer.toString((int)v):Float.toString(v))+" "+label);}

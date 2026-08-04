@@ -147,7 +147,12 @@ class TaskPrepReminderOverlay extends Overlay
 	private static boolean isPrepReminderSupply(SupplyRecommendation supply)
 	{
 		return "Goading".equals(supply.getCategory())
-			|| "Prayer regen".equals(supply.getCategory());
+			|| "Prayer regen".equals(supply.getCategory())
+			|| "Poison protection".equals(supply.getCategory())
+			|| "Light source".equals(supply.getCategory())
+			|| "Light backup".equals(supply.getCategory())
+			|| "Cave access".equals(supply.getCategory())
+			|| "Desert hydration".equals(supply.getCategory());
 	}
 
 	private static Color withAlpha(Color color, int alpha)

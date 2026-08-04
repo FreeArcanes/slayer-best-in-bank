@@ -87,7 +87,9 @@ final class GearStrategy
 		private String requiredWeapon;
 		private String requiredOffhand;
 		private final List<String> preferredItems = new ArrayList<>();
-		private double magicDefenceWeight = 0.08;
+		// Extra weighting beyond the small all-defence tie-breaker. Most methods
+		// leave this at zero; magic-heavy encounters opt in explicitly.
+		private double magicDefenceWeight;
 		private double prayerWeight = 1.2;
 		private boolean ancientAoe;
 

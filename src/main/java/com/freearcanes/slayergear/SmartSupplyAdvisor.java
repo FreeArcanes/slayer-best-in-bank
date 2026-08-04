@@ -147,7 +147,7 @@ class SmartSupplyAdvisor
 				continue;
 			}
 
-			if (rule.required)
+			if (rule.required || rule.showWhenMissing)
 			{
 				recommendations.add(new SupplyRecommendation(
 					0,
@@ -156,7 +156,7 @@ class SmartSupplyAdvisor
 					rule.category,
 					rule.reason,
 					SupplyStatus.MISSING,
-					true,
+					rule.required,
 					automaticQuantity,
 					recommendedQuantity,
 					packedQuantity,
@@ -204,6 +204,9 @@ class SmartSupplyAdvisor
 	{
 		List<SupplyRule> rules = new ArrayList<>();
 		String key = profile == null ? "" : profile.getKey().toLowerCase(Locale.ENGLISH);
+		String location = NameMatcher.normalize(assignedLocation == null || assignedLocation.trim().isEmpty()
+			? strategy == null ? "" : strategy.getLocation()
+			: assignedLocation);
 		boolean ancientAoe = strategy != null && strategy.isAncientAoe();
 		boolean venator = strategy != null && isVenator(strategy);
 
@@ -226,41 +229,77 @@ class SmartSupplyAdvisor
 
 		if (ancientAoe)
 		{
-			rules.add(rule("Magic boost", "Boosts Magic damage or preserves spell access", false,
+			rules.add(suggestedRule("Magic boost", "Boosts Magic damage or preserves spell access",
 				"Magic boost", "saturated heart", "imbued heart", "forgotten brew", "ancient brew", "magic potion"));
-			rules.add(rule("Rune pouch", "Compact Ancient Magicks rune storage", false,
+			rules.add(suggestedRule("Rune pouch", "Compact Ancient Magicks rune storage; verify the required runes are loaded",
 				"Rune pouch", "divine rune pouch", "rune pouch"));
 		}
 		else if (strategy != null && strategy.getCombatStyle() == CombatStyle.MELEE)
 		{
 			rules.add(config.preferDivineBoosts()
-				? rule("Combat boost", "Improves melee task speed", false,
-					"Combat potion", "divine super combat potion", "divine combat potion",
+				? suggestedRule("Combat boost", "Improves melee task speed",
+					"Combat potion(4)", "divine super combat potion", "divine combat potion",
 					"super combat potion", "combat potion")
-				: rule("Combat boost", "Improves melee task speed", false,
-					"Combat potion", "super combat potion", "combat potion",
+				: suggestedRule("Combat boost", "Improves melee task speed",
+					"Combat potion(4)", "super combat potion", "combat potion",
 					"divine super combat potion", "divine combat potion"));
 		}
 		else if (strategy != null && strategy.getCombatStyle() == CombatStyle.RANGED)
 		{
 			rules.add(config.preferDivineBoosts()
-				? rule("Ranged boost", "Improves ranged task speed", false,
-					"Bastion / ranging potion", "divine bastion potion", "bastion potion",
+				? suggestedRule("Ranged boost", "Improves ranged task speed",
+					"Ranging potion(4)", "divine bastion potion", "bastion potion",
 					"divine ranging potion", "ranging potion")
-				: rule("Ranged boost", "Improves ranged task speed", false,
-					"Bastion / ranging potion", "bastion potion", "ranging potion",
+				: suggestedRule("Ranged boost", "Improves ranged task speed",
+					"Ranging potion(4)", "bastion potion", "ranging potion",
 					"divine bastion potion", "divine ranging potion"));
 		}
 		else if (strategy != null && strategy.getCombatStyle() == CombatStyle.MAGIC)
 		{
-			rules.add(rule("Magic boost", "Improves Magic task speed", false,
+			rules.add(suggestedRule("Magic boost", "Improves Magic task speed",
 				"Magic boost", "saturated heart", "imbued heart", "forgotten brew", "ancient brew", "magic potion"));
 		}
 
 		if (contains(key, "araxytes"))
 		{
 			rules.add(0, rule("Venom protection", "Araxytes can inflict venom", true,
-				"Anti-venom", "extended anti-venom+", "anti-venom+", "anti-venom"));
+				"Anti-venom(4)", "extended anti-venom+", "anti-venom+", "anti-venom"));
+		}
+		if (contains(key, "kalphites", "cave-crawlers", "cave-slimes", "lizardmen"))
+		{
+			rules.add(0, suggestedRule("Poison protection",
+				poisonReason(key),
+				"Antipoison(4)", "antidote++", "antidote+", "superantipoison",
+				"sanfew serum", "antipoison", "extended anti-venom+",
+				"anti-venom+", "anti-venom"));
+		}
+		if (location.contains("lumbridge swamp cave") || contains(key, "cave-horrors"))
+		{
+			rules.add(0, suggestedRule("Light source", "A stable enclosed light source is recommended for this cave",
+				"Bullseye lantern", "bullseye lantern", "emerald lantern", "sapphire lantern",
+				"oil lantern", "candle lantern"));
+		}
+		if (location.contains("lumbridge swamp cave"))
+		{
+			rules.add(suggestedRule("Cave access", "Needed for the surface entrance until permanent access is established",
+				"Rope", "rope"));
+			rules.add(suggestedRule("Light backup", "Relights an extinguished cave lantern",
+				"Tinderbox", "tinderbox"));
+		}
+		if (location.contains("kalphite lair"))
+		{
+			rules.add(suggestedRule("Cave access", "Needed until both Kalphite Lair ropes are permanently installed",
+				"Rope", "rope"));
+		}
+		if (contains(key, "brine-rats"))
+		{
+			rules.add(suggestedRule("Cave access", "A spade is used to enter the Brine Rat Cavern",
+				"Spade", "spade"));
+		}
+		if (contains(key, "lizards") || location.contains("kharidian desert"))
+		{
+			rules.add(suggestedRule("Desert hydration", "Protection from desert heat while travelling and fighting",
+				"Waterskin(4)", "waterskin"));
 		}
 		if (contains(key, "gargoyles"))
 		{
@@ -302,43 +341,49 @@ class SmartSupplyAdvisor
 			rules.add(rule("Cannon ammo", "A cannon method needs ammunition before leaving the bank", true,
 				"Cannonballs", "granite cannonball", "steel cannonball", "cannonball"));
 		}
-		if (contains(key, "blue-dragons", "black-dragons", "red-dragons", "metal-dragons", "frost-dragons"))
+		if (contains(key, "blue-dragons", "black-dragons", "green-dragons", "red-dragons",
+			"metal-dragons", "frost-dragons", "lava-dragons"))
 		{
 			rules.add(rule("Antifire", "Dragonfire protection is required unless the selected off-hand provides it", true,
-				"Antifire potion / dragonfire shield", "extended super antifire potion", "super antifire potion", "extended antifire", "antifire potion"));
+				"Antifire potion(4)", "extended super antifire potion", "super antifire potion", "extended antifire", "antifire potion"));
 		}
 
 		for (TravelItemAdvisor.TravelRule travel
 			: TravelItemAdvisor.recommend(assignedLocation, strategy, config))
 		{
-			rules.add(rule(
+			rules.add(suggestedRule(
 				"Travel",
 				travel.getReason(),
-				false,
 				travel.getFallback(),
 				travel.getPreferredNames()));
 		}
 
 		if (config.lowRiskMode())
 		{
-			rules.add(rule("Escape", "Low-risk mode: keep a fast escape option packed", false,
+			rules.add(suggestedRule("Escape", "Low-risk mode: keep a fast escape option packed",
 				"Emergency teleport", "royal seed pod", "amulet of glory", "ring of wealth", "teleport to house"));
 		}
 
-		// Helpful sustain, but only surface it when the user actually owns it.
+		// Core trip preparation is visible for every task, even when the account
+		// does not currently own a matching item. These remain non-blocking.
 		if (strategy != null)
 		{
-			rules.add(rule("Prayer", "Useful sustain for protection or offensive prayers", false,
-				"Prayer potion / restore", "prayer potion", "super restore", "sanfew serum"));
+			rules.add(suggestedRule("Prayer", "Useful sustain for protection or offensive prayers",
+				"Prayer potion(4)", "prayer potion", "super restore", "sanfew serum"));
 		}
 
-		// General trip prep is deliberately optional: it enriches the sidebar when
-		// the account owns these supplies without blocking Ready-to-leave-bank.
-		rules.add(rule("Food", "Emergency healing for the trip", false,
+		rules.add(suggestedRule("Food", "Emergency healing for the trip",
 			"Food", "anglerfish", "manta ray", "dark crab", "shark", "cooked karambwan", "sea turtle", "monkfish"));
-		rules.add(rule("Run energy", "Optional travel and repositioning sustain", false,
-			"Stamina potion", "stamina potion", "super energy potion", "energy potion"));
+		rules.add(suggestedRule("Run energy", "Optional travel and repositioning sustain",
+			"Stamina potion(4)", "stamina potion", "super energy potion", "energy potion"));
 		return rules;
+	}
+
+	private static String poisonReason(String key)
+	{
+		if (contains(key, "kalphites")) return "Suggested for poisonous Kalphite soldiers and guardians";
+		if (contains(key, "lizardmen")) return "Suggested for Lizardman and shaman poison attacks";
+		return "This Slayer target can inflict poison";
 	}
 
 	private static void addCannonSetRecommendations(
@@ -584,6 +629,7 @@ class SmartSupplyAdvisor
 				return clamp(4, 12, ((taskAmount + 59) / 60) * 4);
 			case "Antifire":
 			case "Venom protection":
+			case "Poison protection":
 				return clamp(4, 16, ((taskAmount + 39) / 40) * 4);
 			case "Combat boost":
 			case "Ranged boost":
@@ -674,6 +720,7 @@ class SmartSupplyAdvisor
 			case "Prayer":
 			case "Antifire":
 			case "Venom protection":
+			case "Poison protection":
 			case "Combat boost":
 			case "Ranged boost":
 			case "Magic boost":
@@ -745,7 +792,18 @@ class SmartSupplyAdvisor
 	{
 		List<String> normalized = new ArrayList<>();
 		for (String value : preferred) normalized.add(NameMatcher.normalize(value));
-		return new SupplyRule(category, reason, required, fallback, normalized);
+		return new SupplyRule(category, reason, required, false, fallback, normalized);
+	}
+
+	private static SupplyRule suggestedRule(
+		String category,
+		String reason,
+		String fallback,
+		String... preferred)
+	{
+		List<String> normalized = new ArrayList<>();
+		for (String value : preferred) normalized.add(NameMatcher.normalize(value));
+		return new SupplyRule(category, reason, false, true, fallback, normalized);
 	}
 
 	private static boolean contains(String key, String... values)
@@ -763,14 +821,22 @@ class SmartSupplyAdvisor
 		private final String category;
 		private final String reason;
 		private final boolean required;
+		private final boolean showWhenMissing;
 		private final String displayFallback;
 		private final List<String> preferredNames;
 
-		private SupplyRule(String category, String reason, boolean required, String displayFallback, List<String> preferredNames)
+		private SupplyRule(
+			String category,
+			String reason,
+			boolean required,
+			boolean showWhenMissing,
+			String displayFallback,
+			List<String> preferredNames)
 		{
 			this.category = category;
 			this.reason = reason;
 			this.required = required;
+			this.showWhenMissing = showWhenMissing;
 			this.displayFallback = displayFallback;
 			this.preferredNames = preferredNames;
 		}

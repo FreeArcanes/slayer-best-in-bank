@@ -117,7 +117,7 @@ final class TaskCombatCatalog
 			"Rat-bone weapons receive their rat-specific +10 max-hit effect."), "Rats", "Brine rats");
 		register(rule(WeaponRule.VAMPYRE, AttackType.BALANCED, traits(TargetTrait.VAMPYRE, TargetTrait.UNDEAD), ElementalWeakness.NONE, 0,
 			"Vampyre-specific weapons are required/strongly favoured; modern Sunspear/Hallowed/Blisterwood effects are scored."),
-			"Vampyres");
+			"Vampyres", "Venators");
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(), ElementalWeakness.NONE, 0,
 			"Werewolf task: do not prefer Wolfbane in Canifis because it prevents the human citizen from transforming, and human-form kills do not count for the Werewolf Slayer assignment."),
 			"Werewolves");
@@ -176,6 +176,7 @@ final class TaskCombatCatalog
 		alias("waterfiend", "Waterfiends");
 		alias("vampyre", "Vampyres");
 		alias("vyrewatch", "Vampyres");
+		alias("venator", "Venators");
 		alias("scabarites", "Minions of Scabaras");
 		alias("smoke devil", "Smoke devils");
 		alias("dust devil", "Dust devils");
