@@ -100,6 +100,43 @@ public class SupplyQuantityPlanningTest
 	}
 
 	@Test
+	public void kalphitePrepIncludesPoisonProtectionAndGeneralSupplies()
+	{
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, new SlayerGearAdvisorConfig() {});
+		SlayerTaskProfile profile = TaskProfiles.find("Kalphites").orElseThrow();
+		GearStrategy strategy = profile.getStrategies().get(0);
+		List<SmartSupplyAdvisor.SupplyRule> rules = advisor.buildRules(profile, strategy);
+		List<String> categories = rules.stream()
+			.map(SmartSupplyAdvisor.SupplyRule::getCategory)
+			.collect(Collectors.toList());
+		SmartSupplyAdvisor.SupplyRule poison = rules.stream()
+			.filter(rule -> "Poison protection".equals(rule.getCategory()))
+			.findFirst()
+			.orElseThrow();
+
+		assertTrue(categories.contains("Poison protection"));
+		assertTrue(categories.contains("Cannon ammo"));
+		assertTrue(categories.contains("Combat boost"));
+		assertTrue(categories.contains("Prayer"));
+		assertTrue(categories.contains("Food"));
+		assertTrue(categories.contains("Run energy"));
+		assertTrue(poison.getPreferredNames().contains("antidote++"));
+		assertTrue(poison.getPreferredNames().contains("superantipoison"));
+		assertTrue(poison.getPreferredNames().contains("antipoison"));
+		assertEquals(4, SmartSupplyAdvisor.recommendedQuantity("Poison protection", 16));
+		assertEquals("doses", SmartSupplyAdvisor.quantityUnit("Poison protection"));
+
+		SupplyRecommendation missingPoison = advisor.recommend(
+			profile, strategy, 16, null, null).stream()
+			.filter(supply -> "Poison protection".equals(supply.getCategory()))
+			.findFirst()
+			.orElseThrow();
+		assertEquals(SupplyStatus.MISSING, missingPoison.getStatus());
+		assertFalse(missingPoison.isRequired());
+		assertTrue(missingPoison.hasQuantityTarget());
+	}
+
+	@Test
 	public void bastionIsPreferredOverOrdinaryRangingPotion()
 	{
 		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, new SlayerGearAdvisorConfig() {});

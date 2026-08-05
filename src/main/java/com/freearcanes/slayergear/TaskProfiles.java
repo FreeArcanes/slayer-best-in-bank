@@ -15,7 +15,7 @@ final class TaskProfiles
 				"A Slayer helmet or nose peg is required; Salve and Slayer-helmet damage bonuses do not stack.",
 				elementalMagic("Air Magic", "Slayer Tower / Stronghold Slayer Cave",
 					"Air spells exploit the current 50% elemental weakness."),
-				melee("Cannon + melee", "Stronghold Slayer Cave / Deepfin Mine", AttackType.SLASH,
+				meleeMagicDef("Cannon + melee", "Stronghold Slayer Cave / Deepfin Mine", AttackType.SLASH,
 					"Fast owned melee setup while a cannon supplies extra hits.", "slayer helm", "nose peg")),
 			"aberrant spectres", "aberrant spectre");
 
@@ -44,7 +44,7 @@ final class TaskProfiles
 		register(profile("aquanites", "Aquanites",
 				"Open with slash to sever the lure, then use stab against the reduced defence.",
 				"They attack with Magic, so magic defence and Protect from Magic are useful.",
-				melee("Slash switch + stab", "Ynysdail Cavern", AttackType.STAB,
+				meleeMagicDef("Slash switch + stab", "Ynysdail Cavern", AttackType.STAB,
 					"Ranks stab DPS, with slash-capable weapons retained as alternatives.",
 					"fang", "rapier", "hasta", "spear", "scimitar")),
 			"aquanites", "aquanite");
@@ -253,7 +253,7 @@ final class TaskProfiles
 
 		register(profile("kalphites", "Kalphites",
 				"Cannon-assisted melee is the fast normal-task method.",
-				"Bring poison protection for stronger variants.",
+				"Poison protection is suggested for soldiers and guardians; the prep plan also covers boosts, Prayer, food, and travel.",
 				GearStrategy.builder()
 					.name("Cannon + Keris melee")
 					.location("task-only Kalphite Cave")
@@ -401,6 +401,30 @@ final class TaskProfiles
 					.build()),
 			"vampyres", "vampyre", "vyrewatch");
 
+		register(profile("venators", "Venators",
+				"Mortimer-exclusive Vampyrium task. Blisterwood stakes provide the dedicated Ranged method; Sunspear and other current Vampyre weapons are compared for melee.",
+				"Requires 74 Slayer and completion of The Blood Moon Rises. React to the Venator's screech attack; a Sunspear finishing special can sustain the trip.",
+				GearStrategy.builder()
+					.name("Blisterwood stakes Ranged")
+					.location("Vampyrium")
+					.rationale("Uses the purpose-built fast Ranged stake method without confusing this monster with the Venator bow.")
+					.combatStyle(CombatStyle.RANGED)
+					.requiredWeapon("blisterwood stakes|blisterwood stake")
+					.preferredItem("blisterwood stakes")
+					.weaponRule(WeaponRule.VAMPYRE)
+					.build(),
+				GearStrategy.builder()
+					.name("Sunspear Vampyre melee")
+					.location("Vampyrium")
+					.rationale("Prioritizes Sunspear for its Venator finishing special, then compares other valid Vampyre melee weapons.")
+					.combatStyle(CombatStyle.MELEE)
+					.attackType(AttackType.BALANCED)
+					.weaponRule(WeaponRule.VAMPYRE)
+					.preferredItem("sunspear")
+					.preferredItem("hallowed flail")
+					.build()),
+			"venators", "venator");
+
 		register(profile("warped-creatures", "Warped creatures",
 				"Cannon-assisted melee is the efficient unlocked-task route.",
 				"They use melee and ranged in multicombat; use protection and sustain.",
@@ -413,7 +437,7 @@ final class TaskProfiles
 				"They attack with two styles; defensive balance may help.",
 				elementalMagic("Earth Magic", "Ancient Cavern",
 					"Earth spells exploit the current 100% elemental weakness."),
-				melee("Crush melee", "Ancient Cavern", AttackType.CRUSH,
+				meleeMagicDef("Crush melee", "Ancient Cavern", AttackType.CRUSH,
 					"Crush accuracy receives priority")),
 			"waterfiends", "waterfiend");
 
@@ -469,7 +493,7 @@ final class TaskProfiles
 				"Use protection prayers as needed while stacking.",
 				ancients("Catacombs burst / barrage", "Catacombs of Kourend",
 					"Uses the highest Ancient AoE spell your Magic level supports."),
-				melee("Melee fallback", "Fremennik Slayer Dungeon / Catacombs", AttackType.SLASH,
+				meleeMagicDef("Melee fallback", "Fremennik Slayer Dungeon / Catacombs", AttackType.SLASH,
 					"Single-target fallback when Ancient AoE is unavailable.")),
 			"jellies", "jelly");
 
@@ -761,16 +785,21 @@ final class TaskProfiles
 		String name,
 		String location,
 		AttackType attackType,
-		String rationale)
+		String rationale,
+		String... preferredItems)
 	{
-		return GearStrategy.builder()
+		GearStrategy.Builder builder = GearStrategy.builder()
 			.name(name)
 			.location(location)
 			.rationale(rationale)
 			.combatStyle(CombatStyle.MELEE)
 			.attackType(attackType)
-			.magicDefenceWeight(0.28)
-			.build();
+			.magicDefenceWeight(0.28);
+		for (String item : preferredItems)
+		{
+			builder.preferredItem(item);
+		}
+		return builder.build();
 	}
 
 	private static GearStrategy ranged(

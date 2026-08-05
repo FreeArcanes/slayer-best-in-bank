@@ -21,6 +21,8 @@ final class SlayerMasterCatalog
 {
 	private static final Map<String, Set<String>> TASK_TO_MASTERS = new LinkedHashMap<>();
 	private static final Map<String, List<String>> MASTER_TO_TASKS = new LinkedHashMap<>();
+	private static final Map<String, List<MasterAssignment>> MASTER_ASSIGNMENT_DETAILS = new LinkedHashMap<>();
+	private static final Map<String, MasterRules> MASTER_RULES = new LinkedHashMap<>();
 
 	static
 	{
@@ -77,6 +79,48 @@ final class SlayerMasterCatalog
 			"Green dragons", "Hellhounds", "Hill giants", "Ice giants", "Ice warriors", "Jellies", "Lava Dragons", "Lesser demons",
 			"Magic axes", "Mammoths", "Moss giants", "Nechryael", "Pirates", "Revenants", "Rogues", "Scorpions", "Skeletons",
 			"Spiders", "Spiritual creatures", "Zombies");
+
+		// Mortimer launched with Wyrmscraig on 29 July 2026. Unlike ordinary
+		// masters, every offered task has a Mortifier and the player chooses
+		// between two tasks (three after 50 Mortimer completions). Keep the live
+		// level, weight and base-quantity table alongside the ordinary reverse
+		// index so future balancing changes are auditable.
+		detailedMaster("Mortimer",
+			assignment("Crawling hands", 5, 10, 35, 50, false),
+			assignment("Cave crawlers", 10, 10, 35, 50, false),
+			assignment("Banshees", 15, 10, 35, 50, false),
+			assignment("Rockslugs", 20, 10, 35, 50, false),
+			assignment("Cockatrice", 25, 10, 35, 50, false),
+			assignment("Pyrefiends", 30, 10, 35, 50, false),
+			assignment("Infernal mages", 45, 10, 35, 50, false),
+			assignment("Bloodveld", 50, 8, 120, 180, true),
+			assignment("Gryphons", 51, 10, 80, 120, true),
+			assignment("Jellies", 52, 10, 80, 120, false),
+			assignment("Custodian stalkers", 54, 8, 80, 120, true),
+			assignment("Turoth", 55, 10, 80, 120, false),
+			assignment("Warped Creatures", 56, 10, 80, 120, false),
+			assignment("Cave horrors", 58, 10, 80, 120, true),
+			assignment("Aberrant spectres", 60, 10, 80, 120, true),
+			assignment("Basilisks", 60, 10, 40, 60, true),
+			assignment("Wyrms", 62, 10, 80, 120, true),
+			assignment("Dust devils", 65, 8, 120, 180, true),
+			assignment("Kurask", 70, 10, 40, 60, false),
+			assignment("Venators", 74, 10, 120, 180, true),
+			assignment("Gargoyles", 75, 10, 120, 180, true),
+			assignment("Aquanites", 78, 10, 40, 60, true),
+			assignment("Nechryael", 80, 8, 150, 200, true),
+			assignment("Drakes", 84, 10, 40, 60, false),
+			assignment("Abyssal demons", 85, 8, 120, 180, true),
+			assignment("Dark beasts", 90, 10, 40, 60, true),
+			assignment("Araxytes", 92, 8, 120, 180, true),
+			assignment("Smoke devils", 93, 8, 80, 120, false),
+			assignment("Hydras", 95, 10, 150, 200, false));
+		MASTER_RULES.put("Mortimer", new MasterRules(
+			"Wyrmscraig Caverns",
+			"62 Sailing and access to the caverns during Fallen From Grace",
+			70, 100, true, false,
+			2, 3, 50, 15, 25, 40,
+			100, 2, 120, false));
 	}
 
 	private SlayerMasterCatalog() { }
@@ -108,6 +152,24 @@ final class SlayerMasterCatalog
 		}
 	}
 
+	private static MasterAssignment assignment(
+		String task, int slayerLevel, int weight, int minimum, int maximum, boolean extendable)
+	{
+		return new MasterAssignment(task, slayerLevel, weight, minimum, maximum, extendable);
+	}
+
+	private static void detailedMaster(String name, MasterAssignment... assignments)
+	{
+		List<MasterAssignment> details = Collections.unmodifiableList(Arrays.asList(assignments));
+		MASTER_ASSIGNMENT_DETAILS.put(name, details);
+		String[] tasks = new String[assignments.length];
+		for (int i = 0; i < assignments.length; i++)
+		{
+			tasks[i] = assignments[i].getTask();
+		}
+		master(name, tasks);
+	}
+
 	private static void index(String master, String task)
 	{
 		TASK_TO_MASTERS.computeIfAbsent(normalize(task), ignored -> new LinkedHashSet<>()).add(master);
@@ -122,6 +184,17 @@ final class SlayerMasterCatalog
 	static Map<String, List<String>> allAssignments()
 	{
 		return Collections.unmodifiableMap(MASTER_TO_TASKS);
+	}
+
+	static List<MasterAssignment> detailedAssignmentsFor(String masterName)
+	{
+		List<MasterAssignment> assignments = MASTER_ASSIGNMENT_DETAILS.get(masterName);
+		return assignments == null ? Collections.emptyList() : assignments;
+	}
+
+	static MasterRules rulesFor(String masterName)
+	{
+		return MASTER_RULES.get(masterName);
 	}
 
 	static boolean isKnownMasterTask(String taskName)
@@ -139,10 +212,101 @@ final class SlayerMasterCatalog
 		normalized = normalized.replaceAll("[^a-z0-9]+", " ").trim();
 		if ("boss".equals(normalized)) return "bosses";
 		if ("waterfiend".equals(normalized)) return "waterfiends";
+		if ("venator".equals(normalized)) return "venators";
 		if ("cave slime".equals(normalized)) return "cave slimes";
 		if ("monkey".equals(normalized)) return "monkeys";
 		if ("avianise".equals(normalized) || "aviansie".equals(normalized)) return "aviansies";
 		if ("minions of scabaras".equals(normalized)) return "scabarites";
 		return normalized;
+	}
+
+	static final class MasterAssignment
+	{
+		private final String task;
+		private final int slayerLevel;
+		private final int weight;
+		private final int minimum;
+		private final int maximum;
+		private final boolean extendable;
+
+		private MasterAssignment(
+			String task, int slayerLevel, int weight, int minimum, int maximum, boolean extendable)
+		{
+			this.task = task;
+			this.slayerLevel = slayerLevel;
+			this.weight = weight;
+			this.minimum = minimum;
+			this.maximum = maximum;
+			this.extendable = extendable;
+		}
+
+		String getTask() { return task; }
+		int getSlayerLevel() { return slayerLevel; }
+		int getWeight() { return weight; }
+		int getMinimum() { return minimum; }
+		int getMaximum() { return maximum; }
+		boolean isExtendable() { return extendable; }
+	}
+
+	static final class MasterRules
+	{
+		private final String location;
+		private final String accessRequirement;
+		private final int minimumSlayer;
+		private final int minimumCombat;
+		private final boolean slayerCapeBypass;
+		private final boolean awardsBasePoints;
+		private final int initialChoices;
+		private final int unlockedChoices;
+		private final int choicesUnlockAt;
+		private final int clueModifierUnlockAt;
+		private final int superiorUniqueModifierUnlockAt;
+		private final int xpModifierUnlockAt;
+		private final int cancelCost;
+		private final int blockSlots;
+		private final int blockCost;
+		private final boolean turaelResetAllowed;
+
+		private MasterRules(String location, String accessRequirement,
+			int minimumSlayer, int minimumCombat, boolean slayerCapeBypass,
+			boolean awardsBasePoints, int initialChoices, int unlockedChoices,
+			int choicesUnlockAt, int clueModifierUnlockAt,
+			int superiorUniqueModifierUnlockAt, int xpModifierUnlockAt,
+			int cancelCost, int blockSlots, int blockCost, boolean turaelResetAllowed)
+		{
+			this.location = location;
+			this.accessRequirement = accessRequirement;
+			this.minimumSlayer = minimumSlayer;
+			this.minimumCombat = minimumCombat;
+			this.slayerCapeBypass = slayerCapeBypass;
+			this.awardsBasePoints = awardsBasePoints;
+			this.initialChoices = initialChoices;
+			this.unlockedChoices = unlockedChoices;
+			this.choicesUnlockAt = choicesUnlockAt;
+			this.clueModifierUnlockAt = clueModifierUnlockAt;
+			this.superiorUniqueModifierUnlockAt = superiorUniqueModifierUnlockAt;
+			this.xpModifierUnlockAt = xpModifierUnlockAt;
+			this.cancelCost = cancelCost;
+			this.blockSlots = blockSlots;
+			this.blockCost = blockCost;
+			this.turaelResetAllowed = turaelResetAllowed;
+		}
+
+		String getLocation() { return location; }
+		String getAccessRequirement() { return accessRequirement; }
+		int getMinimumSlayer() { return minimumSlayer; }
+		int getMinimumCombat() { return minimumCombat; }
+		boolean isSlayerCapeBypass() { return slayerCapeBypass; }
+		boolean isAwardsBasePoints() { return awardsBasePoints; }
+		int getInitialChoices() { return initialChoices; }
+		int getUnlockedChoices() { return unlockedChoices; }
+		int getChoicesUnlockAt() { return choicesUnlockAt; }
+		int getClueModifierUnlockAt() { return clueModifierUnlockAt; }
+		int getSuperiorUniqueModifierUnlockAt() { return superiorUniqueModifierUnlockAt; }
+		int getXpModifierUnlockAt() { return xpModifierUnlockAt; }
+		int getCancelCost() { return cancelCost; }
+		int getBlockSlots() { return blockSlots; }
+		int getBlockCost() { return blockCost; }
+		boolean isTuraelResetAllowed() { return turaelResetAllowed; }
 	}
 }

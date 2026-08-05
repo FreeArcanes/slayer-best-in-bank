@@ -89,7 +89,8 @@ final class TravelItemAdvisor
 		else if (contains(location,
 			"meiyerditch",
 			"morytania spider nest",
-			"darkmeyer"))
+			"darkmeyer",
+			"vampyrium"))
 		{
 			rules.add(rule(
 				"Drakan's medallion",
