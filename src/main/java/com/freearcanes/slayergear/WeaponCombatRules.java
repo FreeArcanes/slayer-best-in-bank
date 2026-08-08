@@ -170,12 +170,6 @@ final class WeaponCombatRules
 	{
 		String n = NameMatcher.normalize(itemName);
 		Set<TargetTrait> traits = effectiveTraits(strategy);
-		if (traits.contains(TargetTrait.ARAXXOR) && n.contains("noxious halberd"))
-		{
-			// Encounter utility: guaranteed max hits on hatched araxytes and the
-			// halberd's reach avoids mirrorback recoil when used from one tile away.
-			return 175.0;
-		}
 		if (traits.contains(TargetTrait.RAT)
 			&& ((strategy.getCombatStyle() == CombatStyle.MELEE && n.contains("bone mace"))
 			|| (strategy.getCombatStyle() == CombatStyle.RANGED && n.contains("bone shortbow"))
@@ -184,6 +178,47 @@ final class WeaponCombatRules
 			return 250.0;
 		}
 		return 0;
+	}
+
+	/**
+	 * Weapon mechanics that affect sustained damage independently of a monster
+	 * family passive. These are kept separate from target effects so they cannot
+	 * make a weapon bypass an incompatible attack-style requirement.
+	 */
+	static double intrinsicDamageMultiplier(GearStrategy strategy, String itemName)
+	{
+		String n = NameMatcher.normalize(itemName);
+		if (strategy == null || strategy.getCombatStyle() != CombatStyle.MELEE) return 1.0;
+		if (n.contains("soulreaper axe"))
+		{
+			// Sustained Slayer combat can maintain five Soul stacks. Their +30%
+			// Strength-level boost is represented conservatively against the whole
+			// damage proxy rather than as a raw +30% final-damage multiplier.
+			return 1.18;
+		}
+		Set<TargetTrait> traits = effectiveTraits(strategy);
+		if (n.contains("scythe of vitur"))
+		{
+			if (traits.contains(TargetTrait.SCYTHE_THREE_HIT)) return 1.75;
+			if (traits.contains(TargetTrait.SCYTHE_TWO_HIT)) return 1.50;
+		}
+		return 1.0;
+	}
+
+	static String intrinsicReason(GearStrategy strategy, String itemName)
+	{
+		String n = NameMatcher.normalize(itemName);
+		if (n.contains("soulreaper axe") && intrinsicDamageMultiplier(strategy, itemName) > 1.0)
+		{
+			return "Sustained Soul stack value";
+		}
+		if (n.contains("scythe of vitur"))
+		{
+			double multiplier = intrinsicDamageMultiplier(strategy, itemName);
+			if (multiplier == 1.75) return "Three-hit Scythe target";
+			if (multiplier == 1.50) return "Two-hit Scythe target";
+		}
+		return null;
 	}
 
 
@@ -230,7 +265,6 @@ final class WeaponCombatRules
 		String n = NameMatcher.normalize(itemName);
 		Set<TargetTrait> traits = effectiveTraits(strategy);
 		if (traits.contains(TargetTrait.GOLEM) && has(n, "granite hammer", "barronite mace")) return "Golembane target effect";
-		if (traits.contains(TargetTrait.ARAXXOR) && n.contains("noxious halberd")) return "Araxxor minion and reach utility";
 		if (traits.contains(TargetTrait.DEMON)) return "Demonbane target effect";
 		if (traits.contains(TargetTrait.DRAGON)) return "Dragonbane target effect";
 		if (traits.contains(TargetTrait.WILDERNESS) && isWildernessWeapon(n)) return "Wilderness weapon +50% accuracy/damage";

@@ -1045,7 +1045,8 @@ class GearScorer
 
 		if (slot == EquipmentInventorySlot.WEAPON)
 		{
-			double damageMultiplier = WeaponCombatRules.damageMultiplier(strategy, itemName);
+			double damageMultiplier = WeaponCombatRules.damageMultiplier(strategy, itemName)
+				* WeaponCombatRules.intrinsicDamageMultiplier(strategy, itemName);
 			double accuracyMultiplier = WeaponCombatRules.accuracyMultiplier(strategy, itemName);
 
 			/*
@@ -1240,6 +1241,8 @@ class GearScorer
 		{
 			String affinity = WeaponCombatRules.affinityReason(strategy, name);
 			if (affinity != null) r.add(affinity);
+			String intrinsic = WeaponCombatRules.intrinsicReason(strategy, name);
+			if (intrinsic != null) r.add(intrinsic);
 		}
 		else if (slot == EquipmentInventorySlot.AMMO && WeaponCombatRules.isFieryPearlAmmo(strategy, name))
 		{

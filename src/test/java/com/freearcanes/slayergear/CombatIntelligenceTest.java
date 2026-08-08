@@ -36,17 +36,18 @@ public class CombatIntelligenceTest
 	}
 
 	@Test
-	public void araxxorRanksNoxiousHalberdAboveArkanBlade()
+	public void araxxorSeparatesMainCrushWeaponFromNoxiousSwitch()
 	{
-		GearStrategy araxxor = TaskProfiles.find("Araxxor").orElseThrow().getStrategies().get(0);
-		ItemEquipmentStats noxious = weapon(80, 132, 0, 142, 5);
-		ItemEquipmentStats arkan = weapon(55, 70, 0, 64, 4);
+		SlayerTaskProfile profile = TaskProfiles.find("Araxxor").orElseThrow();
+		GearStrategy main = profile.getStrategies().get(0);
+		GearStrategy switchMethod = profile.getStrategies().get(1);
 
-		assertEquals(AttackType.SLASH, araxxor.getAttackType());
-		assertTrue(araxxor.getTargetTraits().contains(TargetTrait.ARAXXOR));
-		assertTrue(GearScorer.scoreStats(araxxor, "Noxious halberd", EquipmentInventorySlot.WEAPON, noxious)
-			> GearScorer.scoreStats(araxxor, "Arkan blade", EquipmentInventorySlot.WEAPON, arkan));
-		assertTrue(WeaponCombatRules.affinityReason(araxxor, "Noxious halberd").contains("Araxxor"));
+		assertEquals(AttackType.CRUSH, main.getAttackType());
+		assertTrue(main.getTargetTraits().contains(TargetTrait.ARAXXOR));
+		assertTrue(main.getTargetTraits().contains(TargetTrait.SCYTHE_THREE_HIT));
+		assertEquals(AttackType.SLASH, switchMethod.getAttackType());
+		assertEquals("noxious halberd", switchMethod.getRequiredWeapon());
+		assertFalse(WeaponCombatRules.supportsAttackType("Noxious halberd", main.getAttackType()));
 	}
 
 	@Test
@@ -74,8 +75,11 @@ public class CombatIntelligenceTest
 
 		assertTrue(profile.getStrategies().stream().anyMatch(strategy ->
 			NameMatcher.normalize(strategy.getName()).contains("araxxor")
-				&& strategy.getAttackType() == AttackType.SLASH
+				&& strategy.getAttackType() == AttackType.CRUSH
 				&& strategy.getTargetTraits().contains(TargetTrait.ARAXXOR)));
+		assertTrue(profile.getStrategies().stream().anyMatch(strategy ->
+			"noxious halberd".equals(strategy.getRequiredWeapon())
+				&& strategy.getAttackType() == AttackType.SLASH));
 		assertTrue(profile.getStrategies().stream().anyMatch(strategy ->
 			NameMatcher.normalize(strategy.getName()).contains("melee fallback")
 				&& strategy.getAttackType() == AttackType.CRUSH));

@@ -276,10 +276,17 @@ class SmartSupplyAdvisor
 				"Magic boost", "saturated heart", "imbued heart", "forgotten brew", "ancient brew", "magic potion"));
 		}
 
-		if (contains(key, "araxytes"))
+		if (contains(key, "araxytes", "araxxor"))
 		{
 			rules.add(0, rule("Venom protection", "Araxytes can inflict venom", true,
 				"Anti-venom(4)", "extended anti-venom+", "anti-venom+", "anti-venom"));
+		}
+		if (contains(key, "araxxor") && strategy != null
+			&& NameMatcher.normalize(strategy.getName()).contains("crush melee"))
+		{
+			rules.add(suggestedRule("Araxyte switch",
+				"Noxious halberd is a safe hatched-araxyte and mirrorback switch, not the default main weapon",
+				"Noxious halberd", "noxious halberd"));
 		}
 		if (contains(key, "kalphites", "cave-crawlers", "cave-slimes", "lizardmen"))
 		{

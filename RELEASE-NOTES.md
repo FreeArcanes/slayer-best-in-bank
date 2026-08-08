@@ -35,8 +35,17 @@ bank-layout, customization, and support improvements into one reviewable update.
 - Tightened melee attack-style classification so weapons such as the Arkan
   blade, rapiers, halberds, whips, staves, and sickles cannot be ranked on
   combat styles they cannot actually use.
-- Araxyte assignments now expose a separate Araxxor Slash method, including the
-  Noxious halberd's guaranteed minion hits and safe mirrorback reach.
+- Audited every curated task and boss profile against its current OSRS Wiki
+  strategy page, correcting mismatched styles and separating distinct methods.
+- Aquanites now compare Soulreaper axe and multi-hit Scythe value against the
+  reduced-defence stab route instead of forcing every weapon through Stab.
+- Araxyte assignments now rank Crush for the Araxxor main weapon and expose the
+  Noxious halberd separately as a hatched-araxyte and mirrorback switch.
+- Scythe scoring now accounts for two- and three-hit target sizes, while
+  Soulreaper axe scoring includes conservative sustained Soul-stack value.
+- Corrected Wiki-aligned method details for Gryphons, Kalphites, Trolls, Warped
+  creatures, Wyrms, Cerberus, Duke Sucellus, Sarachnis, Vardorvis, Abyssal Sire,
+  and Kalphite Queen.
 - Duke Sucellus now applies his reduced Demonbane effectiveness rather than the
   unrestricted demon multiplier.
 - Curated weapon names are now true close tie-breakers instead of large bonuses
