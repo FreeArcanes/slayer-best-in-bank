@@ -71,8 +71,9 @@ public class GearScorerTest
 	{
 		GearStrategy strategy = TaskProfiles.find("Bloodveld")
 			.orElseThrow()
-			.getStrategies()
-			.get(1);
+			.getStrategies().stream()
+			.filter(candidate -> NameMatcher.normalize(candidate.getName()).contains("no-prayer"))
+			.findFirst().orElseThrow();
 		ItemEquipmentStats lowMagicDefence = ItemEquipmentStats.builder()
 			.slot(EquipmentInventorySlot.BODY.getSlotIdx())
 			.dmagic(0)
@@ -88,6 +89,165 @@ public class GearScorerTest
 			strategy, "Dragonhide body", EquipmentInventorySlot.BODY, highMagicDefence);
 
 		assertTrue(high > low);
+	}
+
+	@Test
+	public void bloodveldMeleeCannotMixSlayerHelmWithStandaloneVoidBottoms()
+	{
+		GearStrategy strategy = TaskProfiles.find("Bloodveld")
+			.orElseThrow()
+			.getStrategies().stream()
+			.filter(candidate -> "cannon + melee".equals(NameMatcher.normalize(candidate.getName())))
+			.findFirst().orElseThrow();
+		ItemEquipmentStats eliteVoidStats = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.LEGS.getSlotIdx())
+			.dstab(30)
+			.dslash(30)
+			.dcrush(30)
+			.dmagic(30)
+			.drange(30)
+			.prayer(3)
+			.build();
+		ItemEquipmentStats bandosStats = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.LEGS.getSlotIdx())
+			.str(2)
+			.dstab(71)
+			.dslash(63)
+			.dcrush(66)
+			.dmagic(-4)
+			.drange(93)
+			.prayer(1)
+			.build();
+
+		// The protection-prayer method must rank damage gear ahead of isolated
+		// defensive pieces even before the whole-set eligibility check.
+		assertTrue(GearScorer.scoreStats(strategy, "Bandos tassets",
+			EquipmentInventorySlot.LEGS, bandosStats)
+			> GearScorer.scoreStats(strategy, "Elite void robe",
+				EquipmentInventorySlot.LEGS, eliteVoidStats));
+
+		GearScorer.BankEquipment eliteVoid = new GearScorer.BankEquipment(
+			1, 1, "Elite void robe", EquipmentInventorySlot.LEGS,
+			eliteVoidStats, true, false);
+		GearScorer.BankEquipment bandos = new GearScorer.BankEquipment(
+			2, 2, "Bandos tassets", EquipmentInventorySlot.LEGS,
+			bandosStats, true, false);
+		assertFalse("Standalone Void pieces cannot form a valid Slayer loadout",
+			GearScorer.allowed(eliteVoid, strategy));
+		assertTrue(GearScorer.allowed(bandos, strategy));
+
+		ItemEquipmentStats weaponStats = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.WEAPON.getSlotIdx())
+			.aslash(63)
+			.str(70)
+			.aspeed(4)
+			.build();
+		GearScorer.BankEquipment emberlight = new GearScorer.BankEquipment(
+			3, 3, "Emberlight", EquipmentInventorySlot.WEAPON,
+			weaponStats, true, false);
+		GearScorer scorer = new GearScorer(null, null);
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			scorer.buildCandidates(
+				Arrays.asList(emberlight, eliteVoid, bandos),
+				strategy,
+				Collections.emptyList(),
+				GearPriority.BALANCED,
+				Collections.emptySet(),
+				Collections.emptySet(),
+				false,
+				0);
+		List<Map<EquipmentInventorySlot, GearRecommendation>> loadouts =
+			scorer.buildCoherentLoadouts(
+				1, candidates, strategy, Collections.emptyList(),
+				Collections.emptySet(), false, 0);
+		assertEquals("Bandos tassets",
+			loadouts.get(0).get(EquipmentInventorySlot.LEGS).getItemName());
+	}
+
+	@Test
+	public void noSlayerStrategyCanRecommendAnIncompleteVoidSetPiece()
+	{
+		String[] voidPieces = {
+			"Void knight top", "Void knight robe", "Void knight gloves",
+			"Elite void top", "Elite void robe", "Void melee helm",
+			"Void ranger helm", "Void mage helm"
+		};
+		for (SlayerTaskProfile profile : new java.util.HashSet<>(TaskProfiles.catalogSnapshot().values()))
+		{
+			for (GearStrategy strategy : profile.getStrategies())
+			{
+				for (String name : voidPieces)
+				{
+					ItemEquipmentStats stats = ItemEquipmentStats.builder()
+						.slot(EquipmentInventorySlot.BODY.getSlotIdx())
+						.build();
+					GearScorer.BankEquipment item = new GearScorer.BankEquipment(
+						1, 1, name, EquipmentInventorySlot.BODY, stats, true, false);
+					assertFalse(profile.getKey() + " / " + strategy.getName() + " allowed " + name,
+						GearScorer.allowed(item, strategy));
+				}
+			}
+		}
+	}
+
+	@Test
+	public void completeLoadoutsApplyWeaponArmourSynergiesInsteadOfRawSlotStats()
+	{
+		GearScorer scorer = new GearScorer(null, null);
+
+		GearStrategy ranged = GearStrategy.builder()
+			.name("Ranged")
+			.combatStyle(CombatStyle.RANGED)
+			.build();
+		GearScorer.BankEquipment bowfa = equipment(
+			10, "Bow of faerdhinen (c)", EquipmentInventorySlot.WEAPON,
+			ItemEquipmentStats.builder().slot(EquipmentInventorySlot.WEAPON.getSlotIdx())
+				.arange(128).rstr(106).aspeed(4).isTwoHanded(true).build());
+		GearScorer.BankEquipment strongerOnPaperBow = equipment(
+			13, "Generic strong bow", EquipmentInventorySlot.WEAPON,
+			ItemEquipmentStats.builder().slot(EquipmentInventorySlot.WEAPON.getSlotIdx())
+				.arange(135).rstr(108).aspeed(4).isTwoHanded(true).build());
+		GearScorer.BankEquipment crystalBody = equipment(
+			11, "Crystal body", EquipmentInventorySlot.BODY,
+			ItemEquipmentStats.builder().slot(EquipmentInventorySlot.BODY.getSlotIdx())
+				.arange(31).dstab(46).dslash(38).dcrush(48).dmagic(44).drange(68).prayer(3).build());
+		GearScorer.BankEquipment masoriBody = equipment(
+			12, "Masori body (f)", EquipmentInventorySlot.BODY,
+			ItemEquipmentStats.builder().slot(EquipmentInventorySlot.BODY.getSlotIdx())
+				.arange(43).rstr(4).dstab(80).dslash(72).dcrush(66).dmagic(75).drange(68).prayer(1).build());
+		List<GearScorer.BankEquipment> crystalCandidates =
+			Arrays.asList(bowfa, strongerOnPaperBow, crystalBody, masoriBody);
+		assertEquals("Bow of faerdhinen (c)", bestItem(
+			scorer, ranged, crystalCandidates, EquipmentInventorySlot.WEAPON));
+		assertEquals("Crystal body", bestItem(
+			scorer, ranged, crystalCandidates, EquipmentInventorySlot.BODY));
+
+		GearScorer.BankEquipment atlatl = equipment(
+			20, "Eclipse atlatl", EquipmentInventorySlot.WEAPON,
+			ItemEquipmentStats.builder().slot(EquipmentInventorySlot.WEAPON.getSlotIdx())
+				.arange(87).str(40).aspeed(3).isTwoHanded(true).build());
+		GearScorer.BankEquipment bandosBody = equipment(
+			21, "Bandos chestplate", EquipmentInventorySlot.BODY,
+			ItemEquipmentStats.builder().slot(EquipmentInventorySlot.BODY.getSlotIdx())
+				.str(4).dstab(98).dslash(93).dcrush(105).dmagic(-6).drange(133).prayer(1).build());
+		assertEquals("Bandos chestplate", bestItem(scorer, ranged,
+			Arrays.asList(atlatl, bandosBody, masoriBody), EquipmentInventorySlot.BODY));
+
+		GearStrategy crush = GearStrategy.builder()
+			.name("Crush")
+			.combatStyle(CombatStyle.MELEE)
+			.attackType(AttackType.CRUSH)
+			.build();
+		GearScorer.BankEquipment inquisitorMace = equipment(
+			30, "Inquisitor's mace", EquipmentInventorySlot.WEAPON,
+			ItemEquipmentStats.builder().slot(EquipmentInventorySlot.WEAPON.getSlotIdx())
+				.acrush(95).str(89).aspeed(4).build());
+		GearScorer.BankEquipment inquisitorBody = equipment(
+			31, "Inquisitor's hauberk", EquipmentInventorySlot.BODY,
+			ItemEquipmentStats.builder().slot(EquipmentInventorySlot.BODY.getSlotIdx())
+				.str(4).dstab(52).dslash(32).dcrush(63).dmagic(-3).drange(52).prayer(1).build());
+		assertEquals("Inquisitor's hauberk", bestItem(scorer, crush,
+			Arrays.asList(inquisitorMace, inquisitorBody, bandosBody), EquipmentInventorySlot.BODY));
 	}
 
 	@Test
@@ -993,6 +1153,39 @@ public class GearScorerTest
 		item.score = score;
 		item.pinned = pinned;
 		return item;
+	}
+
+	private static GearScorer.BankEquipment equipment(
+		int itemId,
+		String name,
+		EquipmentInventorySlot slot,
+		ItemEquipmentStats stats)
+	{
+		return new GearScorer.BankEquipment(
+			itemId, itemId, name, slot, stats, true, false);
+	}
+
+	private static String bestItem(
+		GearScorer scorer,
+		GearStrategy strategy,
+		List<GearScorer.BankEquipment> equipment,
+		EquipmentInventorySlot slot)
+	{
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			scorer.buildCandidates(
+				equipment,
+				strategy,
+				Collections.emptyList(),
+				GearPriority.BALANCED,
+				Collections.emptySet(),
+				Collections.emptySet(),
+				false,
+				0);
+		List<Map<EquipmentInventorySlot, GearRecommendation>> loadouts =
+			scorer.buildCoherentLoadouts(
+				1, candidates, strategy, Collections.emptyList(),
+				Collections.emptySet(), false, 0);
+		return loadouts.get(0).get(slot).getItemName();
 	}
 
 }

@@ -286,7 +286,7 @@ class GearScorer
 		return eligible.isEmpty() ? profile.getStrategies().get(0) : eligible.get(0);
 	}
 
-	private Map<EquipmentInventorySlot, List<BankEquipment>> buildCandidates(List<BankEquipment> equipment,
+	Map<EquipmentInventorySlot, List<BankEquipment>> buildCandidates(List<BankEquipment> equipment,
 		GearStrategy strategy, List<GearRequirement> requirements, GearPriority gearPriority, Set<String> pinned, Set<String> excluded,
 		boolean lowRiskMode, int riskCapGp)
 	{
@@ -341,27 +341,34 @@ class GearScorer
 		}
 		else
 		{
-			for (EquipmentInventorySlot slot : SUPPORTED_SLOTS)
-			{
-				List<BankEquipment> list = candidates.getOrDefault(slot, Collections.emptyList());
-				if (rank <= list.size())
-				{
-					selected.put(slot, recommendation(list.get(rank - 1), rank, strategy));
-				}
-			}
-
 			// Compare the complete main-hand/off-hand package. Selecting each slot
 			// independently makes every two-handed weapon forfeit the value of the
 			// independently selected shield after the ranking decision has already
 			// been made.
 			Map<EquipmentInventorySlot, BankEquipment> weaponPair =
-				selectWeaponPair(rank, candidates);
+				selectWeaponPair(rank, candidates, strategy);
 			for (EquipmentInventorySlot slot : List.of(
 				EquipmentInventorySlot.WEAPON, EquipmentInventorySlot.SHIELD))
 			{
 				BankEquipment item = weaponPair.get(slot);
 				if (item == null) selected.remove(slot);
 				else selected.put(slot, recommendation(item, rank, strategy));
+			}
+
+			BankEquipment selectedWeapon = weaponPair.get(EquipmentInventorySlot.WEAPON);
+			String selectedWeaponName = selectedWeapon == null ? "" : selectedWeapon.name;
+			for (EquipmentInventorySlot slot : SUPPORTED_SLOTS)
+			{
+				if (slot == EquipmentInventorySlot.WEAPON || slot == EquipmentInventorySlot.SHIELD) continue;
+				List<BankEquipment> list = contextualCandidates(
+					candidates.getOrDefault(slot, Collections.emptyList()),
+					strategy,
+					selectedWeaponName);
+				if (rank <= list.size())
+				{
+					selected.put(slot, contextualRecommendation(
+						list.get(rank - 1), rank, strategy, selectedWeaponName));
+				}
 			}
 		}
 
@@ -408,6 +415,14 @@ class GearScorer
 		int rank,
 		Map<EquipmentInventorySlot, List<BankEquipment>> candidates)
 	{
+		return selectWeaponPair(rank, candidates, null);
+	}
+
+	private static Map<EquipmentInventorySlot, BankEquipment> selectWeaponPair(
+		int rank,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy)
+	{
 		List<BankEquipment> weapons = preferredPinnedChoices(rankedChoices(
 			candidates.getOrDefault(EquipmentInventorySlot.WEAPON, Collections.emptyList()),
 			rank));
@@ -423,6 +438,10 @@ class GearScorer
 				? null
 				: shields.get(0);
 			double pairScore = weapon.score + (shield == null ? 0 : shield.score);
+			if (strategy != null)
+			{
+				pairScore += contextualSupportingScore(rank, candidates, strategy, weapon);
+			}
 			if (pairScore > bestScore
 				|| (pairScore == bestScore
 					&& (bestWeapon == null || weapon.score > bestWeapon.score)))
@@ -438,6 +457,153 @@ class GearScorer
 		if (bestWeapon != null) result.put(EquipmentInventorySlot.WEAPON, bestWeapon);
 		if (bestShield != null) result.put(EquipmentInventorySlot.SHIELD, bestShield);
 		return result;
+	}
+
+	private static double contextualSupportingScore(
+		int rank,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		BankEquipment weapon)
+	{
+		double score = 0;
+		String weaponName = NameMatcher.normalize(weapon.name);
+		for (EquipmentInventorySlot slot : SUPPORTED_SLOTS)
+		{
+			if (slot == EquipmentInventorySlot.WEAPON || slot == EquipmentInventorySlot.SHIELD) continue;
+			List<BankEquipment> choices = candidates.getOrDefault(slot, Collections.emptyList());
+			if (slot == EquipmentInventorySlot.AMMO && strategy.getCombatStyle() == CombatStyle.RANGED)
+			{
+				if (usesNoAmmoSlot(weaponName)) continue;
+				choices = compatibleAmmo(choices, weaponName);
+			}
+			choices = contextualCandidates(choices, strategy, weaponName);
+			if (rank <= choices.size())
+			{
+				BankEquipment item = choices.get(rank - 1);
+				score += contextualScore(
+					strategy, weaponName, item.name, item.slot, item.stats, item.score);
+			}
+		}
+		return score;
+	}
+
+	private static List<BankEquipment> contextualCandidates(
+		List<BankEquipment> candidates,
+		GearStrategy strategy,
+		String selectedWeaponName)
+	{
+		List<BankEquipment> ranked = new ArrayList<>(candidates);
+		ranked.sort(Comparator
+			.comparingDouble((BankEquipment item) -> contextualScore(
+				strategy, selectedWeaponName, item.name, item.slot, item.stats, item.score))
+			.reversed()
+			.thenComparing(item -> item.name));
+		return ranked;
+	}
+
+	static double contextualScore(
+		GearStrategy strategy,
+		String selectedWeaponName,
+		String itemName,
+		EquipmentInventorySlot slot,
+		ItemEquipmentStats stats,
+		double baseScore)
+	{
+		String weapon = NameMatcher.normalize(selectedWeaponName);
+		String item = NameMatcher.normalize(itemName);
+		double score = baseScore;
+
+		if (strategy.getCombatStyle() == CombatStyle.RANGED
+			&& weapon.contains("eclipse atlatl")
+			&& slot != EquipmentInventorySlot.WEAPON)
+		{
+			// Atlatl armour damage comes from Melee Strength, not Ranged Strength.
+			score += (stats.getStr() - stats.getRstr()) * 5.0;
+		}
+
+		if (isCrystalBow(weapon) && isCrystalArmour(item))
+		{
+			double accuracyPercent;
+			double damagePercent;
+			if (item.contains("crystal body"))
+			{
+				accuracyPercent = 0.15;
+				damagePercent = 0.075;
+			}
+			else if (item.contains("crystal legs"))
+			{
+				accuracyPercent = 0.10;
+				damagePercent = 0.05;
+			}
+			else
+			{
+				accuracyPercent = 0.05;
+				damagePercent = 0.025;
+			}
+			score += WEAPON_SHARED_ACCURACY_BASE * accuracyPercent
+				+ WEAPON_SHARED_DAMAGE_BASE * damagePercent;
+		}
+
+		if (strategy.getCombatStyle() == CombatStyle.MELEE
+			&& strategy.getAttackType() == AttackType.CRUSH
+			&& WeaponCombatRules.supportsAttackType(weapon, AttackType.CRUSH)
+			&& isInquisitorArmour(item))
+		{
+			double percent = weapon.contains("inquisitor's mace") ? 0.025 : 0.005;
+			score += (WEAPON_SHARED_ACCURACY_BASE + WEAPON_SHARED_DAMAGE_BASE) * percent;
+		}
+
+		return score;
+	}
+
+	private static String contextualReason(
+		GearStrategy strategy,
+		String selectedWeaponName,
+		String itemName,
+		EquipmentInventorySlot slot,
+		ItemEquipmentStats stats)
+	{
+		String weapon = NameMatcher.normalize(selectedWeaponName);
+		String item = NameMatcher.normalize(itemName);
+		if (strategy.getCombatStyle() == CombatStyle.RANGED
+			&& weapon.contains("eclipse atlatl")
+			&& slot != EquipmentInventorySlot.WEAPON
+			&& stats.getStr() != stats.getRstr())
+		{
+			return "Eclipse atlatl uses Melee Strength";
+		}
+		if (isCrystalBow(weapon) && isCrystalArmour(item))
+		{
+			return "Crystal-bow armour accuracy/damage effect";
+		}
+		if (strategy.getCombatStyle() == CombatStyle.MELEE
+			&& strategy.getAttackType() == AttackType.CRUSH
+			&& WeaponCombatRules.supportsAttackType(weapon, AttackType.CRUSH)
+			&& isInquisitorArmour(item))
+		{
+			return "Inquisitor Crush accuracy/damage effect";
+		}
+		return null;
+	}
+
+	private static boolean isCrystalBow(String normalizedName)
+	{
+		return normalizedName.contains("bow of faerdhinen")
+			|| normalizedName.contains("crystal bow");
+	}
+
+	private static boolean isCrystalArmour(String normalizedName)
+	{
+		return normalizedName.contains("crystal helm")
+			|| normalizedName.contains("crystal body")
+			|| normalizedName.contains("crystal legs");
+	}
+
+	private static boolean isInquisitorArmour(String normalizedName)
+	{
+		return normalizedName.contains("inquisitor's great helm")
+			|| normalizedName.contains("inquisitor's hauberk")
+			|| normalizedName.contains("inquisitor's plateskirt");
 	}
 
 	List<Map<EquipmentInventorySlot, GearRecommendation>> buildCoherentLoadouts(
@@ -743,16 +909,48 @@ class GearScorer
 			}
 			else
 			{
-				slotChoices = rankedChoices(candidates.getOrDefault(slot, Collections.emptyList()), rank);
+				List<BankEquipment> contextual = contextualCandidates(
+					candidates.getOrDefault(slot, Collections.emptyList()),
+					strategy,
+					weapon == null ? "" : weapon.name);
+				slotChoices = rankedChoices(contextual, rank);
 			}
 
 			slotChoices = preferredPinnedChoices(slotChoices);
+			slotChoices = withContextScores(
+				slotChoices, strategy, weapon == null ? "" : weapon.name);
 			if (!slotChoices.isEmpty())
 			{
 				choices.put(slot, slotChoices);
 			}
 		}
 		return chooseWithinRiskBudget(choices, riskCapGp);
+	}
+
+	private static List<BankEquipment> withContextScores(
+		List<BankEquipment> choices,
+		GearStrategy strategy,
+		String selectedWeaponName)
+	{
+		List<BankEquipment> adjusted = new ArrayList<>();
+		for (BankEquipment item : choices)
+		{
+			double contextualScore = contextualScore(
+				strategy, selectedWeaponName, item.name, item.slot, item.stats, item.score);
+			if (contextualScore == item.score)
+			{
+				adjusted.add(item);
+				continue;
+			}
+			BankEquipment copy = new BankEquipment(
+				item.itemId, item.canonicalItemId, item.name, item.slot,
+				item.stats, item.banked, item.packed);
+			copy.score = contextualScore;
+			copy.guidePrice = item.guidePrice;
+			copy.pinned = item.pinned;
+			adjusted.add(copy);
+		}
+		return adjusted;
 	}
 
 	private static RiskPlan chooseWithinRiskBudget(
@@ -880,9 +1078,40 @@ class GearScorer
 
 	private GearRecommendation recommendation(BankEquipment i, int rank, GearStrategy strategy)
 	{
-		return GearRecommendation.builder().itemId(i.itemId).canonicalItemId(i.canonicalItemId)
-			.itemName(i.name).slot(i.slot).score(i.score).rank(rank).twoHanded(i.stats.isTwoHanded())
-			.reason(explain(strategy, i.name, i.slot, i.stats)).packed(i.packed).banked(i.banked).build();
+		return recommendation(i, rank, strategy, i.score, null);
+	}
+
+	private GearRecommendation contextualRecommendation(
+		BankEquipment item,
+		int rank,
+		GearStrategy strategy,
+		String selectedWeaponName)
+	{
+		double adjustedScore = contextualScore(
+			strategy, selectedWeaponName, item.name, item.slot, item.stats, item.score);
+		return recommendation(
+			item,
+			rank,
+			strategy,
+			adjustedScore,
+			contextualReason(strategy, selectedWeaponName, item.name, item.slot, item.stats));
+	}
+
+	private GearRecommendation recommendation(
+		BankEquipment item,
+		int rank,
+		GearStrategy strategy,
+		double score,
+		String contextualReason)
+	{
+		String reason = explain(strategy, item.name, item.slot, item.stats);
+		if (contextualReason != null && !contextualReason.isEmpty())
+		{
+			reason = contextualReason + ", " + reason;
+		}
+		return GearRecommendation.builder().itemId(item.itemId).canonicalItemId(item.canonicalItemId)
+			.itemName(item.name).slot(item.slot).score(score).rank(rank).twoHanded(item.stats.isTwoHanded())
+			.reason(reason).packed(item.packed).banked(item.banked).build();
 	}
 
 	private ReadinessReport readiness(Map<EquipmentInventorySlot, GearRecommendation> selected,
@@ -1034,7 +1263,11 @@ class GearScorer
 				accuracy = stats.getAmagic() * .28;
 				break;
 			case RANGED:
-				damage = stats.getRstr() * 5.0;
+				// Eclipse atlatl ranged damage scales from Melee Strength.
+				damage = (slot == EquipmentInventorySlot.WEAPON
+					&& normalizedItemName.contains("eclipse atlatl")
+					? stats.getStr()
+					: stats.getRstr()) * 5.0;
 				accuracy = stats.getArange() * .32;
 				break;
 			default:
@@ -1185,8 +1418,17 @@ class GearScorer
 
 	static boolean allowed(BankEquipment item, GearStrategy strategy)
 	{
-		if (item.slot != EquipmentInventorySlot.WEAPON) return true;
 		String n = NameMatcher.normalize(item.name);
+		/*
+		 * Void's offensive bonuses only exist with its top, robe, gloves and a
+		 * combat helm worn together. Slayer loadouts prioritize the stronger
+		 * on-task Slayer helm/black-mask effect, so ranking an isolated Void
+		 * piece by defence can produce impossible hybrids (for example Slayer
+		 * helm + Bandos chestplate + Elite void robe). Until whole Void sets are
+		 * modeled as one package, do not present individual pieces as upgrades.
+		 */
+		if (isVoidSetPiece(n)) return false;
+		if (item.slot != EquipmentInventorySlot.WEAPON) return true;
 		if (!WeaponCombatRules.usableOnTarget(strategy, n)) return false;
 		if (!matchesCombatStyle(strategy.getCombatStyle(), n, item.stats)) return false;
 
@@ -1212,6 +1454,18 @@ class GearScorer
 				|| n.contains("darklight") || n.contains("arclight") || n.contains("emberlight");
 		}
 		return true;
+	}
+
+	private static boolean isVoidSetPiece(String normalizedName)
+	{
+		return normalizedName.contains("void knight top")
+			|| normalizedName.contains("void knight robe")
+			|| normalizedName.contains("void knight gloves")
+			|| normalizedName.contains("elite void top")
+			|| normalizedName.contains("elite void robe")
+			|| normalizedName.contains("void melee helm")
+			|| normalizedName.contains("void ranger helm")
+			|| normalizedName.contains("void mage helm");
 	}
 
 	private static boolean matchesCombatStyle(CombatStyle style,String n,ItemEquipmentStats s)

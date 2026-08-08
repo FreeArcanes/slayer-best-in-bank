@@ -314,6 +314,34 @@ public class CombatIntelligenceTest
 	}
 
 	@Test
+	public void protectionPrayerAndNoPrayerMethodsNeverShareOneDefenceScore()
+	{
+		for (String task : new String[] {"Aberrant spectres", "Bloodveld", "Suqahs", "Jellies"})
+		{
+			SlayerTaskProfile profile = TaskProfiles.find(task).orElseThrow();
+			GearStrategy noPrayer = profile.getStrategies().stream()
+				.filter(strategy -> NameMatcher.normalize(strategy.getName()).contains("no-prayer"))
+				.findFirst().orElseThrow();
+			assertTrue(task + " no-prayer method must value magic defence",
+				noPrayer.getMagicDefenceWeight() > 0);
+
+			for (GearStrategy strategy : profile.getStrategies())
+			{
+				if (strategy == noPrayer) continue;
+				assertEquals(task + " protected/offensive method leaked defensive weighting",
+					0.0, strategy.getMagicDefenceWeight(), 0.0001);
+			}
+		}
+
+		GearStrategy waterfiend = TaskProfiles.find("Waterfiends").orElseThrow()
+			.getStrategies().stream()
+			.filter(strategy -> strategy.getCombatStyle() == CombatStyle.MELEE)
+			.findFirst().orElseThrow();
+		assertTrue("Waterfiends use two attack styles against Magic defence",
+			waterfiend.getMagicDefenceWeight() > 0);
+	}
+
+	@Test
 	public void kerisRankingIncludesRareTripleDamageProcAsExpectedValue()
 	{
 		GearStrategy kalphite = TaskProfiles.find("Kalphites").orElseThrow().getStrategies().get(0);

@@ -12,11 +12,13 @@ final class TaskProfiles
 	{
 		register(profile("aberrant-spectres", "Aberrant spectres",
 				"Air Magic exploits their elemental weakness; cannon-assisted combat remains a fast route in cannonable locations.",
-				"A Slayer helmet or nose peg is required; Salve and Slayer-helmet damage bonuses do not stack.",
+				"A Slayer helmet or nose peg is required. Protect from Magic supports the offensive method; a separate no-prayer method favors magic defence.",
 				elementalMagic("Air Magic", "Slayer Tower / Stronghold Slayer Cave",
 					"Air spells exploit the current 50% elemental weakness."),
-				meleeMagicDef("Cannon + melee", "Stronghold Slayer Cave / Deepfin Mine", AttackType.SLASH,
-					"Fast owned melee setup while a cannon supplies extra hits.", "slayer helm", "nose peg")),
+				melee("Cannon + melee", "Stronghold Slayer Cave / Deepfin Mine", AttackType.SLASH,
+					"With Protect from Magic active, ranks offensive melee gear while a cannon supplies extra hits.", "slayer helm", "nose peg"),
+				meleeMagicDef("No-prayer defensive melee", "Slayer Tower / Deepfin Mine", AttackType.SLASH,
+					"Without Protect from Magic, trades some damage for magic defence.", "slayer helm", "nose peg")),
 			"aberrant spectres", "aberrant spectre");
 
 		register(profile("abyssal-demons", "Abyssal demons",
@@ -128,11 +130,13 @@ final class TaskProfiles
 
 		register(profile("bloodveld", "Bloodveld",
 				"Cannon and Venator bow at mutated Bloodvelds is prioritized for XP.",
-				"Protect from Melee prevents damage; otherwise favor magic defence.",
+				"Protect from Melee prevents their magic-based melee damage. A separate no-prayer method favors magic defence.",
 				venator("Cannon + Venator", "Meiyerditch Laboratories / Iorwerth Dungeon",
 					"Current top multi-target XP method when a Venator bow is owned."),
-				meleeMagicDef("Cannon + melee", "Meiyerditch Laboratories", AttackType.SLASH,
-					"Strong fallback using melee damage and magic-defence armour")),
+				melee("Cannon + melee", "Meiyerditch Laboratories", AttackType.SLASH,
+					"Protect from Melee nullifies incoming damage, so this method ranks offensive melee gear."),
+				meleeMagicDef("No-prayer defensive melee", "Stronghold Slayer Cave / Slayer Tower", AttackType.SLASH,
+					"When not using Protect from Melee, trades some damage for the Wiki-recommended magic defence.")),
 			"bloodveld", "bloodvelds");
 
 		register(profile("blue-dragons", "Blue dragons",
@@ -390,9 +394,11 @@ final class TaskProfiles
 
 		register(profile("suqahs", "Suqahs",
 				"Cannon-assisted melee is the fast-task setup.",
-				"Use Protect from Magic and solid melee defence.",
-				meleeMagicDef("Cannon + melee", "Lunar Isle", AttackType.SLASH,
-					"Balances melee damage with magic defence")),
+				"Use Protect from Magic and solid melee defence. A separate no-prayer method values magic defence.",
+				melee("Cannon + melee", "Lunar Isle", AttackType.SLASH,
+					"Protect from Magic makes offensive melee gear the priority while the cannon supplies extra hits."),
+				meleeMagicDef("No-prayer defensive melee", "Lunar Isle", AttackType.SLASH,
+					"Without Protect from Magic, trades some damage for magic defence.")),
 			"suqahs", "suqah");
 
 		register(profile("trolls", "Trolls",
@@ -538,11 +544,13 @@ final class TaskProfiles
 
 		register(profile("jellies", "Jellies",
 				"Catacombs jellies are excellent Ancient Magicks multi-target tasks when available.",
-				"Use protection prayers as needed while stacking.",
+				"Protect from Melee mitigates all damage while stacking. A separate no-prayer melee method values magic defence.",
 				ancients("Catacombs burst / barrage", "Catacombs of Kourend",
 					"Uses the highest Ancient AoE spell your Magic level supports."),
-				meleeMagicDef("Melee fallback", "Fremennik Slayer Dungeon / Catacombs", AttackType.SLASH,
-					"Single-target fallback when Ancient AoE is unavailable.")),
+				melee("Protected melee fallback", "Fremennik Slayer Dungeon / Catacombs", AttackType.SLASH,
+					"With Protect from Melee active, ranks offensive gear for the single-target fallback."),
+				meleeMagicDef("No-prayer defensive melee", "Fremennik Slayer Dungeon", AttackType.SLASH,
+					"Without Protect from Melee, trades some damage for magic defence.")),
 			"jellies", "jelly");
 
 		register(profile("killerwatts", "Killerwatts",
