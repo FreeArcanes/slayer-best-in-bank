@@ -1,6 +1,8 @@
 package com.freearcanes.slayergear;
 
 import java.util.List;
+import net.runelite.api.EquipmentInventorySlot;
+import net.runelite.client.game.ItemEquipmentStats;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -85,6 +87,58 @@ public class MortimerCatalogTest
 			.findFirst().orElseThrow();
 		assertEquals(WeaponRule.VAMPYRE, melee.getWeaponRule());
 		assertTrue(melee.getPreferredItems().contains("sunspear"));
+		assertEquals("venators", TaskProfiles.find("Venator").orElseThrow().getKey());
+
+		ItemEquipmentStats noxiousStats = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.WEAPON.getSlotIdx())
+			.aslash(105)
+			.str(86)
+			.aspeed(5)
+			.build();
+		GearScorer.BankEquipment noxiousHalberd = new GearScorer.BankEquipment(
+			1, 1, "Noxious halberd", EquipmentInventorySlot.WEAPON,
+			noxiousStats, true, false);
+		assertFalse("Noxious halberd cannot damage a Venator",
+			GearScorer.allowed(noxiousHalberd, melee));
+	}
+
+	@Test
+	public void efaritaysAidOutranksStrengthRingsForVenatorsOnly()
+	{
+		GearStrategy venator = TaskProfiles.find("Venator").orElseThrow()
+			.getStrategies().stream()
+			.filter(strategy -> strategy.getCombatStyle() == CombatStyle.MELEE)
+			.findFirst().orElseThrow();
+		ItemEquipmentStats aidStats = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.RING.getSlotIdx())
+			.build();
+		ItemEquipmentStats berserkerStats = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.RING.getSlotIdx())
+			.str(8)
+			.build();
+		ItemEquipmentStats ultorStats = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.RING.getSlotIdx())
+			.str(12)
+			.build();
+
+		double aid = GearScorer.scoreStats(venator, "Efaritay's aid",
+			EquipmentInventorySlot.RING, aidStats);
+		double berserker = GearScorer.scoreStats(venator, "Berserker ring (i)",
+			EquipmentInventorySlot.RING, berserkerStats);
+		double ultor = GearScorer.scoreStats(venator, "Ultor ring",
+			EquipmentInventorySlot.RING, ultorStats);
+		assertTrue(aid > berserker);
+		assertTrue(aid > ultor);
+
+		GearStrategy ordinary = TaskProfiles.find("Bloodveld").orElseThrow()
+			.getStrategies().stream()
+			.filter(strategy -> strategy.getCombatStyle() == CombatStyle.MELEE)
+			.findFirst().orElseThrow();
+		double offTargetAid = GearScorer.scoreStats(ordinary, "Efaritay's aid",
+			EquipmentInventorySlot.RING, aidStats);
+		double offTargetBerserker = GearScorer.scoreStats(ordinary, "Berserker ring (i)",
+			EquipmentInventorySlot.RING, berserkerStats);
+		assertTrue(offTargetBerserker > offTargetAid);
 	}
 
 	private static SlayerMasterCatalog.MasterAssignment find(

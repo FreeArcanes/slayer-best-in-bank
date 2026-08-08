@@ -1076,6 +1076,20 @@ class GearScorer
 			accuracy *= 0.10;
 		}
 
+		/*
+		 * Efaritay's aid applies to the player's whole attack roll against
+		 * Vampyres: +10% damage and +15% accuracy. Those target-only effects
+		 * are not present in RuneLite's visible equipment stats, so score them
+		 * from the same shared offensive baselines used for weapon passives.
+		 * This deliberately puts the ring ahead of Berserker/Ultor-style flat
+		 * Strength rings for a valid Vampyre method, but nowhere else.
+		 */
+		if (isEfaritaysAidAgainstVampyre(strategy, normalizedItemName, slot))
+		{
+			damage += WEAPON_SHARED_DAMAGE_BASE * 0.10;
+			accuracy += WEAPON_SHARED_ACCURACY_BASE * 0.15;
+		}
+
 		double score = damage + accuracy + utility;
 		String n = normalizedItemName;
 
@@ -1248,6 +1262,10 @@ class GearScorer
 		{
 			r.add("Fiery-target Sea Curse bonus");
 		}
+		else if (isEfaritaysAidAgainstVampyre(strategy, NameMatcher.normalize(name), slot))
+		{
+			r.add("+10% Vampyre damage, +15% Vampyre accuracy");
+		}
 		for(String p:strategy.getPreferredItems())if(NameMatcher.normalize(name).contains(NameMatcher.normalize(p))){r.add("task-method priority");break;}
 		switch(strategy.getCombatStyle()){case MAGIC:add(r,effectiveMagicDamageBonus(strategy,NameMatcher.normalize(name),stats),"% magic dmg");add(r,stats.getAmagic(),"magic");break;case RANGED:add(r,stats.getRstr(),"ranged Str");add(r,stats.getArange(),"ranged");break;default:add(r,stats.getStr(),"melee Str");add(r,attackBonus(strategy.getAttackType(),stats),strategy.getAttackType().name().toLowerCase(Locale.ENGLISH));}
 		if (slot != EquipmentInventorySlot.WEAPON)
@@ -1258,6 +1276,18 @@ class GearScorer
 			if (strategy.getMagicDefenceWeight() > 0) add(r, stats.getDmagic(), "Magic defence focus");
 		}
 		add(r,stats.getPrayer(),"prayer"); if(slot==EquipmentInventorySlot.WEAPON&&stats.getAspeed()>0)r.add(stats.getAspeed()+"-tick speed"); if(r.isEmpty())r.add("best weighted stats available"); return String.join(", ",r);
+	}
+
+	private static boolean isEfaritaysAidAgainstVampyre(
+		GearStrategy strategy,
+		String normalizedItemName,
+		EquipmentInventorySlot slot)
+	{
+		return strategy != null
+			&& slot == EquipmentInventorySlot.RING
+			&& normalizedItemName.contains("efaritay's aid")
+			&& (strategy.getWeaponRule() == WeaponRule.VAMPYRE
+				|| strategy.getTargetTraits().contains(TargetTrait.VAMPYRE));
 	}
 	private static void add(List<String> r,float v,String label){if(v!=0)r.add((v>0?"+":"")+(v==Math.rint(v)?Integer.toString((int)v):Float.toString(v))+" "+label);}
 

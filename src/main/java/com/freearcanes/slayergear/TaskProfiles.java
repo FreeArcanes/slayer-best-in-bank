@@ -441,7 +441,7 @@ final class TaskProfiles
 			"vampyres", "vampyre", "vyrewatch");
 
 		register(profile("venators", "Venators",
-				"Mortimer-exclusive Vampyrium task. Blisterwood stakes provide the dedicated Ranged method; Sunspear and other current Vampyre weapons are compared for melee.",
+				"Mortimer-exclusive Vampyrium task. Blisterwood stakes provide the dedicated Ranged method; Sunspear and Hallowed Flail are compared for melee, with Efaritay's aid prioritized over ordinary combat rings.",
 				"Requires 74 Slayer and completion of The Blood Moon Rises. React to the Venator's screech attack; a Sunspear finishing special can sustain the trip.",
 				GearStrategy.builder()
 					.name("Blisterwood stakes Ranged")
@@ -461,6 +461,7 @@ final class TaskProfiles
 					.weaponRule(WeaponRule.VAMPYRE)
 					.preferredItem("sunspear")
 					.preferredItem("hallowed flail")
+					.preferredItem("efaritay's aid")
 					.build()),
 			"venators", "venator");
 
