@@ -44,7 +44,7 @@ final class CannonTaskCatalog
 			"Cannon-supported single-way route for fast task completion.", "ice warriors", "ice warrior");
 		route("Icefiends", "Western Ice Mountain cannon tiles", CombatStyle.MELEE, AttackType.SLASH,
 			"Fast cannon-assisted completion route.", "icefiends", "icefiend");
-		route("Kalphites", "Kalphite Cave / Kalphite Lair", CombatStyle.MELEE, AttackType.STAB,
+		route("Kalphites", "Kalphite Cave / Kalphite Lair", CombatStyle.MELEE, AttackType.CRUSH,
 			"High-throughput multicombat task where cannon damage greatly improves XP.", "kalphites", "kalphite");
 		route("Lizards", "Karuulm Slayer Dungeon - sulphur lizards", CombatStyle.MELEE, AttackType.SLASH,
 			"Dense cannonable sulphur-lizard route; avoids desert-lizard finishing items.",
@@ -152,7 +152,7 @@ final class CannonTaskCatalog
 			new String[] {"giants den", "stronghold slayer cave", "waterfall dungeon", "brimhaven dungeon", "smoke dungeon"}, "fire giants", "fire giant");
 		route("Greater demons", "Chasm of Fire / Wilderness Slayer Cave", CombatStyle.MELEE, AttackType.SLASH,
 			"Cannon-supported demonbane route; use a cannonable location rather than the Catacombs.", "greater demons", "greater demon");
-		route("Gryphons", "Gryphon task area", CombatStyle.MELEE, AttackType.CRUSH,
+		route("Gryphons", "Gryphon task area", CombatStyle.MELEE, AttackType.STAB,
 			"Cannon support improves task throughput alongside the recommended heavy melee setup.", "gryphons", "gryphon");
 		route("Hellhounds", "Stronghold Slayer Cave / Taverley Dungeon", CombatStyle.MELEE, AttackType.SLASH,
 			"Straightforward cannon route; the Catacombs do not allow cannon placement.", "hellhounds", "hellhound");
@@ -191,7 +191,7 @@ final class CannonTaskCatalog
 			"smoke devils", "smoke devil");
 		route("Suqahs", "Lunar Isle", CombatStyle.MELEE, AttackType.SLASH,
 			"Classic cannon task where the extra hits dramatically improve task speed.", "suqahs", "suqah");
-		route("Trolls", "Death Plateau / Trollheim cannon route", CombatStyle.MELEE, AttackType.SLASH,
+		route("Trolls", "Death Plateau / Trollheim cannon route", CombatStyle.MELEE, AttackType.BALANCED,
 			"Cannon is strongly recommended for fast troll assignments.", "trolls", "troll");
 		route("Warped creatures", "Poison Waste Dungeon", CombatStyle.MELEE, AttackType.CRUSH,
 			"Cannon support improves throughput against warped terrorbirds/tortoises.", "warped creatures", "warped creature");

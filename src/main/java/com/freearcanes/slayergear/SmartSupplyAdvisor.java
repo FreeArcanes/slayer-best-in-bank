@@ -209,6 +209,8 @@ class SmartSupplyAdvisor
 			: assignedLocation);
 		boolean ancientAoe = strategy != null && strategy.isAncientAoe();
 		boolean venator = strategy != null && isVenator(strategy);
+		boolean wildernessTask = isWildernessTask(assignedLocation, strategy);
+		boolean turaelAyaSpeed = TuraelSpeedProfiles.isSpeedStrategy(strategy);
 
 		// These are useful owned trip accelerators across Slayer methods, not only
 		// Ancient AoE and Venator. They remain optional and therefore appear only
@@ -226,6 +228,32 @@ class SmartSupplyAdvisor
 			rules.add(rule("Prayer regen", "Passive Prayer sustain during longer Slayer trips", false,
 				"Prayer regeneration potion", "prayer regeneration potion"));
 		}
+		if (turaelAyaSpeed)
+		{
+			rules.add(suggestedRule("Slayer bracelet",
+				"An Expeditious bracelet shortens Turael/Aya assignments and speeds streak progression",
+				"Expeditious bracelet", "expeditious bracelet"));
+		}
+		else if (config.useSlayerBracelet())
+		{
+			SlayerBraceletPreference preference = config.slayerBraceletPreference();
+			if (preference == SlayerBraceletPreference.SLAUGHTER
+				|| preference == SlayerBraceletPreference.BOTH)
+			{
+				rules.add(suggestedRule("Slayer bracelet",
+					"A Bracelet of slaughter can extend the assignment and is packed as a glove switch",
+					"Bracelet of slaughter", "bracelet of slaughter"));
+			}
+			if (preference == SlayerBraceletPreference.EXPEDITIOUS
+				|| preference == SlayerBraceletPreference.BOTH)
+			{
+				rules.add(suggestedRule("Slayer bracelet",
+					"An Expeditious bracelet can shorten the assignment and is packed as a glove switch",
+					"Expeditious bracelet", "expeditious bracelet"));
+			}
+		}
+
+		addPrayerRemainsTools(rules, key, config.prayerRemainsPreference());
 
 		if (ancientAoe)
 		{
@@ -260,10 +288,17 @@ class SmartSupplyAdvisor
 				"Magic boost", "saturated heart", "imbued heart", "forgotten brew", "ancient brew", "magic potion"));
 		}
 
-		if (contains(key, "araxytes"))
+		if (contains(key, "araxytes", "araxxor"))
 		{
 			rules.add(0, rule("Venom protection", "Araxytes can inflict venom", true,
 				"Anti-venom(4)", "extended anti-venom+", "anti-venom+", "anti-venom"));
+		}
+		if (contains(key, "araxxor") && strategy != null
+			&& NameMatcher.normalize(strategy.getName()).contains("crush melee"))
+		{
+			rules.add(suggestedRule("Araxyte switch",
+				"Noxious halberd is a safe hatched-araxyte and mirrorback switch, not the default main weapon",
+				"Noxious halberd", "noxious halberd"));
 		}
 		if (contains(key, "kalphites", "cave-crawlers", "cave-slimes", "lizardmen"))
 		{
@@ -273,7 +308,9 @@ class SmartSupplyAdvisor
 				"sanfew serum", "antipoison", "extended anti-venom+",
 				"anti-venom+", "anti-venom"));
 		}
-		if (location.contains("lumbridge swamp cave") || contains(key, "cave-horrors"))
+		if (location.contains("lumbridge swamp cave")
+			|| contains(key, "cave-horrors")
+			|| (turaelAyaSpeed && contains(key, "cave-bugs", "cave-slimes")))
 		{
 			rules.add(0, suggestedRule("Light source", "A stable enclosed light source is recommended for this cave",
 				"Bullseye lantern", "bullseye lantern", "emerald lantern", "sapphire lantern",
@@ -336,6 +373,12 @@ class SmartSupplyAdvisor
 			rules.add(0, rule("Task tool", "A Slayer bell dislodges Molanisks before combat", true,
 				"Slayer bell", "slayer bell"));
 		}
+		if (contains(key, "warped-creatures"))
+		{
+			rules.add(0, rule("Task tool",
+				"A Crystal chime is required to damage warped terrorbirds and warped tortoises",
+				true, "Crystal chime", "crystal chime"));
+		}
 		if (isCannon(strategy))
 		{
 			rules.add(rule("Cannon ammo", "A cannon method needs ammunition before leaving the bank", true,
@@ -368,8 +411,20 @@ class SmartSupplyAdvisor
 		// does not currently own a matching item. These remain non-blocking.
 		if (strategy != null)
 		{
-			rules.add(suggestedRule("Prayer", "Useful sustain for protection or offensive prayers",
-				"Prayer potion(4)", "prayer potion", "super restore", "sanfew serum"));
+			PrayerRestorePreference preference = config.prayerRestorePreference();
+			if (preference == PrayerRestorePreference.SUPER_RESTORE)
+			{
+				rules.add(wildernessTask
+					? suggestedRule("Prayer", "Wilderness-only sustain for protection or offensive prayers",
+						"Blighted super restore(4)", "blighted super restore", "super restore")
+					: suggestedRule("Prayer", "Useful sustain for protection or offensive prayers",
+						"Super restore(4)", "super restore"));
+			}
+			else
+			{
+				rules.add(suggestedRule("Prayer", "Useful sustain for protection or offensive prayers",
+					"Prayer potion(4)", "prayer potion"));
+			}
 		}
 
 		rules.add(suggestedRule("Food", "Emergency healing for the trip",
@@ -393,6 +448,21 @@ class SmartSupplyAdvisor
 		Set<Integer> usedCanonicalIds)
 	{
 		String[] parts = {"cannon base", "cannon stand", "cannon barrels", "cannon furnace"};
+		OwnedItem packedSet = findExact("dwarf cannon set", packed);
+		OwnedItem bankSet = findExact("dwarf cannon set", bank);
+		if (packedSet != null || bankSet != null)
+		{
+			OwnedItem display = bankSet != null ? bankSet : packedSet;
+			usedCanonicalIds.add(display.canonicalItemId);
+			recommendations.add(new SupplyRecommendation(
+				display.itemId,
+				display.canonicalItemId,
+				display.name,
+				"Cannon set",
+				"Exchange this boxed set with a Grand Exchange clerk to obtain the four usable cannon parts",
+				resolveStatus(packedSet != null, bankSet != null),
+				false));
+		}
 		int regularOwned = cannonPartsOwned(parts, false, bank, packed);
 		int ornamentOwned = cannonPartsOwned(parts, true, bank, packed);
 		boolean ornamented = ornamentOwned > regularOwned;
@@ -540,6 +610,13 @@ class SmartSupplyAdvisor
 	static boolean matchesPreferredSupply(String normalizedName, String preferred)
 	{
 		if (normalizedName == null || preferred == null) return false;
+		// Only the base Max cape retains the Max cape utility teleports. Combat
+		// variants such as imbued god/max capes contain the same words but do not
+		// satisfy the selected home-teleport preference.
+		if ("max cape".equals(preferred))
+		{
+			return "max cape".equals(normalizedName);
+		}
 		if (!preferred.startsWith("divine ")
 			&& normalizedName.startsWith("divine ")
 			&& normalizedName.contains(preferred))
@@ -578,6 +655,14 @@ class SmartSupplyAdvisor
 		boolean wildernessTask,
 		boolean allowRadasBlessing)
 	{
+		// Blighted supplies only function in the Wilderness. Keeping this at the
+		// shared matching boundary prevents a generic name such as "super restore"
+		// from accidentally selecting its blighted variant for an ordinary task.
+		if (!wildernessTask && normalizedName != null
+			&& normalizedName.startsWith("blighted "))
+		{
+			return true;
+		}
 		if ("Food".equals(category)
 			&& isUnsafeFoodName(normalizedName, wildernessTask))
 		{
@@ -586,6 +671,52 @@ class SmartSupplyAdvisor
 		return "Travel".equals(category)
 			&& normalizedName.contains("rada's blessing")
 			&& !allowRadasBlessing;
+	}
+
+	private static void addPrayerRemainsTools(
+		List<SupplyRule> rules,
+		String taskKey,
+		PrayerRemainsPreference preference)
+	{
+		PrayerRemainsPreference selected = preference == null
+			? PrayerRemainsPreference.OFF : preference;
+		boolean bonecrusher = selected == PrayerRemainsPreference.BONECRUSHER
+			|| selected == PrayerRemainsPreference.BOTH;
+		boolean ashSanctifier = selected == PrayerRemainsPreference.ASH_SANCTIFIER
+			|| selected == PrayerRemainsPreference.BOTH;
+
+		if (selected == PrayerRemainsPreference.AUTOMATIC)
+		{
+			if (contains(taskKey, "boss", "demon-boss", "dragon-boss"))
+			{
+				bonecrusher = true;
+				ashSanctifier = true;
+			}
+			else if (contains(taskKey, "abyssal-demons", "black-demons", "bloodveld",
+				"greater-demons", "hellhounds", "nechryael"))
+			{
+				ashSanctifier = true;
+			}
+			else if (!contains(taskKey, "smoke-devils"))
+			{
+				// Most remaining Slayer targets have bones as their normal remains.
+				// Smoke devils drop ordinary ashes, which neither tool processes.
+				bonecrusher = true;
+			}
+		}
+
+		if (bonecrusher)
+		{
+			rules.add(suggestedRule("Prayer remains",
+				"Automatically crushes eligible bone drops when charged",
+				"Bonecrusher", "bonecrusher", "bonecrusher necklace"));
+		}
+		if (ashSanctifier)
+		{
+			rules.add(suggestedRule("Prayer remains",
+				"Automatically sanctifies eligible demonic ash drops when charged",
+				"Ash sanctifier", "ash sanctifier"));
+		}
 	}
 
 	static SupplyStatus resolveStatus(boolean packed, boolean banked)

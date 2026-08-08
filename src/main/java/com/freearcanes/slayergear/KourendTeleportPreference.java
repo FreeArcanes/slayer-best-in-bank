@@ -2,6 +2,7 @@ package com.freearcanes.slayergear;
 
 public enum KourendTeleportPreference
 {
+	MAX_CAPE_FIRST("Max cape first"),
 	XERICS_TALISMAN_FIRST("Xeric's talisman first"),
 	RADAS_BLESSING_FIRST("Rada's blessing first"),
 	KOUREND_TELEPORT_FIRST("Kourend teleport first");

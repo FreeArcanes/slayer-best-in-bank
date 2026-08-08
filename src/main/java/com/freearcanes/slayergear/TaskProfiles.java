@@ -42,17 +42,50 @@ final class TaskProfiles
 			"ankou", "ankous");
 
 		register(profile("aquanites", "Aquanites",
-				"Open with slash to sever the lure, then use stab against the reduced defence.",
+				"Open with slash to sever the lure, then compare the Wiki-listed melee and Ranged methods.",
 				"They attack with Magic, so magic defence and Protect from Magic are useful.",
-				meleeMagicDef("Slash switch + stab", "Ynysdail Cavern", AttackType.STAB,
-					"Ranks stab DPS, with slash-capable weapons retained as alternatives.",
-					"fang", "rapier", "hasta", "spear", "scimitar")),
+				GearStrategy.builder()
+					.name("Lure sever + melee")
+					.location("Ynysdail Cavern")
+					.rationale("Models the slash opener, then ranks Soulreaper/Scythe and the reduced-defence stab options from the strategy guide.")
+					.combatStyle(CombatStyle.MELEE)
+					.attackType(AttackType.BALANCED)
+					.targetTrait(TargetTrait.SCYTHE_TWO_HIT)
+					.magicDefenceWeight(0.28)
+					.preferredItem("soulreaper axe")
+					.preferredItem("scythe of vitur")
+					.preferredItem("ghrazi rapier")
+					.preferredItem("blade of saeldor")
+					.preferredItem("osmumten's fang")
+					.preferredItem("oathplate")
+					.build(),
+				ranged("Ranged", "Ynysdail Cavern",
+					"Wiki-listed alternative using the strongest owned Ranged setup.",
+					"toxic blowpipe", "twisted bow", "bow of faerdhinen", "zaryte crossbow", "crystal bow")),
 			"aquanites", "aquanite");
 
 		register(profile("araxytes", "Araxytes",
 				"Cannon and Venator bow is the current high-XP normal-task method.",
 				"Bring venom protection.",
 				venator("Cannon + Venator", "Morytania Spider Nest", "Top multi-target XP method."),
+				GearStrategy.builder()
+					.name("Araxxor - Crush melee")
+					.location("Araxxor's lair")
+					.rationale("Boss route: ranks the Wiki's main-hand Crush options, including Scythe multi-hit value.")
+					.combatStyle(CombatStyle.MELEE)
+					.attackType(AttackType.CRUSH)
+					.targetTrait(TargetTrait.ARAXXOR)
+					.targetTrait(TargetTrait.SCYTHE_THREE_HIT)
+					.build(),
+				GearStrategy.builder()
+					.name("Araxxor - Noxious halberd switch")
+					.location("Araxxor's lair")
+					.rationale("Dedicated Araxyte and mirrorback switch; it is not treated as Araxxor's default main weapon.")
+					.combatStyle(CombatStyle.MELEE)
+					.attackType(AttackType.SLASH)
+					.requiredWeapon("noxious halberd")
+					.targetTrait(TargetTrait.ARAXXOR)
+					.build(),
 				melee("Melee fallback", "Morytania Spider Nest", AttackType.CRUSH,
 					"Uses the best offensive melee gear owned")),
 			"araxytes", "araxyte");
@@ -148,7 +181,8 @@ final class TaskProfiles
 				"A short, straightforward melee task.",
 				"Protect from Melee reduces supply use.",
 				melee("Melee", "Mourner Tunnels / Iorwerth Dungeon", AttackType.SLASH,
-					"Ranks melee damage first")),
+					"Dark beasts have high Defence; slash accuracy from Oathplate can outperform Torva with slash weapons.",
+					"oathplate")),
 			"dark beasts", "dark beast");
 
 		register(profile("drakes", "Drakes",
@@ -236,7 +270,7 @@ final class TaskProfiles
 		register(profile("gryphons", "Gryphons",
 				"Heavy melee equipment avoids knockback while preserving offensive strength.",
 				"Aim for at least 30 kg worn weight; the superior/boss requires a tortugan shield.",
-				melee("Heavy melee + cannon", "Great Conch", AttackType.CRUSH,
+				melee("Heavy melee + cannon", "Great Conch", AttackType.STAB,
 					"Balances melee damage with heavy armour", "tortugan shield", "dragonfire shield")),
 			"gryphons", "gryphon", "the shellbane gryphon");
 
@@ -259,7 +293,7 @@ final class TaskProfiles
 					.location("task-only Kalphite Cave")
 					.rationale("Keris/partisan effects receive priority against Kalphites.")
 					.combatStyle(CombatStyle.MELEE)
-					.attackType(AttackType.STAB)
+					.attackType(AttackType.CRUSH)
 					.weaponRule(WeaponRule.KALPHITE)
 					.preferredItem("keris partisan of breaching")
 					.preferredItem("keris partisan")
@@ -362,10 +396,15 @@ final class TaskProfiles
 			"suqahs", "suqah");
 
 		register(profile("trolls", "Trolls",
-				"Cannon-assisted melee at dense spawns is prioritized.",
+				"Cannon-assisted melee is location-specific; mountain and ice-troll weapon styles are kept separate.",
 				"Use protection prayers against high-damage ice trolls.",
-				melee("Cannon + melee", "Fremennik Isles / South of Mount Quidamortem", AttackType.SLASH,
-					"Fast normal-task setup")),
+				GearStrategy.builder().name("Mountain trolls - melee").location("South of Mount Quidamortem")
+					.rationale("Ranks the Wiki-listed Soulreaper and strong general melee options for mountain trolls.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.BALANCED).build(),
+				melee("Ice trolls - stab", "Fremennik Isles / Trollweiss", AttackType.STAB,
+					"Ranks the Wiki-listed stab route separately from mountain trolls."),
+				melee("Ice trolls - crush", "Fremennik Isles / Trollweiss", AttackType.CRUSH,
+					"Ranks the Wiki-listed crush route, including Inquisitor's mace and Sarachnis cudgel.")),
 			"trolls", "troll");
 
 		register(profile("tzhaar", "TzHaar",
@@ -426,10 +465,14 @@ final class TaskProfiles
 			"venators", "venator");
 
 		register(profile("warped-creatures", "Warped creatures",
-				"Cannon-assisted melee is the efficient unlocked-task route.",
+				"Warped terrorbirds and tortoises have distinct Wiki methods; cannon support remains useful where available.",
 				"They use melee and ranged in multicombat; use protection and sustain.",
-				melee("Cannon + melee", "Poison Waste Dungeon", AttackType.SLASH,
-					"Ranks melee damage for the cannon-supported method")),
+				melee("Warped tortoises - Crush", "Poison Waste Dungeon", AttackType.CRUSH,
+					"Targets the tortoise's Crush weakness for the cannon-supported method"),
+				melee("Warped terrorbirds - melee", "Poison Waste Dungeon", AttackType.SLASH,
+					"Separate terrorbird melee route"),
+				ranged("Ranged safe method", "Poison Waste Dungeon",
+					"Wiki-listed Ranged alternative for safer positioning")),
 			"warped creatures", "warped creature");
 
 		register(profile("waterfiends", "Waterfiends",
@@ -442,9 +485,13 @@ final class TaskProfiles
 			"waterfiends", "waterfiend");
 
 		register(profile("wyrms", "Wyrms",
-				"Wyrms are draconic and have a 50% Earth weakness; dragonbane and Earth Magic are both surfaced.",
+				"Wyrms support top general melee weapons as well as dragonbane, Ranged, and their 50% Earth weakness.",
 				"Boots of stone or a heat-protecting upgrade may be required in Karuulm.",
-				dragonMelee("Dragonbane stab", "Karuulm Slayer Dungeon"),
+				GearStrategy.builder().name("Melee / dragonbane").location("Karuulm Slayer Dungeon")
+					.rationale("Compares Soulreaper, Scythe and Noxious halberd with Dragon hunter lance and stab alternatives.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.BALANCED)
+					.weaponRule(WeaponRule.DRAGONBANE).targetTrait(TargetTrait.DRAGON)
+					.targetTrait(TargetTrait.SCYTHE_THREE_HIT).build(),
 				dragonRanged("Dragonbane Ranged", "Karuulm Slayer Dungeon"),
 				dragonMagic("Earth Magic / dragonbane", "Karuulm Slayer Dungeon",
 					"Earth spells gain the elemental bonus; Dragon hunter wand gains its draconic bonus.")),
@@ -562,6 +609,14 @@ final class TaskProfiles
 
 	static Optional<SlayerTaskProfile> find(String taskName, String assignedLocation)
 	{
+		return find(taskName, assignedLocation, false);
+	}
+
+	static Optional<SlayerTaskProfile> find(
+		String taskName,
+		String assignedLocation,
+		boolean turaelAyaSpeedMode)
+	{
 		if (taskName == null)
 		{
 			return Optional.empty();
@@ -569,6 +624,10 @@ final class TaskProfiles
 		SlayerTaskProfile exact = PROFILES.get(taskName);
 		SlayerTaskProfile base = exact != null ? exact : generic(taskName);
 		base = withCannonOption(base, taskName, assignedLocation);
+		if (turaelAyaSpeedMode)
+		{
+			base = TuraelSpeedProfiles.apply(base, taskName);
+		}
 		return Optional.of(TaskCombatCatalog.enrich(base, taskName, assignedLocation));
 	}
 
@@ -739,6 +798,17 @@ final class TaskProfiles
 			// First registration wins: a later broad boss alias must never overwrite
 			// a task-specific curated profile.
 			PROFILES.register(profile, AliasCatalog.CollisionPolicy.KEEP_FIRST, taskName);
+		}
+	}
+
+	private static void registerOverride(
+		SlayerTaskProfile profile, String... taskNames)
+	{
+		for (String taskName : taskNames)
+		{
+			// Exact boss names intentionally refine broader assignment aliases such
+			// as Hellhounds -> Cerberus and Araxytes -> Araxxor.
+			PROFILES.register(profile, AliasCatalog.CollisionPolicy.REPLACE, taskName);
 		}
 	}
 
@@ -917,14 +987,104 @@ final class TaskProfiles
 
 	private static void registerBossAliases()
 	{
+		registerOverride(profile("araxxor-boss", "Araxxor",
+				"Crush is Araxxor's primary weakness; Noxious halberd is kept as a separate encounter switch.",
+				"Use a Noxious halberd or another safe answer for hatched araxytes and mirrorbacks.",
+				GearStrategy.builder().name("Araxxor - Crush melee").location("Araxxor's lair")
+					.rationale("Ranks main-hand Crush DPS and models all three Scythe hits on Araxxor.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
+					.targetTrait(TargetTrait.ARAXXOR).targetTrait(TargetTrait.SCYTHE_THREE_HIT).build(),
+				GearStrategy.builder().name("Araxxor - Noxious halberd switch").location("Araxxor's lair")
+					.rationale("Dedicated Araxyte and mirrorback switch from the strategy guide.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
+					.requiredWeapon("noxious halberd").targetTrait(TargetTrait.ARAXXOR).build()),
+			"araxxor");
+
+		registerOverride(profile("cerberus-boss", "Cerberus",
+				"Crush is the normal defence weakness, while valid Demonbane weapons remain competitive.",
+				"Verify spectral-shield and ghost-cycle supplies for the chosen method.",
+				GearStrategy.builder().name("Cerberus — Crush / Demonbane").location("Cerberus' Lair")
+					.rationale("Ranks Crush DPS while retaining real Demonbane passives.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
+					.weaponRule(WeaponRule.DEMONBANE).targetTrait(TargetTrait.DEMON)
+					.targetTrait(TargetTrait.SCYTHE_THREE_HIT).build()),
+			"cerberus");
+
+		registerOverride(profile("duke-sucellus-boss", "Duke Sucellus",
+				"Slash weapons are preferred; Duke's resistance reduces, but does not remove, Demonbane value.",
+				"Special-attack choices are utility switches rather than automatic main weapons.",
+				GearStrategy.builder().name("Duke Sucellus — Slash").location("Duke Sucellus' chamber")
+					.rationale("Ranks Slash DPS with Duke's reduced Demonbane multiplier and the Wiki's Oathplate-over-Torva armour order.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
+					.weaponRule(WeaponRule.DEMONBANE).targetTrait(TargetTrait.DEMON)
+					.targetTrait(TargetTrait.SCYTHE_THREE_HIT)
+					.preferredItem("oathplate").build()),
+			"duke sucellus");
+
+		registerOverride(profile("sarachnis-boss", "Sarachnis",
+				"Fast Crush weapons exploit Sarachnis' primary defence weakness.",
+				"Magic defence and web-handling choices remain encounter-dependent.",
+				GearStrategy.builder().name("Sarachnis - Crush").location("Forthos Dungeon")
+					.rationale("Ranks fast Crush DPS and all three Scythe hits rather than generic melee stats.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
+					.magicDefenceWeight(0.28).targetTrait(TargetTrait.SCYTHE_THREE_HIT).build()),
+			"sarachnis");
+
+		registerOverride(profile("vardorvis-boss", "Vardorvis",
+				"Slash is substantially stronger than Crush or Stab against Vardorvis.",
+				"Defence-draining special attacks do not work; use damage or sustain switches.",
+				GearStrategy.builder().name("Vardorvis - Slash").location("The Stranglewood")
+					.rationale("Ranks owned Slash main weapons, the Scythe's two-hit target value, and the Wiki's Oathplate-over-Torva armour order.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
+					.targetTrait(TargetTrait.SCYTHE_TWO_HIT)
+					.preferredItem("oathplate").build()),
+			"vardorvis");
+
+		registerOverride(profile("skotizo-boss", "Skotizo",
+				"Demonbane slash is preferred, and the Wiki ranks Oathplate above Torva for the offensive melee setup.",
+				"Protect from Magic with offensive melee gear, or use a magic-defence setup with Protect from Melee.",
+				GearStrategy.builder().name("Skotizo - Demonbane slash").location("Catacombs of Kourend")
+					.rationale("Ranks Emberlight/Arclight with the Wiki's Oathplate-over-Torva armour order.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
+					.weaponRule(WeaponRule.DEMONBANE).targetTrait(TargetTrait.DEMON)
+					.preferredItem("oathplate").build()),
+			"skotizo");
+
+		registerOverride(profile("abyssal-sire-boss", "Abyssal Sire",
+				"Demonbane melee is preferred for the main damage phases.",
+				"Respiratory-system and phase switches still require manual encounter planning.",
+				GearStrategy.builder().name("Abyssal Sire - Demonbane").location("Abyssal Nexus")
+					.rationale("Ranks phase-two Demonbane and three-hit Scythe main-hand damage.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
+					.weaponRule(WeaponRule.DEMONBANE).targetTrait(TargetTrait.DEMON)
+					.targetTrait(TargetTrait.SCYTHE_THREE_HIT).build()),
+			"the abyssal sire", "abyssal sire");
+
+		registerOverride(profile("kalphite-queen-boss", "Kalphite Queen",
+				"Kalphite weapon effects and Crush-capable melee are ranked for the first phase.",
+				"The second phase requires a Ranged or Magic switch that is not a replacement main weapon.",
+				GearStrategy.builder().name("Kalphite Queen — Keris / Crush").location("Kalphite Queen lair")
+					.rationale("Ranks valid Crush weapons while retaining Keris-family effects.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
+					.weaponRule(WeaponRule.KALPHITE).targetTrait(TargetTrait.KALPHITE)
+					.targetTrait(TargetTrait.SCYTHE_THREE_HIT).build()),
+			"the kalphite queen", "kalphite queen");
+
+		registerOverride(profile("vetion-boss", "Vet'ion",
+				"Crush weapons are preferred and charged Wilderness weapons retain their Wilderness bonus.",
+				"Use Wilderness-appropriate risk and escape planning.",
+				GearStrategy.builder().name("Vet'ion — Wilderness Crush").location("Wilderness")
+					.rationale("Ranks Crush DPS with charged Wilderness-weapon effects.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
+					.targetTrait(TargetTrait.WILDERNESS).targetTrait(TargetTrait.UNDEAD).build()),
+			"vet'ion", "vetion");
+
 		SlayerTaskProfile meleeBoss = profile("melee-boss", "Melee boss",
 			"Boss-task fallback using offensive melee gear.",
 			"Verify encounter-specific switches and supplies.",
 			melee("Boss melee", "Boss lair", AttackType.BALANCED, "General melee shortlist"));
 		register(meleeBoss,
-			"the abyssal sire", "abyssal sire", "araxxor", "cerberus",
-			"duke sucellus", "the giant mole", "the grotesque guardians",
-			"the kalphite queen", "sarachnis", "vardorvis", "vet'ion",
+			"the giant mole", "the grotesque guardians",
 			"the thermonuclear smoke devil", "the maggot king");
 
 		SlayerTaskProfile rangedBoss = profile("ranged-boss", "Ranged boss",

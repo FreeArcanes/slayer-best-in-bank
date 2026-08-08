@@ -349,6 +349,20 @@ class GearScorer
 					selected.put(slot, recommendation(list.get(rank - 1), rank, strategy));
 				}
 			}
+
+			// Compare the complete main-hand/off-hand package. Selecting each slot
+			// independently makes every two-handed weapon forfeit the value of the
+			// independently selected shield after the ranking decision has already
+			// been made.
+			Map<EquipmentInventorySlot, BankEquipment> weaponPair =
+				selectWeaponPair(rank, candidates);
+			for (EquipmentInventorySlot slot : List.of(
+				EquipmentInventorySlot.WEAPON, EquipmentInventorySlot.SHIELD))
+			{
+				BankEquipment item = weaponPair.get(slot);
+				if (item == null) selected.remove(slot);
+				else selected.put(slot, recommendation(item, rank, strategy));
+			}
 		}
 
 		// Whole-loadout compatibility: a 2H weapon consumes the off-hand.
@@ -388,6 +402,42 @@ class GearScorer
 			}
 		}
 		return selected;
+	}
+
+	static Map<EquipmentInventorySlot, BankEquipment> selectWeaponPair(
+		int rank,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates)
+	{
+		List<BankEquipment> weapons = preferredPinnedChoices(rankedChoices(
+			candidates.getOrDefault(EquipmentInventorySlot.WEAPON, Collections.emptyList()),
+			rank));
+		List<BankEquipment> shields = preferredPinnedChoices(rankedChoices(
+			candidates.getOrDefault(EquipmentInventorySlot.SHIELD, Collections.emptyList()),
+			rank));
+		BankEquipment bestWeapon = null;
+		BankEquipment bestShield = null;
+		double bestScore = Double.NEGATIVE_INFINITY;
+		for (BankEquipment weapon : weapons)
+		{
+			BankEquipment shield = weapon.stats.isTwoHanded() || shields.isEmpty()
+				? null
+				: shields.get(0);
+			double pairScore = weapon.score + (shield == null ? 0 : shield.score);
+			if (pairScore > bestScore
+				|| (pairScore == bestScore
+					&& (bestWeapon == null || weapon.score > bestWeapon.score)))
+			{
+				bestWeapon = weapon;
+				bestShield = shield;
+				bestScore = pairScore;
+			}
+		}
+
+		EnumMap<EquipmentInventorySlot, BankEquipment> result =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		if (bestWeapon != null) result.put(EquipmentInventorySlot.WEAPON, bestWeapon);
+		if (bestShield != null) result.put(EquipmentInventorySlot.SHIELD, bestShield);
+		return result;
 	}
 
 	List<Map<EquipmentInventorySlot, GearRecommendation>> buildCoherentLoadouts(
@@ -458,10 +508,18 @@ class GearScorer
 
 			int currentIndex = candidateIndex(slotCandidates, existing.getCanonicalItemId());
 			if (currentIndex < 0) continue;
-			for (int candidateIndex = currentIndex + 1;
+			// Tier 1 can legitimately use a lower individually ranked one-handed
+			// weapon because its off-hand makes the package stronger. Search the
+			// complete weapon list so the individually stronger two-hander still
+			// appears as a coherent alternative tier.
+			int firstCandidate = slot == EquipmentInventorySlot.WEAPON
+				? 0
+				: currentIndex + 1;
+			for (int candidateIndex = firstCandidate;
 				candidateIndex < slotCandidates.size();
 				candidateIndex++)
 			{
+				if (candidateIndex == currentIndex) continue;
 				EnumMap<EquipmentInventorySlot, GearRecommendation> neighbor =
 					new EnumMap<>(EquipmentInventorySlot.class);
 				neighbor.putAll(current);
@@ -953,6 +1011,7 @@ class GearScorer
 	{
 		double damage;
 		double accuracy;
+		String normalizedItemName = NameMatcher.normalize(itemName);
 		boolean prayerFirst = gearPriority == GearPriority.PRAYER_FIRST;
 
 		// Prayer First changes sustain gear, not the combat-optimal weapon.
@@ -971,7 +1030,7 @@ class GearScorer
 		switch (strategy.getCombatStyle())
 		{
 			case MAGIC:
-				damage = stats.getMdmg() * 25.0;
+				damage = effectiveMagicDamageBonus(strategy, normalizedItemName, stats) * 25.0;
 				accuracy = stats.getAmagic() * .28;
 				break;
 			case RANGED:
@@ -986,7 +1045,8 @@ class GearScorer
 
 		if (slot == EquipmentInventorySlot.WEAPON)
 		{
-			double damageMultiplier = WeaponCombatRules.damageMultiplier(strategy, itemName);
+			double damageMultiplier = WeaponCombatRules.damageMultiplier(strategy, itemName)
+				* WeaponCombatRules.intrinsicDamageMultiplier(strategy, itemName);
 			double accuracyMultiplier = WeaponCombatRules.accuracyMultiplier(strategy, itemName);
 
 			/*
@@ -1017,7 +1077,7 @@ class GearScorer
 		}
 
 		double score = damage + accuracy + utility;
-		String n = NameMatcher.normalize(itemName);
+		String n = normalizedItemName;
 
 		if (slot == EquipmentInventorySlot.HEAD && (n.contains("slayer helm") || n.startsWith("black mask"))
 			&& (strategy.getCombatStyle() == CombatStyle.MELEE || n.contains("(i)") || n.contains("imbued")))
@@ -1031,16 +1091,40 @@ class GearScorer
 		}
 
 		// Curated names are tie-breakers; required weapons are enforced elsewhere.
+		// In particular, a preferred weapon name must not overcome a meaningful
+		// attack-speed, accuracy, strength or encounter-passive disadvantage.
 		for (int x = 0; x < strategy.getPreferredItems().size(); x++)
 		{
 			if (n.contains(NameMatcher.normalize(strategy.getPreferredItems().get(x))))
 			{
-				score += Math.max(40, 160 - x * 20);
+				score += slot == EquipmentInventorySlot.WEAPON
+					? Math.max(2, 12 - x * 2)
+					: Math.max(10, 40 - x * 5);
 				break;
 			}
 		}
 
 		return score;
+	}
+
+	static float effectiveMagicDamageBonus(
+		GearStrategy strategy,
+		String normalizedItemName,
+		ItemEquipmentStats stats)
+	{
+		float visibleBonus = stats.getMdmg();
+		if (strategy != null
+			&& strategy.isAncientAoe()
+			&& normalizedItemName != null
+			&& (normalizedItemName.contains("virtus mask")
+				|| normalizedItemName.contains("virtus robe top")
+				|| normalizedItemName.contains("virtus robe bottom")))
+		{
+			// RuneLite exposes Virtus' visible 2% bonus in item stats. Ancient
+			// combat spells receive another 3% per piece at cast time.
+			return visibleBonus + 3.0f;
+		}
+		return visibleBonus;
 	}
 
 	private List<BankEquipment> collectEquipment(Item[] items, Set<Integer> bank, Set<Integer> packed)
@@ -1157,13 +1241,15 @@ class GearScorer
 		{
 			String affinity = WeaponCombatRules.affinityReason(strategy, name);
 			if (affinity != null) r.add(affinity);
+			String intrinsic = WeaponCombatRules.intrinsicReason(strategy, name);
+			if (intrinsic != null) r.add(intrinsic);
 		}
 		else if (slot == EquipmentInventorySlot.AMMO && WeaponCombatRules.isFieryPearlAmmo(strategy, name))
 		{
 			r.add("Fiery-target Sea Curse bonus");
 		}
 		for(String p:strategy.getPreferredItems())if(NameMatcher.normalize(name).contains(NameMatcher.normalize(p))){r.add("task-method priority");break;}
-		switch(strategy.getCombatStyle()){case MAGIC:add(r,stats.getMdmg(),"% magic dmg");add(r,stats.getAmagic(),"magic");break;case RANGED:add(r,stats.getRstr(),"ranged Str");add(r,stats.getArange(),"ranged");break;default:add(r,stats.getStr(),"melee Str");add(r,attackBonus(strategy.getAttackType(),stats),strategy.getAttackType().name().toLowerCase(Locale.ENGLISH));}
+		switch(strategy.getCombatStyle()){case MAGIC:add(r,effectiveMagicDamageBonus(strategy,NameMatcher.normalize(name),stats),"% magic dmg");add(r,stats.getAmagic(),"magic");break;case RANGED:add(r,stats.getRstr(),"ranged Str");add(r,stats.getArange(),"ranged");break;default:add(r,stats.getStr(),"melee Str");add(r,attackBonus(strategy.getAttackType(),stats),strategy.getAttackType().name().toLowerCase(Locale.ENGLISH));}
 		if (slot != EquipmentInventorySlot.WEAPON)
 		{
 			int totalDefence = stats.getDstab() + stats.getDslash() + stats.getDcrush()

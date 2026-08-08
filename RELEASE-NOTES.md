@@ -29,6 +29,32 @@ bank-layout, customization, and support improvements into one reviewable update.
 
 ## Coherent loadout tiers
 
+- Replaced several generic Slayer-boss fallbacks with encounter-aware weapon
+  methods for Araxxor, Cerberus, Duke Sucellus, Sarachnis, Vardorvis, Abyssal
+  Sire, Kalphite Queen, and Vet'ion.
+- Tightened melee attack-style classification so weapons such as the Arkan
+  blade, rapiers, halberds, whips, staves, and sickles cannot be ranked on
+  combat styles they cannot actually use.
+- Audited every curated task and boss profile against its current OSRS Wiki
+  strategy page, correcting mismatched styles and separating distinct methods.
+- Aquanites now compare Soulreaper axe and multi-hit Scythe value against the
+  reduced-defence stab route instead of forcing every weapon through Stab.
+- Araxyte assignments now rank Crush for the Araxxor main weapon and expose the
+  Noxious halberd separately as a hatched-araxyte and mirrorback switch.
+- Scythe scoring now accounts for two- and three-hit target sizes, while
+  Soulreaper axe scoring includes conservative sustained Soul-stack value.
+- Corrected Wiki-aligned method details for Gryphons, Kalphites, Trolls, Warped
+  creatures, Wyrms, Cerberus, Duke Sucellus, Sarachnis, Vardorvis, Abyssal Sire,
+  and Kalphite Queen.
+- Duke Sucellus now applies his reduced Demonbane effectiveness rather than the
+  unrestricted demon multiplier.
+- Curated weapon names are now true close tie-breakers instead of large bonuses
+  that could overpower attack speed, accuracy, Strength, or target passives.
+- One-handed weapon plus off-hand packages are compared against complete
+  two-handed setups before choosing Tier 1.
+- Ancient Magicks methods now score Virtus robes with their additional 3%
+  damage per piece, correctly ranking them above Ancestral for Burst and
+  Barrage loadouts while leaving ordinary Magic rankings unchanged.
 - Tier 1 remains the strongest complete owned setup.
 - Tier 2 and Tier 3 now start from Tier 1 and introduce progressively different
   fallback combinations instead of unrelated per-slot rankings.
@@ -50,6 +76,17 @@ bank-layout, customization, and support improvements into one reviewable update.
 
 ## Task-scaled trip supplies
 
+- Added a Prayer-restore dropdown that strictly selects either Prayer potions
+  or Super restores for trip preparation and bank matching.
+- Added an opt-in Slayer-bracelet switch with separate Expeditious and
+  Slaughter preferences.
+- Added the Crystal chime as required preparation for warped creatures.
+- Added an explicit Max cape home-teleport preference alongside the existing
+  Dramen staff, Lunar staff, Quest cape, and route-specific travel choices.
+- Max cape travel matching now requires the actual base Max cape and no longer
+  accepts Magic or combat-oriented max-cape variants without its utility.
+- Bank scans now identify boxed Dwarf cannon sets and explain that they must be
+  exchanged at a Grand Exchange clerk; the four usable parts remain required.
 - Added Full assignment, Short trip, and Custom kills planning.
 - Added Light, Normal, and Extra food/Prayer safety levels.
 - Added quantity estimates for food, Prayer support, combat boosts, Goading,

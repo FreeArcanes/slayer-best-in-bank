@@ -132,13 +132,14 @@ custom kill count. The planner can estimate:
 - Bastion and ranging potions;
 - Goading potions;
 - Prayer regeneration potions;
-- Prayer potions, Super restores, and related sustain;
+- a strict Prayer potion or Super restore preference for Prayer sustain;
 - food;
 - antifire and venom protection;
 - run-energy support;
 - Rune pouch preparation;
 - cannonballs;
-- Slayer tools and finishing items.
+- Slayer tools and finishing items, including Crystal chimes for warped creatures;
+- optional Expeditious or Slaughter bracelet switches.
 
 **Potion Estimate (BETA)** adds quantity targets based on the remaining kills,
 trip length, combat method, and supply preferences. Turning it off removes the
@@ -161,7 +162,8 @@ The plugin is designed to adapt to different accounts, budgets, and trip styles.
 | **Low-risk mode** | Cap the estimated combined value of the complete Tier 1 equipment setup. |
 | **Trip length** | Plan for the full assignment, a short trip, or a custom kill count. |
 | **Food / Prayer safety** | Use Light, Normal, or Extra automatic supply estimates. |
-| **Supply preferences** | Toggle Goading, Prayer regeneration, and Divine boost preferences. |
+| **Supply preferences** | Toggle Goading, Prayer regeneration, Divine boosts, and an Expeditious or Slaughter bracelet switch. |
+| **Teleport preferences** | Choose owned home, spell, Slayer-ring, fairy-ring, and Kourend travel options, including Max cape and Dramen staff. |
 | **Bank highlights** | Enable normal-bank markers and choose colors for each tier. |
 | **Prep reminder** | Show or hide the reminder after leaving the bank underprepared. |
 

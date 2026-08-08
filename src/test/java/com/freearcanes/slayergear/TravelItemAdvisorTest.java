@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TravelItemAdvisorTest
@@ -59,8 +60,30 @@ public class TravelItemAdvisorTest
 
 		assertEquals("Construction cape", home.getFallback());
 		assertArrayEquals(
-			new String[]{"construct. cape", "construction cape", "max cape"},
+			new String[]{"construct. cape", "construction cape"},
 			home.getPreferredNames());
+	}
+
+	@Test
+	public void maxCapeIsAnExplicitHomeTeleportPreference()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public HomeTeleportPreference homeTeleportPreference()
+			{
+				return HomeTeleportPreference.MAX_CAPE;
+			}
+		};
+
+		TravelItemAdvisor.TravelRule home = TravelItemAdvisor.recommend("", null, config).get(0);
+
+		assertEquals("Max cape", home.getFallback());
+		assertArrayEquals(new String[]{"max cape"}, home.getPreferredNames());
+		assertTrue(SmartSupplyAdvisor.matchesPreferredSupply("max cape", "max cape"));
+		assertFalse(SmartSupplyAdvisor.matchesPreferredSupply("magic cape", "max cape"));
+		assertFalse(SmartSupplyAdvisor.matchesPreferredSupply(
+			"imbued saradomin max cape", "max cape"));
 	}
 
 	@Test
@@ -126,6 +149,41 @@ public class TravelItemAdvisorTest
 		assertArrayEquals(
 			new String[]{"law rune", "trollheim teleport"},
 			route.getPreferredNames());
+	}
+
+	@Test
+	public void maxCapeCanLeadSpellFairyRingAndKourendRoutes()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public SpellTeleportPreference spellTeleportPreference()
+			{
+				return SpellTeleportPreference.MAX_CAPE_FIRST;
+			}
+
+			@Override
+			public FairyRingPreference fairyRingPreference()
+			{
+				return FairyRingPreference.MAX_CAPE_FIRST;
+			}
+
+			@Override
+			public KourendTeleportPreference kourendTeleportPreference()
+			{
+				return KourendTeleportPreference.MAX_CAPE_FIRST;
+			}
+		};
+
+		assertEquals("max cape", find(
+			TravelItemAdvisor.recommend("God Wars Dungeon", null, config),
+			"Trollheim teleport").getPreferredNames()[0]);
+		assertEquals("max cape", find(
+			TravelItemAdvisor.recommend("Zanaris", null, config),
+			"Fairy ring access").getPreferredNames()[0]);
+		assertEquals("max cape", find(
+			TravelItemAdvisor.recommend("Catacombs of Kourend", null, config),
+			"Kourend teleport").getPreferredNames()[0]);
 	}
 
 	@Test

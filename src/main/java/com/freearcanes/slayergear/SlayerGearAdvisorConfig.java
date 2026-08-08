@@ -171,10 +171,22 @@ public interface SlayerGearAdvisorConfig extends Config
 	default SupplyLevel prayerSafety() { return SupplyLevel.NORMAL; }
 
 	@ConfigItem(
+		keyName = "prayerRestorePreference",
+		name = "Prayer restore",
+		description = "Choose whether trip preparation recommends Prayer potions or Super restores for Prayer sustain.",
+		position = 6,
+		section = tripPlanningSection
+	)
+	default PrayerRestorePreference prayerRestorePreference()
+	{
+		return PrayerRestorePreference.PRAYER_POTION;
+	}
+
+	@ConfigItem(
 		keyName = "useGoading",
 		name = "Goading potion",
 		description = "Include owned Goading potions in automatic trip preparation.",
-		position = 6,
+		position = 7,
 		section = tripPlanningSection
 	)
 	default boolean useGoading() { return true; }
@@ -183,7 +195,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "usePrayerRegen",
 		name = "Prayer regeneration",
 		description = "Include owned Prayer regeneration potions in automatic trip preparation.",
-		position = 7,
+		position = 8,
 		section = tripPlanningSection
 	)
 	default boolean usePrayerRegen() { return true; }
@@ -192,10 +204,43 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "preferDivineBoosts",
 		name = "Prefer Divine boosts",
 		description = "Prefer owned Divine combat boosts over their regular versions.",
-		position = 8,
+		position = 9,
 		section = tripPlanningSection
 	)
 	default boolean preferDivineBoosts() { return true; }
+
+	@ConfigItem(
+		keyName = "useSlayerBracelet",
+		name = "Bring Slayer bracelet",
+		description = "Include the selected Expeditious or Slaughter bracelet in bank preparation. The bracelet is packed as a switch so the main glove-slot recommendation is preserved.",
+		position = 10,
+		section = tripPlanningSection
+	)
+	default boolean useSlayerBracelet() { return false; }
+
+	@ConfigItem(
+		keyName = "slayerBraceletPreference",
+		name = "Slayer bracelet",
+		description = "Expeditious can shorten an assignment; Slaughter can extend it. Choose either one or bring both as glove switches.",
+		position = 11,
+		section = tripPlanningSection
+	)
+	default SlayerBraceletPreference slayerBraceletPreference()
+	{
+		return SlayerBraceletPreference.EXPEDITIOUS;
+	}
+
+	@ConfigItem(
+		keyName = "prayerRemainsPreference",
+		name = "Bone/Ash tools",
+		description = "Optionally bring a Bonecrusher or Ash sanctifier. Automatic chooses from the task's normal remains and shows both for mixed or boss assignments.",
+		position = 12,
+		section = tripPlanningSection
+	)
+	default PrayerRemainsPreference prayerRemainsPreference()
+	{
+		return PrayerRemainsPreference.OFF;
+	}
 
 	@ConfigItem(
 		keyName = "travelSuggestionsEnabled",
@@ -221,7 +266,7 @@ public interface SlayerGearAdvisorConfig extends Config
 	@ConfigItem(
 		keyName = "spellTeleportPreference",
 		name = "Spell teleports",
-		description = "Prefer teleport tablets or rune-based spell teleports when both are available.",
+		description = "Prefer Max cape/POH access, teleport tablets, or rune-based spell teleports when available.",
 		position = 3,
 		section = teleportSection
 	)
@@ -245,7 +290,7 @@ public interface SlayerGearAdvisorConfig extends Config
 	@ConfigItem(
 		keyName = "fairyRingPreference",
 		name = "Fairy ring access",
-		description = "Preferred carried item for routes that use a nearby fairy ring.",
+		description = "Preferred carried item or Max cape/POH route for travel through a nearby fairy ring.",
 		position = 5,
 		section = teleportSection
 	)
@@ -257,7 +302,7 @@ public interface SlayerGearAdvisorConfig extends Config
 	@ConfigItem(
 		keyName = "kourendTeleportPreference",
 		name = "Kourend travel",
-		description = "Preferred travel item for the Catacombs, Chasm of Fire, and nearby Kourend routes.",
+		description = "Preferred travel item or Max cape/POH route for the Catacombs, Chasm of Fire, and nearby Kourend routes.",
 		position = 6,
 		section = teleportSection
 	)

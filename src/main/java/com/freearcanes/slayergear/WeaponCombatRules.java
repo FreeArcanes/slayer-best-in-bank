@@ -17,9 +17,13 @@ final class WeaponCombatRules
 		if (n.isEmpty()) return true;
 
 		if (n.contains("halberd")) return attackType == AttackType.STAB || attackType == AttackType.SLASH;
+		if (has(n, "arkan blade", "blade of saeldor", "sulphur blades"))
+			return attackType == AttackType.STAB || attackType == AttackType.SLASH;
+		if (n.contains("colossal blade")) return attackType == AttackType.SLASH || attackType == AttackType.CRUSH;
 		if (has(n, "silverlight", "darklight", "arclight", "emberlight")) return attackType == AttackType.STAB || attackType == AttackType.SLASH;
 		if (has(n, "whip", "tentacle")) return attackType == AttackType.SLASH;
-		if (has(n, "rapier", "scimitar", "dagger", "claw"))
+		if (n.contains("rapier")) return attackType == AttackType.STAB;
+		if (has(n, "scimitar", "dagger", "claw"))
 			return attackType == AttackType.STAB || attackType == AttackType.SLASH;
 		if (n.contains("fang")) return attackType == AttackType.STAB || attackType == AttackType.SLASH;
 		if (n.contains("partisan")) return attackType == AttackType.STAB || attackType == AttackType.CRUSH;
@@ -36,6 +40,8 @@ final class WeaponCombatRules
 		if (has(n, "macuahuitl", "temotli")) return attackType == AttackType.CRUSH;
 		if (n.contains("hallowed flail")) return attackType == AttackType.CRUSH || attackType == AttackType.SLASH;
 		if (n.contains("flail")) return attackType == AttackType.CRUSH;
+		if (n.contains("sickle")) return attackType == AttackType.SLASH;
+		if (has(n, "staff", "wand", "sceptre", "trident", "bulwark")) return attackType == AttackType.CRUSH;
 
 		if (n.endsWith(" sword") || n.contains(" longsword") || n.contains(" shortsword"))
 			return attackType == AttackType.STAB || attackType == AttackType.SLASH;
@@ -56,7 +62,7 @@ final class WeaponCombatRules
 
 		if (traits.contains(TargetTrait.DEMON))
 		{
-			if (has(n, "emberlight", "arclight")) result = Math.max(result, 1.70);
+			if (has(n, "emberlight", "arclight")) result = Math.max(result, isDuke(strategy) ? 1.49 : 1.70);
 			// Silverlight/Darklight are +60% damage versus demons; current Wiki
 			// mechanics do not give their normal attacks a matching accuracy multiplier.
 			else if (has(n, "darklight", "silverlight")) result = Math.max(result, 1.00);
@@ -106,7 +112,7 @@ final class WeaponCombatRules
 
 		if (traits.contains(TargetTrait.DEMON))
 		{
-			if (has(n, "emberlight", "arclight")) result = Math.max(result, 1.70);
+			if (has(n, "emberlight", "arclight")) result = Math.max(result, isDuke(strategy) ? 1.49 : 1.70);
 			else if (has(n, "darklight", "silverlight")) result = Math.max(result, 1.60);
 			else if (has(n, "burning claws", "bone claws")) result = Math.max(result, 1.05);
 			else if (strategy.getCombatStyle() == CombatStyle.RANGED && n.contains("scorching bow")) result = Math.max(result, 1.30);
@@ -163,14 +169,56 @@ final class WeaponCombatRules
 	static double flatDamageScore(GearStrategy strategy, String itemName)
 	{
 		String n = NameMatcher.normalize(itemName);
-		if (!effectiveTraits(strategy).contains(TargetTrait.RAT)) return 0;
-		if ((strategy.getCombatStyle() == CombatStyle.MELEE && n.contains("bone mace"))
+		Set<TargetTrait> traits = effectiveTraits(strategy);
+		if (traits.contains(TargetTrait.RAT)
+			&& ((strategy.getCombatStyle() == CombatStyle.MELEE && n.contains("bone mace"))
 			|| (strategy.getCombatStyle() == CombatStyle.RANGED && n.contains("bone shortbow"))
-			|| (strategy.getCombatStyle() == CombatStyle.MAGIC && n.contains("bone staff")))
+			|| (strategy.getCombatStyle() == CombatStyle.MAGIC && n.contains("bone staff"))))
 		{
 			return 250.0;
 		}
 		return 0;
+	}
+
+	/**
+	 * Weapon mechanics that affect sustained damage independently of a monster
+	 * family passive. These are kept separate from target effects so they cannot
+	 * make a weapon bypass an incompatible attack-style requirement.
+	 */
+	static double intrinsicDamageMultiplier(GearStrategy strategy, String itemName)
+	{
+		String n = NameMatcher.normalize(itemName);
+		if (strategy == null || strategy.getCombatStyle() != CombatStyle.MELEE) return 1.0;
+		if (n.contains("soulreaper axe"))
+		{
+			// Sustained Slayer combat can maintain five Soul stacks. Their +30%
+			// Strength-level boost is represented conservatively against the whole
+			// damage proxy rather than as a raw +30% final-damage multiplier.
+			return 1.18;
+		}
+		Set<TargetTrait> traits = effectiveTraits(strategy);
+		if (n.contains("scythe of vitur"))
+		{
+			if (traits.contains(TargetTrait.SCYTHE_THREE_HIT)) return 1.75;
+			if (traits.contains(TargetTrait.SCYTHE_TWO_HIT)) return 1.50;
+		}
+		return 1.0;
+	}
+
+	static String intrinsicReason(GearStrategy strategy, String itemName)
+	{
+		String n = NameMatcher.normalize(itemName);
+		if (n.contains("soulreaper axe") && intrinsicDamageMultiplier(strategy, itemName) > 1.0)
+		{
+			return "Sustained Soul stack value";
+		}
+		if (n.contains("scythe of vitur"))
+		{
+			double multiplier = intrinsicDamageMultiplier(strategy, itemName);
+			if (multiplier == 1.75) return "Three-hit Scythe target";
+			if (multiplier == 1.50) return "Two-hit Scythe target";
+		}
+		return null;
 	}
 
 
@@ -261,6 +309,12 @@ final class WeaponCombatRules
 		if (n.contains("uncharged") || n.endsWith("(u)")) return false;
 		return has(n, "craw's bow", "webweaver bow", "viggora's chainmace", "ursine chainmace",
 			"thammaron's sceptre", "accursed sceptre");
+	}
+
+	private static boolean isDuke(GearStrategy strategy)
+	{
+		return strategy != null && (NameMatcher.normalize(strategy.getName()).contains("duke sucellus")
+			|| NameMatcher.normalize(strategy.getLocation()).contains("duke sucellus"));
 	}
 
 	private static boolean has(String value, String... tokens)

@@ -374,6 +374,65 @@ public class GearScorerTest
 	}
 
 	@Test
+	public void twoHandedWeaponIsComparedAgainstTheWholeOneHandedPackage()
+	{
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		GearScorer.BankEquipment twoHanded = riskItem(
+			1, "Noxious halberd", EquipmentInventorySlot.WEAPON, 0, 120, false, true);
+		GearScorer.BankEquipment oneHanded = riskItem(
+			2, "Blade of saeldor", EquipmentInventorySlot.WEAPON, 0, 100, false);
+		GearScorer.BankEquipment defender = riskItem(
+			3, "Avernic defender", EquipmentInventorySlot.SHIELD, 0, 30, false);
+		candidates.put(EquipmentInventorySlot.WEAPON, Arrays.asList(twoHanded, oneHanded));
+		candidates.put(EquipmentInventorySlot.SHIELD, Collections.singletonList(defender));
+
+		Map<EquipmentInventorySlot, GearScorer.BankEquipment> selected =
+			GearScorer.selectWeaponPair(1, candidates);
+
+		assertEquals("Blade of saeldor", selected.get(EquipmentInventorySlot.WEAPON).name);
+		assertEquals("Avernic defender", selected.get(EquipmentInventorySlot.SHIELD).name);
+
+		List<Map<EquipmentInventorySlot, GearRecommendation>> tiers =
+			new GearScorer(null, null).buildCoherentLoadouts(
+				2,
+				candidates,
+				GearStrategy.builder().combatStyle(CombatStyle.MELEE).build(),
+				Collections.emptyList(),
+				Collections.emptySet(),
+				false,
+				0);
+		assertEquals("Blade of saeldor",
+			tiers.get(0).get(EquipmentInventorySlot.WEAPON).getItemName());
+		assertEquals("Avernic defender",
+			tiers.get(0).get(EquipmentInventorySlot.SHIELD).getItemName());
+		assertEquals("Noxious halberd",
+			tiers.get(1).get(EquipmentInventorySlot.WEAPON).getItemName());
+		assertFalse(tiers.get(1).containsKey(EquipmentInventorySlot.SHIELD));
+	}
+
+	@Test
+	public void strongerTwoHanderWinsWhenItBeatsMainHandAndOffhandTogether()
+	{
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		GearScorer.BankEquipment twoHanded = riskItem(
+			1, "Noxious halberd", EquipmentInventorySlot.WEAPON, 0, 150, false, true);
+		GearScorer.BankEquipment oneHanded = riskItem(
+			2, "Arkan blade", EquipmentInventorySlot.WEAPON, 0, 100, false);
+		GearScorer.BankEquipment defender = riskItem(
+			3, "Dragon defender", EquipmentInventorySlot.SHIELD, 0, 20, false);
+		candidates.put(EquipmentInventorySlot.WEAPON, Arrays.asList(twoHanded, oneHanded));
+		candidates.put(EquipmentInventorySlot.SHIELD, Collections.singletonList(defender));
+
+		Map<EquipmentInventorySlot, GearScorer.BankEquipment> selected =
+			GearScorer.selectWeaponPair(1, candidates);
+
+		assertEquals("Noxious halberd", selected.get(EquipmentInventorySlot.WEAPON).name);
+		assertFalse(selected.containsKey(EquipmentInventorySlot.SHIELD));
+	}
+
+	@Test
 	public void pinnedGearRemainsAHardOverrideWhenItExceedsTheLoadoutCap()
 	{
 		GearScorer.BankEquipment pinned = riskItem(
@@ -456,7 +515,7 @@ public class GearScorerTest
 		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
 			new EnumMap<>(EquipmentInventorySlot.class);
 		candidates.put(EquipmentInventorySlot.WEAPON, Arrays.asList(
-			riskItem(40, "Magic shortbow", EquipmentInventorySlot.WEAPON, 0, 100, false, true),
+			riskItem(40, "Magic shortbow", EquipmentInventorySlot.WEAPON, 0, 120, false, true),
 			riskItem(41, "Rune crossbow", EquipmentInventorySlot.WEAPON, 0, 90, false, false)));
 		candidates.put(EquipmentInventorySlot.AMMO, Arrays.asList(
 			riskItem(42, "Amethyst arrow", EquipmentInventorySlot.AMMO, 0, 20, false),
@@ -494,7 +553,7 @@ public class GearScorerTest
 		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
 			new EnumMap<>(EquipmentInventorySlot.class);
 		candidates.put(EquipmentInventorySlot.WEAPON, Arrays.asList(
-			riskItem(50, "Noxious halberd", EquipmentInventorySlot.WEAPON, 0, 100, false, true),
+			riskItem(50, "Noxious halberd", EquipmentInventorySlot.WEAPON, 0, 120, false, true),
 			riskItem(51, "Abyssal whip", EquipmentInventorySlot.WEAPON, 0, 90, false, false)));
 		candidates.put(EquipmentInventorySlot.SHIELD, Collections.singletonList(
 			riskItem(52, "Rune defender", EquipmentInventorySlot.SHIELD, 0, 15, false)));
@@ -820,7 +879,8 @@ public class GearScorerTest
 	@Test
 	public void specializedTaskProfilesWinOverBroadBossAliases()
 	{
-		assertTrue(TaskProfiles.find("Cerberus").orElseThrow().getKey().equals("hellhounds"));
+		assertTrue(TaskProfiles.find("Cerberus").orElseThrow().getKey().equals("cerberus-boss"));
+		assertTrue(TaskProfiles.find("Hellhounds").orElseThrow().getKey().equals("hellhounds"));
 		assertTrue(TaskProfiles.find("The Thermonuclear Smoke Devil").orElseThrow().getKey().equals("melee-boss"));
 	}
 
@@ -859,6 +919,37 @@ public class GearScorerTest
 		assertFalse(SmartSupplyAdvisor.isUnsafeFoodName("manta ray", false));
 		assertFalse(SmartSupplyAdvisor.isWildernessTask("Catacombs of Kourend", null));
 		assertTrue(SmartSupplyAdvisor.isWildernessTask("Wilderness Slayer Cave", null));
+	}
+
+	@Test
+	public void allBlightedSuppliesAreRestrictedToWildernessTasks()
+	{
+		assertTrue(SmartSupplyAdvisor.isUnavailableForContext(
+			"Prayer", "blighted super restore(4)", false, false));
+		assertFalse(SmartSupplyAdvisor.isUnavailableForContext(
+			"Prayer", "blighted super restore(4)", true, false));
+		assertFalse(SmartSupplyAdvisor.isUnavailableForContext(
+			"Prayer", "super restore(4)", false, false));
+	}
+
+	@Test
+	public void darkBeastSlashStrategyPrefersOathplateAccuracyOverTorvaStrength()
+	{
+		GearStrategy strategy = TaskProfiles.find("Dark beasts")
+			.orElseThrow().getStrategies().get(0);
+		ItemEquipmentStats oathplateChest = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.BODY.getSlotIdx())
+			.aslash(16).str(4).dstab(105).dslash(128).dcrush(100).dmagic(-5).drange(112)
+			.build();
+		ItemEquipmentStats torvaBody = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.BODY.getSlotIdx())
+			.str(6).prayer(1).dstab(117).dslash(111).dcrush(117).dmagic(-11).drange(142)
+			.build();
+
+		assertTrue(GearScorer.scoreStats(strategy, "Oathplate chest",
+			EquipmentInventorySlot.BODY, oathplateChest)
+			> GearScorer.scoreStats(strategy, "Torva platebody",
+				EquipmentInventorySlot.BODY, torvaBody));
 	}
 
 	@Test

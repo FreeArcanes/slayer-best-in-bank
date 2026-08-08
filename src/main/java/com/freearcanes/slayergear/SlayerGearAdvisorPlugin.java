@@ -62,6 +62,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private static final String SLAYER_TASK_KEY = "taskName";
 	private static final String SLAYER_LOCATION_KEY = "taskLocation";
 	private static final String SLAYER_AMOUNT_KEY = "amount";
+	private static final String TURAEL_AYA_SPEED_KEY = "turaelAyaSpeedMode";
 	private static final Item[] EMPTY_ITEMS = new Item[0];
 	private static final Set<Integer> DIZANAS_QUIVER_IDS = dizanasQuiverIds();
 
@@ -124,6 +125,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private String lastTaskLocation = "";
 	private int lastTaskAmount = -1;
 	private volatile boolean highlightsActive;
+	private boolean turaelAyaSpeedMode;
 	private final BankFlowState bankFlow = new BankFlowState();
 	private final TripPreparationState tripPreparation = new TripPreparationState();
 	private final AtomicBoolean pluginRunning = new AtomicBoolean();
@@ -147,7 +149,10 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		panel.setSupplyQuantityHandler(this::adjustSupplyQuantity);
 		panel.setLoadoutRefreshHandler(this::queueRefreshBankLoadout);
 		panel.setAdvisorToggleHandler(this::toggleAdvisor);
+		panel.setTuraelAyaSpeedToggleHandler(this::toggleTuraelAyaSpeedMode);
 		panel.setAdvisorEnabled(config.advisorEnabled());
+		turaelAyaSpeedMode = readTuraelAyaSpeedMode();
+		panel.setTuraelAyaSpeedMode(turaelAyaSpeedMode);
 
 		AsyncBufferedImage icon = itemManager.getImage(ItemID.SLAYER_HELM);
 		// RuneLite snapshots/resizes navigation icons as soon as they are added.
@@ -497,6 +502,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			panel.setAdvisorEnabled(config.advisorEnabled());
 			clientThread.invokeLater(this::applyAdvisorEnabledState);
 		}
+		else if (TURAEL_AYA_SPEED_KEY.equals(event.getKey()))
+		{
+			turaelAyaSpeedMode = readTuraelAyaSpeedMode();
+			panel.setTuraelAyaSpeedMode(turaelAyaSpeedMode);
+			clientThread.invokeLater(this::recalculateOrMarkBankRefresh);
+		}
 		else if (isRecommendationConfigKey(event.getKey()))
 		{
 			// RuneLite configuration changes can originate outside the client thread.
@@ -516,6 +527,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			highlightsActive = config.highlightsEnabled();
 			panel.setTheme(config.panelTheme());
 			panel.setAdvisorEnabled(config.advisorEnabled());
+			turaelAyaSpeedMode = readTuraelAyaSpeedMode();
+			panel.setTuraelAyaSpeedMode(turaelAyaSpeedMode);
 			applyAdvisorEnabledState();
 		});
 	}
@@ -545,9 +558,13 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			|| "potionEstimatesEnabled".equals(key)
 			|| "foodSafety".equals(key)
 			|| "prayerSafety".equals(key)
+			|| "prayerRestorePreference".equals(key)
 			|| "useGoading".equals(key)
 			|| "usePrayerRegen".equals(key)
 			|| "preferDivineBoosts".equals(key)
+			|| "useSlayerBracelet".equals(key)
+			|| "slayerBraceletPreference".equals(key)
+			|| "prayerRemainsPreference".equals(key)
 			|| "travelSuggestionsEnabled".equals(key)
 			|| "homeTeleportPreference".equals(key)
 			|| "spellTeleportPreference".equals(key)
@@ -686,6 +703,21 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			!config.advisorEnabled());
 	}
 
+	private void toggleTuraelAyaSpeedMode()
+	{
+		configManager.setConfiguration(
+			SlayerGearAdvisorConfig.GROUP,
+			TURAEL_AYA_SPEED_KEY,
+			!turaelAyaSpeedMode);
+	}
+
+	private boolean readTuraelAyaSpeedMode()
+	{
+		return Boolean.parseBoolean(configManager.getConfiguration(
+			SlayerGearAdvisorConfig.GROUP,
+			TURAEL_AYA_SPEED_KEY));
+	}
+
 	private void applyAdvisorEnabledState()
 	{
 		if (config.advisorEnabled())
@@ -812,7 +844,10 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			return;
 		}
 
-		Optional<SlayerTaskProfile> profile = TaskProfiles.find(lastTaskName, lastTaskLocation);
+		Optional<SlayerTaskProfile> profile = TaskProfiles.find(
+			lastTaskName,
+			lastTaskLocation,
+			turaelAyaSpeedMode);
 		if (!profile.isPresent())
 		{
 			closeBankFilter();

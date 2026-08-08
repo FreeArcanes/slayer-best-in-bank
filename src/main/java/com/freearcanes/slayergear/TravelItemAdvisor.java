@@ -255,13 +255,18 @@ final class TravelItemAdvisor
 			? HomeTeleportPreference.TELEPORT_TO_HOUSE : preference;
 		switch (selected)
 		{
+			case MAX_CAPE:
+				rules.add(rule(
+					"Max cape",
+					"Preferred home and player-owned-house travel",
+					"max cape"));
+				break;
 			case CONSTRUCTION_CAPE:
 				rules.add(rule(
 					"Construction cape",
 					"Preferred home and player-owned-house travel",
 					"construct. cape",
-					"construction cape",
-					"max cape"));
+					"construction cape"));
 				break;
 			case RUNES:
 				rules.add(rule(
@@ -287,6 +292,10 @@ final class TravelItemAdvisor
 		String tabletName,
 		SpellTeleportPreference preference)
 	{
+		if (preference == SpellTeleportPreference.MAX_CAPE_FIRST)
+		{
+			return rule(fallback, reason, "max cape", tabletName, "law rune");
+		}
 		if (preference == SpellTeleportPreference.RUNES_FIRST)
 		{
 			return rule(fallback, reason, "law rune", tabletName);
@@ -303,6 +312,10 @@ final class TravelItemAdvisor
 
 	private static String[] fairyRingNames(FairyRingPreference preference)
 	{
+		if (preference == FairyRingPreference.MAX_CAPE_FIRST)
+		{
+			return new String[]{"max cape", "quest point cape", "lunar staff", "dramen staff"};
+		}
 		if (preference == FairyRingPreference.LUNAR_STAFF_FIRST)
 		{
 			return new String[]{"lunar staff", "dramen staff", "quest point cape"};
@@ -316,6 +329,10 @@ final class TravelItemAdvisor
 
 	private static String[] kourendNames(KourendTeleportPreference preference)
 	{
+		if (preference == KourendTeleportPreference.MAX_CAPE_FIRST)
+		{
+			return new String[]{"max cape", "xeric's talisman", "rada's blessing", "kourend castle teleport"};
+		}
 		if (preference == KourendTeleportPreference.RADAS_BLESSING_FIRST)
 		{
 			return new String[]{"rada's blessing", "xeric's talisman", "kourend castle teleport"};
