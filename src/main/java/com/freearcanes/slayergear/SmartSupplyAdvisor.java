@@ -390,8 +390,17 @@ class SmartSupplyAdvisor
 		// does not currently own a matching item. These remain non-blocking.
 		if (strategy != null)
 		{
-			rules.add(suggestedRule("Prayer", "Useful sustain for protection or offensive prayers",
-				"Prayer potion(4)", "prayer potion", "super restore", "sanfew serum"));
+			PrayerRestorePreference preference = config.prayerRestorePreference();
+			if (preference == PrayerRestorePreference.SUPER_RESTORE)
+			{
+				rules.add(suggestedRule("Prayer", "Useful sustain for protection or offensive prayers",
+					"Super restore(4)", "super restore"));
+			}
+			else
+			{
+				rules.add(suggestedRule("Prayer", "Useful sustain for protection or offensive prayers",
+					"Prayer potion(4)", "prayer potion"));
+			}
 		}
 
 		rules.add(suggestedRule("Food", "Emergency healing for the trip",
@@ -577,6 +586,13 @@ class SmartSupplyAdvisor
 	static boolean matchesPreferredSupply(String normalizedName, String preferred)
 	{
 		if (normalizedName == null || preferred == null) return false;
+		// Only the base Max cape retains the Max cape utility teleports. Combat
+		// variants such as imbued god/max capes contain the same words but do not
+		// satisfy the selected home-teleport preference.
+		if ("max cape".equals(preferred))
+		{
+			return "max cape".equals(normalizedName);
+		}
 		if (!preferred.startsWith("divine ")
 			&& normalizedName.startsWith("divine ")
 			&& normalizedName.contains(preferred))

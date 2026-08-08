@@ -171,10 +171,22 @@ public interface SlayerGearAdvisorConfig extends Config
 	default SupplyLevel prayerSafety() { return SupplyLevel.NORMAL; }
 
 	@ConfigItem(
+		keyName = "prayerRestorePreference",
+		name = "Prayer restore",
+		description = "Choose whether trip preparation recommends Prayer potions or Super restores for Prayer sustain.",
+		position = 6,
+		section = tripPlanningSection
+	)
+	default PrayerRestorePreference prayerRestorePreference()
+	{
+		return PrayerRestorePreference.PRAYER_POTION;
+	}
+
+	@ConfigItem(
 		keyName = "useGoading",
 		name = "Goading potion",
 		description = "Include owned Goading potions in automatic trip preparation.",
-		position = 6,
+		position = 7,
 		section = tripPlanningSection
 	)
 	default boolean useGoading() { return true; }
@@ -183,7 +195,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "usePrayerRegen",
 		name = "Prayer regeneration",
 		description = "Include owned Prayer regeneration potions in automatic trip preparation.",
-		position = 7,
+		position = 8,
 		section = tripPlanningSection
 	)
 	default boolean usePrayerRegen() { return true; }
@@ -192,7 +204,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "preferDivineBoosts",
 		name = "Prefer Divine boosts",
 		description = "Prefer owned Divine combat boosts over their regular versions.",
-		position = 8,
+		position = 9,
 		section = tripPlanningSection
 	)
 	default boolean preferDivineBoosts() { return true; }
@@ -201,7 +213,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "useSlayerBracelet",
 		name = "Bring Slayer bracelet",
 		description = "Include the selected Expeditious or Slaughter bracelet in bank preparation. The bracelet is packed as a switch so the main glove-slot recommendation is preserved.",
-		position = 9,
+		position = 10,
 		section = tripPlanningSection
 	)
 	default boolean useSlayerBracelet() { return false; }
@@ -210,7 +222,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "slayerBraceletPreference",
 		name = "Slayer bracelet",
 		description = "Expeditious can shorten an assignment; Slaughter can extend it. The selected bracelet is shown when Bring Slayer bracelet is enabled.",
-		position = 10,
+		position = 11,
 		section = tripPlanningSection
 	)
 	default SlayerBraceletPreference slayerBraceletPreference()

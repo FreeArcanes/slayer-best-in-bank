@@ -132,7 +132,7 @@ custom kill count. The planner can estimate:
 - Bastion and ranging potions;
 - Goading potions;
 - Prayer regeneration potions;
-- Prayer potions, Super restores, and related sustain;
+- a strict Prayer potion or Super restore preference for Prayer sustain;
 - food;
 - antifire and venom protection;
 - run-energy support;

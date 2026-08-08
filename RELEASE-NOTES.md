@@ -67,11 +67,15 @@ bank-layout, customization, and support improvements into one reviewable update.
 
 ## Task-scaled trip supplies
 
+- Added a Prayer-restore dropdown that strictly selects either Prayer potions
+  or Super restores for trip preparation and bank matching.
 - Added an opt-in Slayer-bracelet switch with separate Expeditious and
   Slaughter preferences.
 - Added the Crystal chime as required preparation for warped creatures.
 - Added an explicit Max cape home-teleport preference alongside the existing
   Dramen staff, Lunar staff, Quest cape, and route-specific travel choices.
+- Max cape travel matching now requires the actual base Max cape and no longer
+  accepts Magic or combat-oriented max-cape variants without its utility.
 - Bank scans now identify boxed Dwarf cannon sets and explain that they must be
   exchanged at a Grand Exchange clerk; the four usable parts remain required.
 - Added Full assignment, Short trip, and Custom kills planning.

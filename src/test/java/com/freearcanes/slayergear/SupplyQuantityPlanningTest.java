@@ -100,6 +100,44 @@ public class SupplyQuantityPlanningTest
 	}
 
 	@Test
+	public void prayerPotionIsTheDefaultExclusivePrayerRestore()
+	{
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, new SlayerGearAdvisorConfig() {});
+		SmartSupplyAdvisor.SupplyRule prayer = advisor.buildRules(
+			TaskProfiles.find("Bloodveld").orElseThrow(),
+			GearStrategy.builder().name("Melee").combatStyle(CombatStyle.MELEE).build()).stream()
+			.filter(rule -> "Prayer".equals(rule.getCategory()))
+			.findFirst()
+			.orElseThrow();
+
+		assertEquals(1, prayer.getPreferredNames().size());
+		assertEquals("prayer potion", prayer.getPreferredNames().get(0));
+	}
+
+	@Test
+	public void superRestorePreferenceExcludesPrayerPotions()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public PrayerRestorePreference prayerRestorePreference()
+			{
+				return PrayerRestorePreference.SUPER_RESTORE;
+			}
+		};
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, config);
+		SmartSupplyAdvisor.SupplyRule prayer = advisor.buildRules(
+			TaskProfiles.find("Bloodveld").orElseThrow(),
+			GearStrategy.builder().name("Melee").combatStyle(CombatStyle.MELEE).build()).stream()
+			.filter(rule -> "Prayer".equals(rule.getCategory()))
+			.findFirst()
+			.orElseThrow();
+
+		assertEquals(1, prayer.getPreferredNames().size());
+		assertEquals("super restore", prayer.getPreferredNames().get(0));
+	}
+
+	@Test
 	public void selectedSlayerBraceletIsIncludedAsAnInventorySwitch()
 	{
 		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
@@ -418,6 +456,8 @@ public class SupplyQuantityPlanningTest
 	public void recommendationRefreshPolicyIncludesProfileSupplyOverrides()
 	{
 		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey("tripPlan"));
+		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey(
+			"prayerRestorePreference"));
 		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey(
 			"supply.greater-demons.prayer-regen"));
 		assertFalse(SlayerGearAdvisorPlugin.isRecommendationConfigKey("bestColor"));

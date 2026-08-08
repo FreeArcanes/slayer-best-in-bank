@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TravelItemAdvisorTest
@@ -79,6 +80,10 @@ public class TravelItemAdvisorTest
 
 		assertEquals("Max cape", home.getFallback());
 		assertArrayEquals(new String[]{"max cape"}, home.getPreferredNames());
+		assertTrue(SmartSupplyAdvisor.matchesPreferredSupply("max cape", "max cape"));
+		assertFalse(SmartSupplyAdvisor.matchesPreferredSupply("magic cape", "max cape"));
+		assertFalse(SmartSupplyAdvisor.matchesPreferredSupply(
+			"imbued saradomin max cape", "max cape"));
 	}
 
 	@Test
