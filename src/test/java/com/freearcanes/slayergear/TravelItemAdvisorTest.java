@@ -59,8 +59,26 @@ public class TravelItemAdvisorTest
 
 		assertEquals("Construction cape", home.getFallback());
 		assertArrayEquals(
-			new String[]{"construct. cape", "construction cape", "max cape"},
+			new String[]{"construct. cape", "construction cape"},
 			home.getPreferredNames());
+	}
+
+	@Test
+	public void maxCapeIsAnExplicitHomeTeleportPreference()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public HomeTeleportPreference homeTeleportPreference()
+			{
+				return HomeTeleportPreference.MAX_CAPE;
+			}
+		};
+
+		TravelItemAdvisor.TravelRule home = TravelItemAdvisor.recommend("", null, config).get(0);
+
+		assertEquals("Max cape", home.getFallback());
+		assertArrayEquals(new String[]{"max cape"}, home.getPreferredNames());
 	}
 
 	@Test

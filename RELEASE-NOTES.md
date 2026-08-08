@@ -29,6 +29,23 @@ bank-layout, customization, and support improvements into one reviewable update.
 
 ## Coherent loadout tiers
 
+- Replaced several generic Slayer-boss fallbacks with encounter-aware weapon
+  methods for Araxxor, Cerberus, Duke Sucellus, Sarachnis, Vardorvis, Abyssal
+  Sire, Kalphite Queen, and Vet'ion.
+- Tightened melee attack-style classification so weapons such as the Arkan
+  blade, rapiers, halberds, whips, staves, and sickles cannot be ranked on
+  combat styles they cannot actually use.
+- Araxyte assignments now expose a separate Araxxor Slash method, including the
+  Noxious halberd's guaranteed minion hits and safe mirrorback reach.
+- Duke Sucellus now applies his reduced Demonbane effectiveness rather than the
+  unrestricted demon multiplier.
+- Curated weapon names are now true close tie-breakers instead of large bonuses
+  that could overpower attack speed, accuracy, Strength, or target passives.
+- One-handed weapon plus off-hand packages are compared against complete
+  two-handed setups before choosing Tier 1.
+- Ancient Magicks methods now score Virtus robes with their additional 3%
+  damage per piece, correctly ranking them above Ancestral for Burst and
+  Barrage loadouts while leaving ordinary Magic rankings unchanged.
 - Tier 1 remains the strongest complete owned setup.
 - Tier 2 and Tier 3 now start from Tier 1 and introduce progressively different
   fallback combinations instead of unrelated per-slot rankings.
@@ -50,6 +67,13 @@ bank-layout, customization, and support improvements into one reviewable update.
 
 ## Task-scaled trip supplies
 
+- Added an opt-in Slayer-bracelet switch with separate Expeditious and
+  Slaughter preferences.
+- Added the Crystal chime as required preparation for warped creatures.
+- Added an explicit Max cape home-teleport preference alongside the existing
+  Dramen staff, Lunar staff, Quest cape, and route-specific travel choices.
+- Bank scans now identify boxed Dwarf cannon sets and explain that they must be
+  exchanged at a Grand Exchange clerk; the four usable parts remain required.
 - Added Full assignment, Short trip, and Custom kills planning.
 - Added Light, Normal, and Extra food/Prayer safety levels.
 - Added quantity estimates for food, Prayer support, combat boosts, Goading,

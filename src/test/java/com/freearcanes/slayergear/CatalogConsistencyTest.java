@@ -146,11 +146,12 @@ public class CatalogConsistencyTest
 	}
 
 	@Test
-	public void broadBossAliasesCannotReplaceCuratedTaskProfiles()
+	public void exactBossProfilesCanRefineBroaderAssignmentAliases()
 	{
-		assertEquals("hellhounds", TaskProfiles.find("Cerberus").orElseThrow().getKey());
-		assertTrue("Expected the ignored broad Cerberus alias to be auditable",
-			TaskProfiles.ignoredAliasCollisions().containsKey("cerberus"));
+		assertEquals("hellhounds", TaskProfiles.find("Hellhounds").orElseThrow().getKey());
+		assertEquals("cerberus-boss", TaskProfiles.find("Cerberus").orElseThrow().getKey());
+		assertEquals("araxytes", TaskProfiles.find("Araxytes").orElseThrow().getKey());
+		assertEquals("araxxor-boss", TaskProfiles.find("Araxxor").orElseThrow().getKey());
 	}
 
 	private static void assertText(String field, String value, String context)

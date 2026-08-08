@@ -226,6 +226,22 @@ class SmartSupplyAdvisor
 			rules.add(rule("Prayer regen", "Passive Prayer sustain during longer Slayer trips", false,
 				"Prayer regeneration potion", "prayer regeneration potion"));
 		}
+		if (config.useSlayerBracelet())
+		{
+			SlayerBraceletPreference preference = config.slayerBraceletPreference();
+			if (preference == SlayerBraceletPreference.SLAUGHTER)
+			{
+				rules.add(suggestedRule("Slayer bracelet",
+					"A Bracelet of slaughter can extend the assignment and is packed as a glove switch",
+					"Bracelet of slaughter", "bracelet of slaughter"));
+			}
+			else
+			{
+				rules.add(suggestedRule("Slayer bracelet",
+					"An Expeditious bracelet can shorten the assignment and is packed as a glove switch",
+					"Expeditious bracelet", "expeditious bracelet"));
+			}
+		}
 
 		if (ancientAoe)
 		{
@@ -336,6 +352,12 @@ class SmartSupplyAdvisor
 			rules.add(0, rule("Task tool", "A Slayer bell dislodges Molanisks before combat", true,
 				"Slayer bell", "slayer bell"));
 		}
+		if (contains(key, "warped-creatures"))
+		{
+			rules.add(0, rule("Task tool",
+				"A Crystal chime is required to damage warped terrorbirds and warped tortoises",
+				true, "Crystal chime", "crystal chime"));
+		}
 		if (isCannon(strategy))
 		{
 			rules.add(rule("Cannon ammo", "A cannon method needs ammunition before leaving the bank", true,
@@ -393,6 +415,21 @@ class SmartSupplyAdvisor
 		Set<Integer> usedCanonicalIds)
 	{
 		String[] parts = {"cannon base", "cannon stand", "cannon barrels", "cannon furnace"};
+		OwnedItem packedSet = findExact("dwarf cannon set", packed);
+		OwnedItem bankSet = findExact("dwarf cannon set", bank);
+		if (packedSet != null || bankSet != null)
+		{
+			OwnedItem display = bankSet != null ? bankSet : packedSet;
+			usedCanonicalIds.add(display.canonicalItemId);
+			recommendations.add(new SupplyRecommendation(
+				display.itemId,
+				display.canonicalItemId,
+				display.name,
+				"Cannon set",
+				"Exchange this boxed set with a Grand Exchange clerk to obtain the four usable cannon parts",
+				resolveStatus(packedSet != null, bankSet != null),
+				false));
+		}
 		int regularOwned = cannonPartsOwned(parts, false, bank, packed);
 		int ornamentOwned = cannonPartsOwned(parts, true, bank, packed);
 		boolean ornamented = ornamentOwned > regularOwned;

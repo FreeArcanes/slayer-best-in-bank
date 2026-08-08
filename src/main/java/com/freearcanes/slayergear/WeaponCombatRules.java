@@ -17,9 +17,13 @@ final class WeaponCombatRules
 		if (n.isEmpty()) return true;
 
 		if (n.contains("halberd")) return attackType == AttackType.STAB || attackType == AttackType.SLASH;
+		if (has(n, "arkan blade", "blade of saeldor", "sulphur blades"))
+			return attackType == AttackType.STAB || attackType == AttackType.SLASH;
+		if (n.contains("colossal blade")) return attackType == AttackType.SLASH || attackType == AttackType.CRUSH;
 		if (has(n, "silverlight", "darklight", "arclight", "emberlight")) return attackType == AttackType.STAB || attackType == AttackType.SLASH;
 		if (has(n, "whip", "tentacle")) return attackType == AttackType.SLASH;
-		if (has(n, "rapier", "scimitar", "dagger", "claw"))
+		if (n.contains("rapier")) return attackType == AttackType.STAB;
+		if (has(n, "scimitar", "dagger", "claw"))
 			return attackType == AttackType.STAB || attackType == AttackType.SLASH;
 		if (n.contains("fang")) return attackType == AttackType.STAB || attackType == AttackType.SLASH;
 		if (n.contains("partisan")) return attackType == AttackType.STAB || attackType == AttackType.CRUSH;
@@ -36,6 +40,8 @@ final class WeaponCombatRules
 		if (has(n, "macuahuitl", "temotli")) return attackType == AttackType.CRUSH;
 		if (n.contains("hallowed flail")) return attackType == AttackType.CRUSH || attackType == AttackType.SLASH;
 		if (n.contains("flail")) return attackType == AttackType.CRUSH;
+		if (n.contains("sickle")) return attackType == AttackType.SLASH;
+		if (has(n, "staff", "wand", "sceptre", "trident", "bulwark")) return attackType == AttackType.CRUSH;
 
 		if (n.endsWith(" sword") || n.contains(" longsword") || n.contains(" shortsword"))
 			return attackType == AttackType.STAB || attackType == AttackType.SLASH;
@@ -56,7 +62,7 @@ final class WeaponCombatRules
 
 		if (traits.contains(TargetTrait.DEMON))
 		{
-			if (has(n, "emberlight", "arclight")) result = Math.max(result, 1.70);
+			if (has(n, "emberlight", "arclight")) result = Math.max(result, isDuke(strategy) ? 1.49 : 1.70);
 			// Silverlight/Darklight are +60% damage versus demons; current Wiki
 			// mechanics do not give their normal attacks a matching accuracy multiplier.
 			else if (has(n, "darklight", "silverlight")) result = Math.max(result, 1.00);
@@ -106,7 +112,7 @@ final class WeaponCombatRules
 
 		if (traits.contains(TargetTrait.DEMON))
 		{
-			if (has(n, "emberlight", "arclight")) result = Math.max(result, 1.70);
+			if (has(n, "emberlight", "arclight")) result = Math.max(result, isDuke(strategy) ? 1.49 : 1.70);
 			else if (has(n, "darklight", "silverlight")) result = Math.max(result, 1.60);
 			else if (has(n, "burning claws", "bone claws")) result = Math.max(result, 1.05);
 			else if (strategy.getCombatStyle() == CombatStyle.RANGED && n.contains("scorching bow")) result = Math.max(result, 1.30);
@@ -163,10 +169,17 @@ final class WeaponCombatRules
 	static double flatDamageScore(GearStrategy strategy, String itemName)
 	{
 		String n = NameMatcher.normalize(itemName);
-		if (!effectiveTraits(strategy).contains(TargetTrait.RAT)) return 0;
-		if ((strategy.getCombatStyle() == CombatStyle.MELEE && n.contains("bone mace"))
+		Set<TargetTrait> traits = effectiveTraits(strategy);
+		if (traits.contains(TargetTrait.ARAXXOR) && n.contains("noxious halberd"))
+		{
+			// Encounter utility: guaranteed max hits on hatched araxytes and the
+			// halberd's reach avoids mirrorback recoil when used from one tile away.
+			return 175.0;
+		}
+		if (traits.contains(TargetTrait.RAT)
+			&& ((strategy.getCombatStyle() == CombatStyle.MELEE && n.contains("bone mace"))
 			|| (strategy.getCombatStyle() == CombatStyle.RANGED && n.contains("bone shortbow"))
-			|| (strategy.getCombatStyle() == CombatStyle.MAGIC && n.contains("bone staff")))
+			|| (strategy.getCombatStyle() == CombatStyle.MAGIC && n.contains("bone staff"))))
 		{
 			return 250.0;
 		}
@@ -217,6 +230,7 @@ final class WeaponCombatRules
 		String n = NameMatcher.normalize(itemName);
 		Set<TargetTrait> traits = effectiveTraits(strategy);
 		if (traits.contains(TargetTrait.GOLEM) && has(n, "granite hammer", "barronite mace")) return "Golembane target effect";
+		if (traits.contains(TargetTrait.ARAXXOR) && n.contains("noxious halberd")) return "Araxxor minion and reach utility";
 		if (traits.contains(TargetTrait.DEMON)) return "Demonbane target effect";
 		if (traits.contains(TargetTrait.DRAGON)) return "Dragonbane target effect";
 		if (traits.contains(TargetTrait.WILDERNESS) && isWildernessWeapon(n)) return "Wilderness weapon +50% accuracy/damage";
@@ -261,6 +275,12 @@ final class WeaponCombatRules
 		if (n.contains("uncharged") || n.endsWith("(u)")) return false;
 		return has(n, "craw's bow", "webweaver bow", "viggora's chainmace", "ursine chainmace",
 			"thammaron's sceptre", "accursed sceptre");
+	}
+
+	private static boolean isDuke(GearStrategy strategy)
+	{
+		return strategy != null && (NameMatcher.normalize(strategy.getName()).contains("duke sucellus")
+			|| NameMatcher.normalize(strategy.getLocation()).contains("duke sucellus"));
 	}
 
 	private static boolean has(String value, String... tokens)

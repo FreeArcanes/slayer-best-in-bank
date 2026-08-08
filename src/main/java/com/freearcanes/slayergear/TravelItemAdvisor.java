@@ -255,13 +255,18 @@ final class TravelItemAdvisor
 			? HomeTeleportPreference.TELEPORT_TO_HOUSE : preference;
 		switch (selected)
 		{
+			case MAX_CAPE:
+				rules.add(rule(
+					"Max cape",
+					"Preferred home and player-owned-house travel",
+					"max cape"));
+				break;
 			case CONSTRUCTION_CAPE:
 				rules.add(rule(
 					"Construction cape",
 					"Preferred home and player-owned-house travel",
 					"construct. cape",
-					"construction cape",
-					"max cape"));
+					"construction cape"));
 				break;
 			case RUNES:
 				rules.add(rule(

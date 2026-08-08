@@ -22,6 +22,96 @@ public class CombatIntelligenceTest
 	}
 
 	@Test
+	public void auditedWeaponFamiliesCannotMasqueradeAsUnsupportedStyles()
+	{
+		assertTrue(WeaponCombatRules.supportsAttackType("Arkan blade", AttackType.STAB));
+		assertTrue(WeaponCombatRules.supportsAttackType("Arkan blade", AttackType.SLASH));
+		assertFalse(WeaponCombatRules.supportsAttackType("Arkan blade", AttackType.CRUSH));
+		assertFalse(WeaponCombatRules.supportsAttackType("Noxious halberd", AttackType.CRUSH));
+		assertFalse(WeaponCombatRules.supportsAttackType("Ghrazi rapier", AttackType.SLASH));
+		assertTrue(WeaponCombatRules.supportsAttackType("Ghrazi rapier", AttackType.STAB));
+		assertFalse(WeaponCombatRules.supportsAttackType("Abyssal whip", AttackType.STAB));
+		assertFalse(WeaponCombatRules.supportsAttackType("Trident of the swamp", AttackType.SLASH));
+		assertTrue(WeaponCombatRules.supportsAttackType("Trident of the swamp", AttackType.CRUSH));
+	}
+
+	@Test
+	public void araxxorRanksNoxiousHalberdAboveArkanBlade()
+	{
+		GearStrategy araxxor = TaskProfiles.find("Araxxor").orElseThrow().getStrategies().get(0);
+		ItemEquipmentStats noxious = weapon(80, 132, 0, 142, 5);
+		ItemEquipmentStats arkan = weapon(55, 70, 0, 64, 4);
+
+		assertEquals(AttackType.SLASH, araxxor.getAttackType());
+		assertTrue(araxxor.getTargetTraits().contains(TargetTrait.ARAXXOR));
+		assertTrue(GearScorer.scoreStats(araxxor, "Noxious halberd", EquipmentInventorySlot.WEAPON, noxious)
+			> GearScorer.scoreStats(araxxor, "Arkan blade", EquipmentInventorySlot.WEAPON, arkan));
+		assertTrue(WeaponCombatRules.affinityReason(araxxor, "Noxious halberd").contains("Araxxor"));
+	}
+
+	@Test
+	public void preferredWeaponNameOnlyBreaksCloseTies()
+	{
+		GearStrategy strategy = GearStrategy.builder()
+			.name("Slash")
+			.combatStyle(CombatStyle.MELEE)
+			.attackType(AttackType.SLASH)
+			.preferredItem("Suggested sword")
+			.build();
+		ItemEquipmentStats suggested = weapon(0, 80, 0, 80, 4);
+		ItemEquipmentStats stronger = weapon(0, 80, 0, 84, 4);
+
+		assertTrue(GearScorer.scoreStats(
+			strategy, "Actually stronger sword", EquipmentInventorySlot.WEAPON, stronger)
+			> GearScorer.scoreStats(
+				strategy, "Suggested sword", EquipmentInventorySlot.WEAPON, suggested));
+	}
+
+	@Test
+	public void araxyteAssignmentExposesSeparateNormalAndBossMethods()
+	{
+		SlayerTaskProfile profile = TaskProfiles.find("Araxytes").orElseThrow();
+
+		assertTrue(profile.getStrategies().stream().anyMatch(strategy ->
+			NameMatcher.normalize(strategy.getName()).contains("araxxor")
+				&& strategy.getAttackType() == AttackType.SLASH
+				&& strategy.getTargetTraits().contains(TargetTrait.ARAXXOR)));
+		assertTrue(profile.getStrategies().stream().anyMatch(strategy ->
+			NameMatcher.normalize(strategy.getName()).contains("melee fallback")
+				&& strategy.getAttackType() == AttackType.CRUSH));
+	}
+
+	@Test
+	public void auditedSlayerBossesNoLongerUseTheGenericMeleeBucket()
+	{
+		assertEquals(AttackType.CRUSH, TaskProfiles.find("Cerberus").orElseThrow().getStrategies().get(0).getAttackType());
+		assertTrue(TaskProfiles.find("Cerberus").orElseThrow().getStrategies().get(0)
+			.getTargetTraits().contains(TargetTrait.DEMON));
+		assertEquals(AttackType.SLASH, TaskProfiles.find("Duke Sucellus").orElseThrow().getStrategies().get(0).getAttackType());
+		assertEquals(AttackType.CRUSH, TaskProfiles.find("Sarachnis").orElseThrow().getStrategies().get(0).getAttackType());
+		assertEquals(AttackType.SLASH, TaskProfiles.find("Vardorvis").orElseThrow().getStrategies().get(0).getAttackType());
+		assertEquals(WeaponRule.DEMONBANE, TaskProfiles.find("Abyssal Sire").orElseThrow()
+			.getStrategies().get(0).getWeaponRule());
+		assertTrue(TaskProfiles.find("Kalphite Queen").orElseThrow().getStrategies().get(0)
+			.getTargetTraits().contains(TargetTrait.KALPHITE));
+		assertTrue(TaskProfiles.find("Vet'ion").orElseThrow().getStrategies().get(0)
+			.getTargetTraits().contains(TargetTrait.WILDERNESS));
+	}
+
+	@Test
+	public void dukeAppliesItsReducedDemonbaneMultiplier()
+	{
+		GearStrategy duke = TaskProfiles.find("Duke Sucellus").orElseThrow().getStrategies().get(0);
+		GearStrategy ordinaryDemon = TaskProfiles.find("Black demons").orElseThrow().getStrategies().stream()
+			.filter(strategy -> strategy.getCombatStyle() == CombatStyle.MELEE)
+			.findFirst().orElseThrow();
+
+		assertEquals(1.49, WeaponCombatRules.damageMultiplier(duke, "Emberlight"), 0.0001);
+		assertEquals(1.49, WeaponCombatRules.accuracyMultiplier(duke, "Emberlight"), 0.0001);
+		assertEquals(1.70, WeaponCombatRules.damageMultiplier(ordinaryDemon, "Emberlight"), 0.0001);
+	}
+
+	@Test
 	public void gargoylesCarryCrushGolembaneAndEarthWeakness()
 	{
 		GearStrategy gargoyle = TaskProfiles.find("Gargoyles").orElseThrow().getStrategies().get(0);
@@ -248,6 +338,45 @@ public class CombatIntelligenceTest
 			NameMatcher.normalize(s.getName()).contains("air magic")));
 	}
 
+	@Test
+	public void virtusBeatsAncestralForEveryAncientAoeMethod()
+	{
+		ItemEquipmentStats virtus = magicArmour(2, 30);
+		ItemEquipmentStats ancestral = magicArmour(3, 30);
+
+		for (SlayerTaskProfile profile : new HashSet<>(TaskProfiles.catalogSnapshot().values()))
+		{
+			for (GearStrategy strategy : profile.getStrategies())
+			{
+				if (!strategy.isAncientAoe())
+				{
+					continue;
+				}
+
+				double virtusScore = GearScorer.scoreStats(
+					strategy, "Virtus robe top", EquipmentInventorySlot.BODY, virtus);
+				double ancestralScore = GearScorer.scoreStats(
+					strategy, "Ancestral robe top", EquipmentInventorySlot.BODY, ancestral);
+				assertTrue(profile.getKey(), virtusScore > ancestralScore);
+			}
+		}
+	}
+
+	@Test
+	public void ancestralRetainsItsVisibleDamageLeadOutsideAncientCombatSpells()
+	{
+		GearStrategy ordinaryMagic = GearStrategy.builder()
+			.name("Ordinary Magic")
+			.combatStyle(CombatStyle.MAGIC)
+			.build();
+		ItemEquipmentStats virtus = magicArmour(2, 30);
+		ItemEquipmentStats ancestral = magicArmour(3, 30);
+
+		assertTrue(
+			GearScorer.scoreStats(ordinaryMagic, "Ancestral robe top", EquipmentInventorySlot.BODY, ancestral)
+				> GearScorer.scoreStats(ordinaryMagic, "Virtus robe top", EquipmentInventorySlot.BODY, virtus));
+	}
+
 
 	@Test
 	public void newlyAuditedElementalAndMeleeWeaknessesAreEncoded()
@@ -358,6 +487,15 @@ public class CombatIntelligenceTest
 			.acrush(crush)
 			.str(strength)
 			.aspeed(speed)
+			.build();
+	}
+
+	private static ItemEquipmentStats magicArmour(int magicDamage, int magicAccuracy)
+	{
+		return ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.BODY.getSlotIdx())
+			.mdmg(magicDamage)
+			.amagic(magicAccuracy)
 			.build();
 	}
 }

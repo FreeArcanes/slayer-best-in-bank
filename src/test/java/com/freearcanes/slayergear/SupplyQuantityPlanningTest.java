@@ -100,6 +100,61 @@ public class SupplyQuantityPlanningTest
 	}
 
 	@Test
+	public void selectedSlayerBraceletIsIncludedAsAnInventorySwitch()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public boolean useSlayerBracelet()
+			{
+				return true;
+			}
+
+			@Override
+			public SlayerBraceletPreference slayerBraceletPreference()
+			{
+				return SlayerBraceletPreference.SLAUGHTER;
+			}
+		};
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, config);
+
+		SmartSupplyAdvisor.SupplyRule bracelet = advisor.buildRules(
+			TaskProfiles.find("Bloodveld").orElseThrow(),
+			GearStrategy.builder().name("Melee").combatStyle(CombatStyle.MELEE).build()).stream()
+			.filter(rule -> "Slayer bracelet".equals(rule.getCategory()))
+			.findFirst()
+			.orElseThrow();
+
+		assertEquals("bracelet of slaughter", bracelet.getPreferredNames().get(0));
+	}
+
+	@Test
+	public void slayerBraceletsRemainOptIn()
+	{
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, new SlayerGearAdvisorConfig() {});
+
+		assertFalse(advisor.buildRules(
+			TaskProfiles.find("Bloodveld").orElseThrow(),
+			GearStrategy.builder().name("Melee").combatStyle(CombatStyle.MELEE).build()).stream()
+			.anyMatch(rule -> "Slayer bracelet".equals(rule.getCategory())));
+	}
+
+	@Test
+	public void warpedCreaturesRequireCrystalChimes()
+	{
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, new SlayerGearAdvisorConfig() {});
+		SlayerTaskProfile warped = TaskProfiles.find("Warped creatures").orElseThrow();
+
+		SmartSupplyAdvisor.SupplyRule chimes = advisor.buildRules(
+			warped, warped.getStrategies().get(0)).stream()
+			.filter(rule -> rule.getPreferredNames().contains("crystal chime"))
+			.findFirst()
+			.orElseThrow();
+
+		assertEquals("Task tool", chimes.getCategory());
+	}
+
+	@Test
 	public void kalphitePrepIncludesPoisonProtectionAndGeneralSupplies()
 	{
 		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, new SlayerGearAdvisorConfig() {});

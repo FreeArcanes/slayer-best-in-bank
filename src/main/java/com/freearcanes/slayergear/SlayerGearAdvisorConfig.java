@@ -198,6 +198,27 @@ public interface SlayerGearAdvisorConfig extends Config
 	default boolean preferDivineBoosts() { return true; }
 
 	@ConfigItem(
+		keyName = "useSlayerBracelet",
+		name = "Bring Slayer bracelet",
+		description = "Include the selected Expeditious or Slaughter bracelet in bank preparation. The bracelet is packed as a switch so the main glove-slot recommendation is preserved.",
+		position = 9,
+		section = tripPlanningSection
+	)
+	default boolean useSlayerBracelet() { return false; }
+
+	@ConfigItem(
+		keyName = "slayerBraceletPreference",
+		name = "Slayer bracelet",
+		description = "Expeditious can shorten an assignment; Slaughter can extend it. The selected bracelet is shown when Bring Slayer bracelet is enabled.",
+		position = 10,
+		section = tripPlanningSection
+	)
+	default SlayerBraceletPreference slayerBraceletPreference()
+	{
+		return SlayerBraceletPreference.EXPEDITIOUS;
+	}
+
+	@ConfigItem(
 		keyName = "travelSuggestionsEnabled",
 		name = "Travel suggestions",
 		description = "Recommend optional teleport items for the assigned or selected Slayer location.",

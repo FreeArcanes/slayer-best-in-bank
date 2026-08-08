@@ -53,6 +53,14 @@ final class TaskProfiles
 				"Cannon and Venator bow is the current high-XP normal-task method.",
 				"Bring venom protection.",
 				venator("Cannon + Venator", "Morytania Spider Nest", "Top multi-target XP method."),
+				GearStrategy.builder()
+					.name("Araxxor — Slash melee")
+					.location("Araxxor's lair")
+					.rationale("Boss route: ranks real Slash DPS and accounts for Noxious halberd minion utility.")
+					.combatStyle(CombatStyle.MELEE)
+					.attackType(AttackType.SLASH)
+					.targetTrait(TargetTrait.ARAXXOR)
+					.build(),
 				melee("Melee fallback", "Morytania Spider Nest", AttackType.CRUSH,
 					"Uses the best offensive melee gear owned")),
 			"araxytes", "araxyte");
@@ -742,6 +750,17 @@ final class TaskProfiles
 		}
 	}
 
+	private static void registerOverride(
+		SlayerTaskProfile profile, String... taskNames)
+	{
+		for (String taskName : taskNames)
+		{
+			// Exact boss names intentionally refine broader assignment aliases such
+			// as Hellhounds -> Cerberus and Araxytes -> Araxxor.
+			PROFILES.register(profile, AliasCatalog.CollisionPolicy.REPLACE, taskName);
+		}
+	}
+
 	private static SlayerTaskProfile profile(
 		String key,
 		String displayName,
@@ -917,14 +936,77 @@ final class TaskProfiles
 
 	private static void registerBossAliases()
 	{
+		registerOverride(profile("araxxor-boss", "Araxxor",
+				"Slash melee is the primary boss method; encounter utility is scored separately from raw stats.",
+				"Use a Noxious halberd or another safe answer for hatched araxytes and mirrorbacks.",
+				GearStrategy.builder().name("Araxxor — Slash melee").location("Araxxor's lair")
+					.rationale("Ranks Slash DPS with Araxxor-specific Noxious halberd utility.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
+					.targetTrait(TargetTrait.ARAXXOR).build()),
+			"araxxor");
+
+		registerOverride(profile("cerberus-boss", "Cerberus",
+				"Crush is the normal defence weakness, while valid Demonbane weapons remain competitive.",
+				"Verify spectral-shield and ghost-cycle supplies for the chosen method.",
+				GearStrategy.builder().name("Cerberus — Crush / Demonbane").location("Cerberus' Lair")
+					.rationale("Ranks Crush DPS while retaining real Demonbane passives.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
+					.weaponRule(WeaponRule.DEMONBANE).targetTrait(TargetTrait.DEMON).build()),
+			"cerberus");
+
+		registerOverride(profile("duke-sucellus-boss", "Duke Sucellus",
+				"Slash weapons are preferred; Duke's resistance reduces, but does not remove, Demonbane value.",
+				"Special-attack choices are utility switches rather than automatic main weapons.",
+				GearStrategy.builder().name("Duke Sucellus — Slash").location("Duke Sucellus' chamber")
+					.rationale("Ranks Slash DPS with Duke's reduced Demonbane multiplier.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
+					.weaponRule(WeaponRule.DEMONBANE).targetTrait(TargetTrait.DEMON).build()),
+			"duke sucellus");
+
+		registerOverride(profile("sarachnis-boss", "Sarachnis",
+				"Fast Crush weapons exploit Sarachnis' primary defence weakness.",
+				"Magic defence and web-handling choices remain encounter-dependent.",
+				meleeMagicDef("Sarachnis — Crush", "Forthos Dungeon", AttackType.CRUSH,
+					"Ranks fast Crush DPS rather than generic melee stats.")),
+			"sarachnis");
+
+		registerOverride(profile("vardorvis-boss", "Vardorvis",
+				"Slash is substantially stronger than Crush or Stab against Vardorvis.",
+				"Defence-draining special attacks do not work; use damage or sustain switches.",
+				melee("Vardorvis — Slash", "The Stranglewood", AttackType.SLASH,
+					"Ranks owned Slash main weapons; special-attack utility is not treated as camp DPS.")),
+			"vardorvis");
+
+		registerOverride(profile("abyssal-sire-boss", "Abyssal Sire",
+				"Demonbane melee is preferred for the main damage phases.",
+				"Respiratory-system and phase switches still require manual encounter planning.",
+				demonMelee("Abyssal Sire — Demonbane", "Abyssal Nexus", "Ranks Demonbane main-hand damage.")),
+			"the abyssal sire", "abyssal sire");
+
+		registerOverride(profile("kalphite-queen-boss", "Kalphite Queen",
+				"Kalphite weapon effects and Crush-capable melee are ranked for the first phase.",
+				"The second phase requires a Ranged or Magic switch that is not a replacement main weapon.",
+				GearStrategy.builder().name("Kalphite Queen — Keris / Crush").location("Kalphite Queen lair")
+					.rationale("Ranks valid Crush weapons while retaining Keris-family effects.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
+					.weaponRule(WeaponRule.KALPHITE).targetTrait(TargetTrait.KALPHITE).build()),
+			"the kalphite queen", "kalphite queen");
+
+		registerOverride(profile("vetion-boss", "Vet'ion",
+				"Crush weapons are preferred and charged Wilderness weapons retain their Wilderness bonus.",
+				"Use Wilderness-appropriate risk and escape planning.",
+				GearStrategy.builder().name("Vet'ion — Wilderness Crush").location("Wilderness")
+					.rationale("Ranks Crush DPS with charged Wilderness-weapon effects.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
+					.targetTrait(TargetTrait.WILDERNESS).targetTrait(TargetTrait.UNDEAD).build()),
+			"vet'ion", "vetion");
+
 		SlayerTaskProfile meleeBoss = profile("melee-boss", "Melee boss",
 			"Boss-task fallback using offensive melee gear.",
 			"Verify encounter-specific switches and supplies.",
 			melee("Boss melee", "Boss lair", AttackType.BALANCED, "General melee shortlist"));
 		register(meleeBoss,
-			"the abyssal sire", "abyssal sire", "araxxor", "cerberus",
-			"duke sucellus", "the giant mole", "the grotesque guardians",
-			"the kalphite queen", "sarachnis", "vardorvis", "vet'ion",
+			"the giant mole", "the grotesque guardians",
 			"the thermonuclear smoke devil", "the maggot king");
 
 		SlayerTaskProfile rangedBoss = profile("ranged-boss", "Ranged boss",
