@@ -57,6 +57,7 @@ final class TaskProfiles
 					.preferredItem("ghrazi rapier")
 					.preferredItem("blade of saeldor")
 					.preferredItem("osmumten's fang")
+					.preferredItem("oathplate")
 					.build(),
 				ranged("Ranged", "Ynysdail Cavern",
 					"Wiki-listed alternative using the strongest owned Ranged setup.",
@@ -180,7 +181,8 @@ final class TaskProfiles
 				"A short, straightforward melee task.",
 				"Protect from Melee reduces supply use.",
 				melee("Melee", "Mourner Tunnels / Iorwerth Dungeon", AttackType.SLASH,
-					"Ranks melee damage first")),
+					"Dark beasts have high Defence; slash accuracy from Oathplate can outperform Torva with slash weapons.",
+					"oathplate")),
 			"dark beasts", "dark beast");
 
 		register(profile("drakes", "Drakes",
@@ -607,6 +609,14 @@ final class TaskProfiles
 
 	static Optional<SlayerTaskProfile> find(String taskName, String assignedLocation)
 	{
+		return find(taskName, assignedLocation, false);
+	}
+
+	static Optional<SlayerTaskProfile> find(
+		String taskName,
+		String assignedLocation,
+		boolean turaelAyaSpeedMode)
+	{
 		if (taskName == null)
 		{
 			return Optional.empty();
@@ -614,6 +624,10 @@ final class TaskProfiles
 		SlayerTaskProfile exact = PROFILES.get(taskName);
 		SlayerTaskProfile base = exact != null ? exact : generic(taskName);
 		base = withCannonOption(base, taskName, assignedLocation);
+		if (turaelAyaSpeedMode)
+		{
+			base = TuraelSpeedProfiles.apply(base, taskName);
+		}
 		return Optional.of(TaskCombatCatalog.enrich(base, taskName, assignedLocation));
 	}
 
@@ -1000,10 +1014,11 @@ final class TaskProfiles
 				"Slash weapons are preferred; Duke's resistance reduces, but does not remove, Demonbane value.",
 				"Special-attack choices are utility switches rather than automatic main weapons.",
 				GearStrategy.builder().name("Duke Sucellus — Slash").location("Duke Sucellus' chamber")
-					.rationale("Ranks Slash DPS with Duke's reduced Demonbane multiplier.")
+					.rationale("Ranks Slash DPS with Duke's reduced Demonbane multiplier and the Wiki's Oathplate-over-Torva armour order.")
 					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
 					.weaponRule(WeaponRule.DEMONBANE).targetTrait(TargetTrait.DEMON)
-					.targetTrait(TargetTrait.SCYTHE_THREE_HIT).build()),
+					.targetTrait(TargetTrait.SCYTHE_THREE_HIT)
+					.preferredItem("oathplate").build()),
 			"duke sucellus");
 
 		registerOverride(profile("sarachnis-boss", "Sarachnis",
@@ -1019,10 +1034,21 @@ final class TaskProfiles
 				"Slash is substantially stronger than Crush or Stab against Vardorvis.",
 				"Defence-draining special attacks do not work; use damage or sustain switches.",
 				GearStrategy.builder().name("Vardorvis - Slash").location("The Stranglewood")
-					.rationale("Ranks owned Slash main weapons and the Scythe's two-hit target value.")
+					.rationale("Ranks owned Slash main weapons, the Scythe's two-hit target value, and the Wiki's Oathplate-over-Torva armour order.")
 					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
-					.targetTrait(TargetTrait.SCYTHE_TWO_HIT).build()),
+					.targetTrait(TargetTrait.SCYTHE_TWO_HIT)
+					.preferredItem("oathplate").build()),
 			"vardorvis");
+
+		registerOverride(profile("skotizo-boss", "Skotizo",
+				"Demonbane slash is preferred, and the Wiki ranks Oathplate above Torva for the offensive melee setup.",
+				"Protect from Magic with offensive melee gear, or use a magic-defence setup with Protect from Melee.",
+				GearStrategy.builder().name("Skotizo - Demonbane slash").location("Catacombs of Kourend")
+					.rationale("Ranks Emberlight/Arclight with the Wiki's Oathplate-over-Torva armour order.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
+					.weaponRule(WeaponRule.DEMONBANE).targetTrait(TargetTrait.DEMON)
+					.preferredItem("oathplate").build()),
+			"skotizo");
 
 		registerOverride(profile("abyssal-sire-boss", "Abyssal Sire",
 				"Demonbane melee is preferred for the main damage phases.",

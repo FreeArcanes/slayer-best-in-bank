@@ -25,6 +25,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.ImageIcon;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
@@ -99,8 +100,11 @@ class SlayerGearPanel extends PluginPanel
 		(supply, action) -> { };
 	private Runnable loadoutRefreshHandler = () -> { };
 	private Runnable advisorToggleHandler = () -> { };
+	private Runnable turaelAyaSpeedToggleHandler = () -> { };
 	private JButton advisorToggleButton;
+	private JCheckBox turaelAyaSpeedCheckBox;
 	private boolean advisorEnabled = true;
+	private boolean turaelAyaSpeedMode;
 	private boolean showAlternatives;
 	private boolean showTaskDetails;
 	private PrepFocusMode prepFocusMode = PrepFocusMode.ALL;
@@ -148,6 +152,11 @@ class SlayerGearPanel extends PluginPanel
 		this.advisorToggleHandler = handler == null ? () -> { } : handler;
 	}
 
+	void setTuraelAyaSpeedToggleHandler(Runnable handler)
+	{
+		this.turaelAyaSpeedToggleHandler = handler == null ? () -> { } : handler;
+	}
+
 	void setAdvisorEnabled(boolean enabled)
 	{
 		SwingUtilities.invokeLater(() ->
@@ -158,6 +167,15 @@ class SlayerGearPanel extends PluginPanel
 			{
 				displayOnEdt(lastRecommendations);
 			}
+		});
+	}
+
+	void setTuraelAyaSpeedMode(boolean enabled)
+	{
+		SwingUtilities.invokeLater(() ->
+		{
+			turaelAyaSpeedMode = enabled;
+			updateTuraelAyaSpeedToggle();
 		});
 	}
 
@@ -275,6 +293,17 @@ class SlayerGearPanel extends PluginPanel
 		advisorToggleButton.addActionListener(event -> advisorToggleHandler.run());
 		updateAdvisorToggle();
 		root.add(advisorToggleButton);
+		root.add(Box.createVerticalStrut(4));
+
+		turaelAyaSpeedCheckBox = new JCheckBox("Turael/Aya skipping / boosting");
+		turaelAyaSpeedCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+		turaelAyaSpeedCheckBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+		turaelAyaSpeedCheckBox.setOpaque(false);
+		turaelAyaSpeedCheckBox.setFocusPainted(false);
+		turaelAyaSpeedCheckBox.setFont(FontManager.getRunescapeSmallFont());
+		turaelAyaSpeedCheckBox.addActionListener(event -> turaelAyaSpeedToggleHandler.run());
+		updateTuraelAyaSpeedToggle();
+		root.add(turaelAyaSpeedCheckBox);
 		return root;
 	}
 
@@ -290,6 +319,18 @@ class SlayerGearPanel extends PluginPanel
 			advisorEnabled
 				? "Pause recommendations, bank helpers, and prep reminders"
 				: "Enable recommendations, bank helpers, and prep reminders");
+	}
+
+	private void updateTuraelAyaSpeedToggle()
+	{
+		if (turaelAyaSpeedCheckBox == null)
+		{
+			return;
+		}
+		turaelAyaSpeedCheckBox.setSelected(turaelAyaSpeedMode);
+		turaelAyaSpeedCheckBox.setForeground(turaelAyaSpeedMode ? TEAL : SOFT_TEXT);
+		turaelAyaSpeedCheckBox.setToolTipText(
+			"Use low-level Turael/Aya routes, blowpipe/ranged, cannon where supported, and an Expeditious bracelet");
 	}
 
 	private void displayOnEdt(GearRecommendations recommendations)

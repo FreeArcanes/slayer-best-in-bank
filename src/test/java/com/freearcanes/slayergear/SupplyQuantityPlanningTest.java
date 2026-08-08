@@ -1,5 +1,6 @@
 package com.freearcanes.slayergear;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -138,6 +139,36 @@ public class SupplyQuantityPlanningTest
 	}
 
 	@Test
+	public void blightedSuperRestoreIsOnlyPreferredForWildernessTasks()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public PrayerRestorePreference prayerRestorePreference()
+			{
+				return PrayerRestorePreference.SUPER_RESTORE;
+			}
+		};
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, config);
+		SlayerTaskProfile profile = TaskProfiles.find("Bloodveld").orElseThrow();
+		GearStrategy strategy = GearStrategy.builder()
+			.name("Melee").combatStyle(CombatStyle.MELEE).build();
+
+		SmartSupplyAdvisor.SupplyRule ordinary = advisor.buildRules(
+			profile, strategy, "Slayer Tower").stream()
+			.filter(rule -> "Prayer".equals(rule.getCategory()))
+			.findFirst().orElseThrow();
+		SmartSupplyAdvisor.SupplyRule wilderness = advisor.buildRules(
+			profile, strategy, "Wilderness Slayer Cave").stream()
+			.filter(rule -> "Prayer".equals(rule.getCategory()))
+			.findFirst().orElseThrow();
+
+		assertEquals(Arrays.asList("super restore"), ordinary.getPreferredNames());
+		assertEquals(Arrays.asList("blighted super restore", "super restore"),
+			wilderness.getPreferredNames());
+	}
+
+	@Test
 	public void selectedSlayerBraceletIsIncludedAsAnInventorySwitch()
 	{
 		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
@@ -164,6 +195,70 @@ public class SupplyQuantityPlanningTest
 			.orElseThrow();
 
 		assertEquals("bracelet of slaughter", bracelet.getPreferredNames().get(0));
+	}
+
+	@Test
+	public void bothSlayerBraceletsCanBePackedTogether()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public boolean useSlayerBracelet()
+			{
+				return true;
+			}
+
+			@Override
+			public SlayerBraceletPreference slayerBraceletPreference()
+			{
+				return SlayerBraceletPreference.BOTH;
+			}
+		};
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, config);
+
+		List<SmartSupplyAdvisor.SupplyRule> bracelets = advisor.buildRules(
+			TaskProfiles.find("Bloodveld").orElseThrow(),
+			GearStrategy.builder().name("Melee").combatStyle(CombatStyle.MELEE).build()).stream()
+			.filter(rule -> "Slayer bracelet".equals(rule.getCategory()))
+			.collect(Collectors.toList());
+
+		assertEquals(2, bracelets.size());
+		assertTrue(bracelets.stream().anyMatch(rule ->
+			rule.getPreferredNames().contains("bracelet of slaughter")));
+		assertTrue(bracelets.stream().anyMatch(rule ->
+			rule.getPreferredNames().contains("expeditious bracelet")));
+	}
+
+	@Test
+	public void automaticPrayerRemainsToolFollowsTaskDrops()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public PrayerRemainsPreference prayerRemainsPreference()
+			{
+				return PrayerRemainsPreference.AUTOMATIC;
+			}
+		};
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, config);
+
+		List<SmartSupplyAdvisor.SupplyRule> bloodveld = prayerRemainsRules(advisor, "Bloodveld");
+		List<SmartSupplyAdvisor.SupplyRule> darkBeast = prayerRemainsRules(advisor, "Dark beasts");
+		List<SmartSupplyAdvisor.SupplyRule> smokeDevil = prayerRemainsRules(advisor, "Smoke devils");
+
+		assertEquals("ash sanctifier", bloodveld.get(0).getPreferredNames().get(0));
+		assertEquals("bonecrusher", darkBeast.get(0).getPreferredNames().get(0));
+		assertTrue(smokeDevil.isEmpty());
+	}
+
+	private static List<SmartSupplyAdvisor.SupplyRule> prayerRemainsRules(
+		SmartSupplyAdvisor advisor,
+		String task)
+	{
+		return advisor.buildRules(TaskProfiles.find(task).orElseThrow(),
+			GearStrategy.builder().build()).stream()
+			.filter(rule -> "Prayer remains".equals(rule.getCategory()))
+			.collect(Collectors.toList());
 	}
 
 	@Test
@@ -458,6 +553,8 @@ public class SupplyQuantityPlanningTest
 		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey("tripPlan"));
 		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey(
 			"prayerRestorePreference"));
+		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey(
+			"prayerRemainsPreference"));
 		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey(
 			"supply.greater-demons.prayer-regen"));
 		assertFalse(SlayerGearAdvisorPlugin.isRecommendationConfigKey("bestColor"));

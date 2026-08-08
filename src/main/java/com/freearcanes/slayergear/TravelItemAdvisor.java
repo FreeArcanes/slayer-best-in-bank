@@ -292,6 +292,10 @@ final class TravelItemAdvisor
 		String tabletName,
 		SpellTeleportPreference preference)
 	{
+		if (preference == SpellTeleportPreference.MAX_CAPE_FIRST)
+		{
+			return rule(fallback, reason, "max cape", tabletName, "law rune");
+		}
 		if (preference == SpellTeleportPreference.RUNES_FIRST)
 		{
 			return rule(fallback, reason, "law rune", tabletName);
@@ -308,6 +312,10 @@ final class TravelItemAdvisor
 
 	private static String[] fairyRingNames(FairyRingPreference preference)
 	{
+		if (preference == FairyRingPreference.MAX_CAPE_FIRST)
+		{
+			return new String[]{"max cape", "quest point cape", "lunar staff", "dramen staff"};
+		}
 		if (preference == FairyRingPreference.LUNAR_STAFF_FIRST)
 		{
 			return new String[]{"lunar staff", "dramen staff", "quest point cape"};
@@ -321,6 +329,10 @@ final class TravelItemAdvisor
 
 	private static String[] kourendNames(KourendTeleportPreference preference)
 	{
+		if (preference == KourendTeleportPreference.MAX_CAPE_FIRST)
+		{
+			return new String[]{"max cape", "xeric's talisman", "rada's blessing", "kourend castle teleport"};
+		}
 		if (preference == KourendTeleportPreference.RADAS_BLESSING_FIRST)
 		{
 			return new String[]{"rada's blessing", "xeric's talisman", "kourend castle teleport"};

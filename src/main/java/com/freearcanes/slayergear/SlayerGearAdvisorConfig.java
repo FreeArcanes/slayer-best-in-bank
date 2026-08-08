@@ -221,13 +221,25 @@ public interface SlayerGearAdvisorConfig extends Config
 	@ConfigItem(
 		keyName = "slayerBraceletPreference",
 		name = "Slayer bracelet",
-		description = "Expeditious can shorten an assignment; Slaughter can extend it. The selected bracelet is shown when Bring Slayer bracelet is enabled.",
+		description = "Expeditious can shorten an assignment; Slaughter can extend it. Choose either one or bring both as glove switches.",
 		position = 11,
 		section = tripPlanningSection
 	)
 	default SlayerBraceletPreference slayerBraceletPreference()
 	{
 		return SlayerBraceletPreference.EXPEDITIOUS;
+	}
+
+	@ConfigItem(
+		keyName = "prayerRemainsPreference",
+		name = "Bone/Ash tools",
+		description = "Optionally bring a Bonecrusher or Ash sanctifier. Automatic chooses from the task's normal remains and shows both for mixed or boss assignments.",
+		position = 12,
+		section = tripPlanningSection
+	)
+	default PrayerRemainsPreference prayerRemainsPreference()
+	{
+		return PrayerRemainsPreference.OFF;
 	}
 
 	@ConfigItem(
@@ -254,7 +266,7 @@ public interface SlayerGearAdvisorConfig extends Config
 	@ConfigItem(
 		keyName = "spellTeleportPreference",
 		name = "Spell teleports",
-		description = "Prefer teleport tablets or rune-based spell teleports when both are available.",
+		description = "Prefer Max cape/POH access, teleport tablets, or rune-based spell teleports when available.",
 		position = 3,
 		section = teleportSection
 	)
@@ -278,7 +290,7 @@ public interface SlayerGearAdvisorConfig extends Config
 	@ConfigItem(
 		keyName = "fairyRingPreference",
 		name = "Fairy ring access",
-		description = "Preferred carried item for routes that use a nearby fairy ring.",
+		description = "Preferred carried item or Max cape/POH route for travel through a nearby fairy ring.",
 		position = 5,
 		section = teleportSection
 	)
@@ -290,7 +302,7 @@ public interface SlayerGearAdvisorConfig extends Config
 	@ConfigItem(
 		keyName = "kourendTeleportPreference",
 		name = "Kourend travel",
-		description = "Preferred travel item for the Catacombs, Chasm of Fire, and nearby Kourend routes.",
+		description = "Preferred travel item or Max cape/POH route for the Catacombs, Chasm of Fire, and nearby Kourend routes.",
 		position = 6,
 		section = teleportSection
 	)

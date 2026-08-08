@@ -152,6 +152,41 @@ public class TravelItemAdvisorTest
 	}
 
 	@Test
+	public void maxCapeCanLeadSpellFairyRingAndKourendRoutes()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public SpellTeleportPreference spellTeleportPreference()
+			{
+				return SpellTeleportPreference.MAX_CAPE_FIRST;
+			}
+
+			@Override
+			public FairyRingPreference fairyRingPreference()
+			{
+				return FairyRingPreference.MAX_CAPE_FIRST;
+			}
+
+			@Override
+			public KourendTeleportPreference kourendTeleportPreference()
+			{
+				return KourendTeleportPreference.MAX_CAPE_FIRST;
+			}
+		};
+
+		assertEquals("max cape", find(
+			TravelItemAdvisor.recommend("God Wars Dungeon", null, config),
+			"Trollheim teleport").getPreferredNames()[0]);
+		assertEquals("max cape", find(
+			TravelItemAdvisor.recommend("Zanaris", null, config),
+			"Fairy ring access").getPreferredNames()[0]);
+		assertEquals("max cape", find(
+			TravelItemAdvisor.recommend("Catacombs of Kourend", null, config),
+			"Kourend teleport").getPreferredNames()[0]);
+	}
+
+	@Test
 	public void suggestionsCanBeDisabled()
 	{
 		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()

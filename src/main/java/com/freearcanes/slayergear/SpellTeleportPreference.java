@@ -2,6 +2,7 @@ package com.freearcanes.slayergear;
 
 public enum SpellTeleportPreference
 {
+	MAX_CAPE_FIRST("Max cape first"),
 	TABLETS_FIRST("Tablets first"),
 	RUNES_FIRST("Runes first");
 

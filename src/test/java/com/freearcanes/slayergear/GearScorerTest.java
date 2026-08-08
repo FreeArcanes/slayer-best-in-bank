@@ -922,6 +922,37 @@ public class GearScorerTest
 	}
 
 	@Test
+	public void allBlightedSuppliesAreRestrictedToWildernessTasks()
+	{
+		assertTrue(SmartSupplyAdvisor.isUnavailableForContext(
+			"Prayer", "blighted super restore(4)", false, false));
+		assertFalse(SmartSupplyAdvisor.isUnavailableForContext(
+			"Prayer", "blighted super restore(4)", true, false));
+		assertFalse(SmartSupplyAdvisor.isUnavailableForContext(
+			"Prayer", "super restore(4)", false, false));
+	}
+
+	@Test
+	public void darkBeastSlashStrategyPrefersOathplateAccuracyOverTorvaStrength()
+	{
+		GearStrategy strategy = TaskProfiles.find("Dark beasts")
+			.orElseThrow().getStrategies().get(0);
+		ItemEquipmentStats oathplateChest = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.BODY.getSlotIdx())
+			.aslash(16).str(4).dstab(105).dslash(128).dcrush(100).dmagic(-5).drange(112)
+			.build();
+		ItemEquipmentStats torvaBody = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.BODY.getSlotIdx())
+			.str(6).prayer(1).dstab(117).dslash(111).dcrush(117).dmagic(-11).drange(142)
+			.build();
+
+		assertTrue(GearScorer.scoreStats(strategy, "Oathplate chest",
+			EquipmentInventorySlot.BODY, oathplateChest)
+			> GearScorer.scoreStats(strategy, "Torva platebody",
+				EquipmentInventorySlot.BODY, torvaBody));
+	}
+
+	@Test
 	public void radasTravelSuggestionRequiresCompatibleLoadedQuiver()
 	{
 		assertTrue(SmartSupplyAdvisor.isUnavailableForContext(

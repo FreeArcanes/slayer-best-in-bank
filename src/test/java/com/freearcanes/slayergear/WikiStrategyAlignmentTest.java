@@ -31,11 +31,36 @@ public class WikiStrategyAlignmentTest
 		assertMainMeleeType("Duke Sucellus", AttackType.SLASH);
 		assertMainMeleeType("Sarachnis", AttackType.CRUSH);
 		assertMainMeleeType("Vardorvis", AttackType.SLASH);
+		assertMainMeleeType("Skotizo", AttackType.SLASH);
 		assertMainMeleeType("Vet'ion", AttackType.CRUSH);
 		assertMainMeleeType("Gryphons", AttackType.STAB);
 		assertMainMeleeType("Kalphites", AttackType.CRUSH);
 		assertMainMeleeType("Waterfiends", AttackType.CRUSH);
 		assertMainMeleeType("Wyrms", AttackType.BALANCED);
+	}
+
+	@Test
+	public void wikiOathplateOverTorvaCasesAreExplicitAndScoreCorrectly()
+	{
+		// These are the audited Slayer/task-boss pages that rank Oathplate above
+		// Torva for their primary offensive slash setup, rather than listing the
+		// two armours as tied or placing Torva first.
+		assertOathplateAboveTorva("Aquanites");
+		assertOathplateAboveTorva("Dark beasts");
+		assertOathplateAboveTorva("Duke Sucellus");
+		assertOathplateAboveTorva("Vardorvis");
+		assertOathplateAboveTorva("Skotizo");
+	}
+
+	@Test
+	public void wikiTieOrTorvaFirstCasesDoNotReceiveOathplateOverride()
+	{
+		assertNoOathplateOverride("Abyssal demons");
+		assertNoOathplateOverride("Nechryael");
+		assertNoOathplateOverride("Gargoyles");
+		assertNoOathplateOverride("Custodian stalker");
+		assertNoOathplateOverride("The thermonuclear smoke devil");
+		assertNoOathplateOverride("The grotesque guardians");
 	}
 
 	@Test
@@ -73,6 +98,50 @@ public class WikiStrategyAlignmentTest
 	private static void assertTrait(String task, TargetTrait trait)
 	{
 		assertTrue(task, TaskProfiles.find(task).orElseThrow().getStrategies().get(0).getTargetTraits().contains(trait));
+	}
+
+	private static void assertOathplateAboveTorva(String task)
+	{
+		GearStrategy strategy = TaskProfiles.find(task).orElseThrow().getStrategies().stream()
+			.filter(value -> value.getCombatStyle() == CombatStyle.MELEE)
+			.findFirst().orElseThrow();
+		assertTrue(task, strategy.getPreferredItems().stream()
+			.anyMatch(item -> NameMatcher.normalize(item).contains("oathplate")));
+
+		ItemEquipmentStats oathplateChest = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.BODY.getSlotIdx())
+			.aslash(16).str(4).dstab(105).dslash(128).dcrush(100).dmagic(-5).drange(112)
+			.build();
+		ItemEquipmentStats torvaBody = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.BODY.getSlotIdx())
+			.str(6).prayer(1).dstab(117).dslash(111).dcrush(117).dmagic(-11).drange(142)
+			.build();
+		ItemEquipmentStats oathplateLegs = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.LEGS.getSlotIdx())
+			.aslash(12).str(2).dstab(75).dslash(100).dcrush(73).dmagic(-3).drange(81)
+			.build();
+		ItemEquipmentStats torvaLegs = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.LEGS.getSlotIdx())
+			.str(4).prayer(1).dstab(87).dslash(78).dcrush(79).dmagic(-9).drange(102)
+			.build();
+
+		assertTrue(task + " body", GearScorer.scoreStats(strategy, "Oathplate chest",
+			EquipmentInventorySlot.BODY, oathplateChest)
+			> GearScorer.scoreStats(strategy, "Torva platebody",
+				EquipmentInventorySlot.BODY, torvaBody));
+		assertTrue(task + " legs", GearScorer.scoreStats(strategy, "Oathplate legs",
+			EquipmentInventorySlot.LEGS, oathplateLegs)
+			> GearScorer.scoreStats(strategy, "Torva platelegs",
+				EquipmentInventorySlot.LEGS, torvaLegs));
+	}
+
+	private static void assertNoOathplateOverride(String task)
+	{
+		GearStrategy strategy = TaskProfiles.find(task).orElseThrow().getStrategies().stream()
+			.filter(value -> value.getCombatStyle() == CombatStyle.MELEE)
+			.findFirst().orElseThrow();
+		assertTrue(task, strategy.getPreferredItems().stream()
+			.noneMatch(item -> NameMatcher.normalize(item).contains("oathplate")));
 	}
 
 	private static double score(GearStrategy strategy, String name, ItemEquipmentStats stats)
