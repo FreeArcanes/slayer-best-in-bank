@@ -39,6 +39,10 @@ class GearScorer
 		EquipmentInventorySlot.BOOTS,
 		EquipmentInventorySlot.RING,
 		EquipmentInventorySlot.AMMO);
+	private static final List<EquipmentInventorySlot> INQUISITOR_SET_SLOTS = List.of(
+		EquipmentInventorySlot.HEAD,
+		EquipmentInventorySlot.BODY,
+		EquipmentInventorySlot.LEGS);
 
 	/*
 	 * Monster-family passives multiply the player's effective attack/max-hit
@@ -408,7 +412,50 @@ class GearScorer
 				if (req.isSatisfied(selected)) break;
 			}
 		}
+		if (!lowRiskMode)
+		{
+			applyInquisitorSetIfBetter(
+				selected, candidates, strategy, requirements, rank);
+		}
 		return selected;
+	}
+
+	private void applyInquisitorSetIfBetter(
+		Map<EquipmentInventorySlot, GearRecommendation> selected,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		List<GearRequirement> requirements,
+		int rank)
+	{
+		GearRecommendation weapon = selected.get(EquipmentInventorySlot.WEAPON);
+		if (weapon == null) return;
+		String weaponName = NameMatcher.normalize(weapon.getItemName());
+		Map<EquipmentInventorySlot, BankEquipment> inquisitor =
+			inquisitorSet(rank, candidates, strategy, weaponName);
+		if (inquisitor.isEmpty()) return;
+
+		double currentScore = 0;
+		double setScore = inquisitorFullSetBonus();
+		for (EquipmentInventorySlot slot : INQUISITOR_SET_SLOTS)
+		{
+			BankEquipment setPiece = inquisitor.get(slot);
+			for (GearRequirement requirement : requirements)
+			{
+				if (requirement.restricts(slot)
+					&& !requirement.matchesForSlot(slot, setPiece.name)) return;
+			}
+			GearRecommendation current = selected.get(slot);
+			if (current != null) currentScore += current.getScore();
+			setScore += contextualScore(
+				strategy, weaponName, setPiece.name, slot,
+				setPiece.stats, setPiece.score);
+		}
+		if (setScore <= currentScore) return;
+		for (EquipmentInventorySlot slot : INQUISITOR_SET_SLOTS)
+		{
+			selected.put(slot, contextualRecommendation(
+				inquisitor.get(slot), rank, strategy, weaponName));
+		}
 	}
 
 	static Map<EquipmentInventorySlot, BankEquipment> selectWeaponPair(
@@ -467,6 +514,8 @@ class GearScorer
 	{
 		double score = 0;
 		String weaponName = NameMatcher.normalize(weapon.name);
+		EnumMap<EquipmentInventorySlot, BankEquipment> selected =
+			new EnumMap<>(EquipmentInventorySlot.class);
 		for (EquipmentInventorySlot slot : SUPPORTED_SLOTS)
 		{
 			if (slot == EquipmentInventorySlot.WEAPON || slot == EquipmentInventorySlot.SHIELD) continue;
@@ -480,11 +529,86 @@ class GearScorer
 			if (rank <= choices.size())
 			{
 				BankEquipment item = choices.get(rank - 1);
+				selected.put(slot, item);
 				score += contextualScore(
 					strategy, weaponName, item.name, item.slot, item.stats, item.score);
 			}
 		}
+		score += inquisitorSetUpgradeScore(
+			rank, candidates, strategy, weaponName, selected);
 		return score;
+	}
+
+	private static double inquisitorSetUpgradeScore(
+		int rank,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		String selectedWeaponName,
+		Map<EquipmentInventorySlot, BankEquipment> selected)
+	{
+		Map<EquipmentInventorySlot, BankEquipment> inquisitor =
+			inquisitorSet(rank, candidates, strategy, selectedWeaponName);
+		if (inquisitor.isEmpty()) return 0;
+
+		double currentScore = 0;
+		double setScore = inquisitorFullSetBonus();
+		for (EquipmentInventorySlot slot : INQUISITOR_SET_SLOTS)
+		{
+			BankEquipment current = selected.get(slot);
+			if (current != null)
+			{
+				currentScore += contextualScore(
+					strategy, selectedWeaponName, current.name, slot,
+					current.stats, current.score);
+			}
+			BankEquipment setPiece = inquisitor.get(slot);
+			setScore += contextualScore(
+				strategy, selectedWeaponName, setPiece.name, slot,
+				setPiece.stats, setPiece.score);
+		}
+		return Math.max(0, setScore - currentScore);
+	}
+
+	private static Map<EquipmentInventorySlot, BankEquipment> inquisitorSet(
+		int rank,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		String selectedWeaponName)
+	{
+		if (!supportsInquisitorFullSet(strategy, selectedWeaponName))
+		{
+			return Collections.emptyMap();
+		}
+		EnumMap<EquipmentInventorySlot, BankEquipment> result =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		for (EquipmentInventorySlot slot : INQUISITOR_SET_SLOTS)
+		{
+			List<BankEquipment> pieces = new ArrayList<>();
+			for (BankEquipment item : candidates.getOrDefault(slot, Collections.emptyList()))
+			{
+				if (isInquisitorArmour(NameMatcher.normalize(item.name))) pieces.add(item);
+			}
+			pieces = contextualCandidates(pieces, strategy, selectedWeaponName);
+			if (rank > pieces.size()) return Collections.emptyMap();
+			result.put(slot, pieces.get(rank - 1));
+		}
+		return result;
+	}
+
+	private static boolean supportsInquisitorFullSet(
+		GearStrategy strategy,
+		String selectedWeaponName)
+	{
+		String weapon = NameMatcher.normalize(selectedWeaponName);
+		return strategy.getCombatStyle() == CombatStyle.MELEE
+			&& strategy.getAttackType() == AttackType.CRUSH
+			&& WeaponCombatRules.supportsAttackType(weapon, AttackType.CRUSH)
+			&& !weapon.contains("inquisitor's mace");
+	}
+
+	private static double inquisitorFullSetBonus()
+	{
+		return (WEAPON_SHARED_ACCURACY_BASE + WEAPON_SHARED_DAMAGE_BASE) * 0.01;
 	}
 
 	private static List<BankEquipment> contextualCandidates(
@@ -663,6 +787,10 @@ class GearScorer
 
 			List<BankEquipment> slotCandidates =
 				candidates.getOrDefault(slot, Collections.emptyList());
+			GearRecommendation currentWeapon = current.get(EquipmentInventorySlot.WEAPON);
+			String currentWeaponName = currentWeapon == null
+				? ""
+				: NameMatcher.normalize(currentWeapon.getItemName());
 			if (slot == EquipmentInventorySlot.AMMO
 				&& strategy.getCombatStyle() == CombatStyle.RANGED)
 			{
@@ -670,6 +798,12 @@ class GearScorer
 				if (weapon == null || usesNoAmmoSlot(NameMatcher.normalize(weapon.getItemName()))) continue;
 				slotCandidates = compatibleAmmo(
 					slotCandidates, NameMatcher.normalize(weapon.getItemName()));
+			}
+			else if (slot != EquipmentInventorySlot.WEAPON
+				&& slot != EquipmentInventorySlot.SHIELD)
+			{
+				slotCandidates = contextualCandidates(
+					slotCandidates, strategy, currentWeaponName);
 			}
 
 			int currentIndex = candidateIndex(slotCandidates, existing.getCanonicalItemId());
@@ -689,8 +823,30 @@ class GearScorer
 				EnumMap<EquipmentInventorySlot, GearRecommendation> neighbor =
 					new EnumMap<>(EquipmentInventorySlot.class);
 				neighbor.putAll(current);
-				neighbor.put(slot, recommendation(slotCandidates.get(candidateIndex), 1, strategy));
+				BankEquipment replacement = slotCandidates.get(candidateIndex);
+				if (slot == EquipmentInventorySlot.WEAPON
+					|| slot == EquipmentInventorySlot.SHIELD
+					|| slot == EquipmentInventorySlot.AMMO)
+				{
+					neighbor.put(slot, recommendation(replacement, 1, strategy));
+				}
+				else
+				{
+					neighbor.put(slot, contextualRecommendation(
+						replacement, 1, strategy, currentWeaponName));
+				}
+				if (slot == EquipmentInventorySlot.WEAPON)
+				{
+					rebuildWeaponDependentSlots(
+						neighbor, candidates, strategy, requirements, pinned,
+						lowRiskMode);
+				}
 				normalizeLoadout(neighbor, candidates, strategy, requirements);
+				if (slot == EquipmentInventorySlot.WEAPON && !lowRiskMode)
+				{
+					applyInquisitorSetIfBetter(
+						neighbor, candidates, strategy, requirements, 1);
+				}
 				if (!isCoherentLoadout(neighbor, strategy, requirements)) continue;
 
 				long guidePrice = lowRiskMode
@@ -700,9 +856,60 @@ class GearScorer
 				String signature = loadoutSignature(neighbor);
 				if (!seen.add(signature)) continue;
 				queue.add(new LoadoutCandidate(
-					neighbor, loadoutScore(neighbor), guidePrice));
+					neighbor, loadoutScore(neighbor, strategy), guidePrice));
 				break;
 			}
+		}
+	}
+
+	private void rebuildWeaponDependentSlots(
+		Map<EquipmentInventorySlot, GearRecommendation> selected,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		List<GearRequirement> requirements,
+		Set<String> pinned,
+		boolean preserveRiskBudgetChoices)
+	{
+		GearRecommendation weapon = selected.get(EquipmentInventorySlot.WEAPON);
+		if (weapon == null) return;
+		String weaponName = NameMatcher.normalize(weapon.getItemName());
+		for (EquipmentInventorySlot slot : SUPPORTED_SLOTS)
+		{
+			if (slot == EquipmentInventorySlot.WEAPON
+				|| slot == EquipmentInventorySlot.SHIELD
+				|| slot == EquipmentInventorySlot.AMMO) continue;
+			List<BankEquipment> ranked = contextualCandidates(
+				candidates.getOrDefault(slot, Collections.emptyList()),
+				strategy,
+				weaponName);
+			if (ranked.isEmpty()) continue;
+
+			GearRecommendation existing = selected.get(slot);
+			BankEquipment choice = null;
+			boolean preserveExisting = existing != null
+				&& (preserveRiskBudgetChoices
+					|| matchesAnyPreference(existing.getItemName(), pinned));
+			if (existing != null)
+			{
+				for (GearRequirement requirement : requirements)
+				{
+					if (requirement.restricts(slot)) preserveExisting = true;
+				}
+			}
+			if (preserveExisting)
+			{
+				for (BankEquipment candidate : ranked)
+				{
+					if (candidate.canonicalItemId == existing.getCanonicalItemId())
+					{
+						choice = candidate;
+						break;
+					}
+				}
+			}
+			if (choice == null) choice = ranked.get(0);
+			selected.put(slot, contextualRecommendation(
+				choice, 1, strategy, weaponName));
 		}
 	}
 
@@ -813,11 +1020,31 @@ class GearScorer
 	}
 
 	private static double loadoutScore(
-		Map<EquipmentInventorySlot, GearRecommendation> loadout)
+		Map<EquipmentInventorySlot, GearRecommendation> loadout,
+		GearStrategy strategy)
 	{
 		double total = 0;
 		for (GearRecommendation item : loadout.values()) total += item.getScore();
+		GearRecommendation weapon = loadout.get(EquipmentInventorySlot.WEAPON);
+		if (weapon != null
+			&& supportsInquisitorFullSet(strategy, weapon.getItemName())
+			&& hasCompleteInquisitorSet(loadout))
+		{
+			total += inquisitorFullSetBonus();
+		}
 		return total;
+	}
+
+	private static boolean hasCompleteInquisitorSet(
+		Map<EquipmentInventorySlot, GearRecommendation> loadout)
+	{
+		for (EquipmentInventorySlot slot : INQUISITOR_SET_SLOTS)
+		{
+			GearRecommendation item = loadout.get(slot);
+			if (item == null
+				|| !isInquisitorArmour(NameMatcher.normalize(item.getItemName()))) return false;
+		}
+		return true;
 	}
 
 	private static String loadoutSignature(

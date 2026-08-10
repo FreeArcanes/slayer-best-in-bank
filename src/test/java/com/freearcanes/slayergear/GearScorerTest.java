@@ -251,6 +251,98 @@ public class GearScorerTest
 	}
 
 	@Test
+	public void weaponFallbackRebuildsAndRescoresItsSupportingArmour()
+	{
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(EquipmentInventorySlot.WEAPON, Arrays.asList(
+			riskItem(35, "Bow of faerdhinen (c)", EquipmentInventorySlot.WEAPON,
+				0, 300, false, true),
+			riskItem(36, "Generic strong bow", EquipmentInventorySlot.WEAPON,
+				0, 310, false, true)));
+		candidates.put(EquipmentInventorySlot.BODY, Arrays.asList(
+			riskItem(37, "Masori body (f)", EquipmentInventorySlot.BODY,
+				0, 100, false),
+			riskItem(38, "Crystal body", EquipmentInventorySlot.BODY,
+				0, 90, false)));
+		candidates.put(EquipmentInventorySlot.AMMO, Collections.singletonList(
+			riskItem(39, "Dragon arrow", EquipmentInventorySlot.AMMO,
+				0, 20, false)));
+		GearStrategy strategy = GearStrategy.builder()
+			.name("Ranged")
+			.combatStyle(CombatStyle.RANGED)
+			.build();
+
+		List<Map<EquipmentInventorySlot, GearRecommendation>> tiers =
+			new GearScorer(null, null).buildCoherentLoadouts(
+				3, candidates, strategy, Collections.emptyList(),
+				Collections.emptySet(), false, 0);
+
+		assertEquals("Bow of faerdhinen (c)",
+			tiers.get(0).get(EquipmentInventorySlot.WEAPON).getItemName());
+		assertEquals("Crystal body",
+			tiers.get(0).get(EquipmentInventorySlot.BODY).getItemName());
+		Map<EquipmentInventorySlot, GearRecommendation> genericTier = tiers.stream()
+			.filter(tier -> "Generic strong bow".equals(
+				tier.get(EquipmentInventorySlot.WEAPON).getItemName()))
+			.findFirst()
+			.orElseThrow();
+		assertEquals("Masori body (f)",
+			genericTier.get(EquipmentInventorySlot.BODY).getItemName());
+		assertFalse(genericTier.get(EquipmentInventorySlot.BODY).getReason()
+			.contains("Crystal-bow armour"));
+	}
+
+	@Test
+	public void nonMaceCrushLoadoutReceivesOnlyTheCompleteInquisitorSetBonus()
+	{
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(EquipmentInventorySlot.WEAPON, Collections.singletonList(
+			riskItem(45, "Scythe of vitur", EquipmentInventorySlot.WEAPON,
+				0, 200, false, true)));
+		candidates.put(EquipmentInventorySlot.HEAD, Arrays.asList(
+			riskItem(46, "Torva full helm", EquipmentInventorySlot.HEAD, 0, 100, false),
+			riskItem(47, "Inquisitor's great helm", EquipmentInventorySlot.HEAD, 0, 95.5, false)));
+		candidates.put(EquipmentInventorySlot.BODY, Arrays.asList(
+			riskItem(48, "Torva platebody", EquipmentInventorySlot.BODY, 0, 100, false),
+			riskItem(49, "Inquisitor's hauberk", EquipmentInventorySlot.BODY, 0, 95.5, false)));
+		candidates.put(EquipmentInventorySlot.LEGS, Arrays.asList(
+			riskItem(50, "Torva platelegs", EquipmentInventorySlot.LEGS, 0, 100, false),
+			riskItem(51, "Inquisitor's plateskirt", EquipmentInventorySlot.LEGS, 0, 95.5, false)));
+		GearStrategy strategy = GearStrategy.builder()
+			.name("Crush")
+			.combatStyle(CombatStyle.MELEE)
+			.attackType(AttackType.CRUSH)
+			.build();
+
+		Map<EquipmentInventorySlot, GearRecommendation> loadout =
+			new GearScorer(null, null).buildCoherentLoadouts(
+				1, candidates, strategy, Collections.emptyList(),
+				Collections.emptySet(), false, 0).get(0);
+
+		assertEquals("Inquisitor's great helm",
+			loadout.get(EquipmentInventorySlot.HEAD).getItemName());
+		assertEquals("Inquisitor's hauberk",
+			loadout.get(EquipmentInventorySlot.BODY).getItemName());
+		assertEquals("Inquisitor's plateskirt",
+			loadout.get(EquipmentInventorySlot.LEGS).getItemName());
+
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> partial =
+			new EnumMap<>(candidates);
+		partial.put(EquipmentInventorySlot.HEAD, Collections.singletonList(
+			riskItem(52, "Torva full helm", EquipmentInventorySlot.HEAD, 0, 100, false)));
+		Map<EquipmentInventorySlot, GearRecommendation> partialLoadout =
+			new GearScorer(null, null).buildCoherentLoadouts(
+				1, partial, strategy, Collections.emptyList(),
+				Collections.emptySet(), false, 0).get(0);
+		assertEquals("Torva platebody",
+			partialLoadout.get(EquipmentInventorySlot.BODY).getItemName());
+		assertEquals("Torva platelegs",
+			partialLoadout.get(EquipmentInventorySlot.LEGS).getItemName());
+	}
+
+	@Test
 	public void kalphiteMeleePrefersTorsoAndObsidianLegsOverEclipseArmour()
 	{
 		GearStrategy strategy = TaskProfiles.find("Kalphites")
