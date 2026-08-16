@@ -126,6 +126,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private int lastTaskAmount = -1;
 	private volatile boolean highlightsActive;
 	private boolean turaelAyaSpeedMode;
+	private String selectedBoss = "";
 	private final BankFlowState bankFlow = new BankFlowState();
 	private final TripPreparationState tripPreparation = new TripPreparationState();
 	private final AtomicBoolean pluginRunning = new AtomicBoolean();
@@ -150,6 +151,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		panel.setLoadoutRefreshHandler(this::queueRefreshBankLoadout);
 		panel.setAdvisorToggleHandler(this::toggleAdvisor);
 		panel.setTuraelAyaSpeedToggleHandler(this::toggleTuraelAyaSpeedMode);
+		panel.setBossSelectionHandler(this::selectBoss);
 		panel.setAdvisorEnabled(config.advisorEnabled());
 		turaelAyaSpeedMode = readTuraelAyaSpeedMode();
 		panel.setTuraelAyaSpeedMode(turaelAyaSpeedMode);
@@ -553,6 +555,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			|| "excludedItems".equals(key)
 			|| "lowRiskMode".equals(key)
 			|| "riskCapThousands".equals(key)
+			|| "bossWeaponSwitches".equals(key)
 			|| "tripPlan".equals(key)
 			|| "customTripKills".equals(key)
 			|| "potionEstimatesEnabled".equals(key)
@@ -561,6 +564,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			|| "prayerRestorePreference".equals(key)
 			|| "useGoading".equals(key)
 			|| "usePrayerRegen".equals(key)
+			|| "useBossThralls".equals(key)
 			|| "preferDivineBoosts".equals(key)
 			|| "useSlayerBracelet".equals(key)
 			|| "slayerBraceletPreference".equals(key)
@@ -683,10 +687,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			taskAmount))
 		{
 			tripPreparation.reset();
+			selectedBoss = "";
 		}
 		lastTaskName = taskName;
 		lastTaskLocation = taskLocation;
 		lastTaskAmount = taskAmount;
+		panel.setBossChoices(BossSlayerCatalog.forTask(taskName), selectedBoss);
 		if (bankFlow.isLoadoutLocked())
 		{
 			markBankRefreshPending();
@@ -834,8 +840,11 @@ public class SlayerGearAdvisorPlugin extends Plugin
 
 	private void recalculate(boolean rebuildBankView)
 	{
+		String effectiveTaskName = selectedBoss.isEmpty() ? lastTaskName : selectedBoss;
+		String effectiveTaskLocation = selectedBoss.isEmpty() ? lastTaskLocation : "Boss lair";
+		int effectiveTaskAmount = selectedBoss.isEmpty() ? lastTaskAmount : 1;
 		if (!config.advisorEnabled()
-			|| lastTaskName == null || lastTaskName.isEmpty())
+			|| effectiveTaskName == null || effectiveTaskName.isEmpty())
 		{
 			closeBankFilter();
 			bankFlow.unlockLoadout();
@@ -845,15 +854,15 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		}
 
 		Optional<SlayerTaskProfile> profile = TaskProfiles.find(
-			lastTaskName,
-			lastTaskLocation,
+			effectiveTaskName,
+			effectiveTaskLocation,
 			turaelAyaSpeedMode);
 		if (!profile.isPresent())
 		{
 			closeBankFilter();
 			bankFlow.unlockLoadout();
 			recommendations = GearRecommendations.unsupported(
-				lastTaskName, lastTaskAmount);
+				effectiveTaskName, effectiveTaskAmount);
 			panel.display(recommendations);
 			return;
 		}
@@ -863,13 +872,13 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			closeBankFilter();
 			bankFlow.unlockLoadout();
 			recommendations = GearRecommendations.openBank(
-				lastTaskName, lastTaskAmount, profile.get());
+				effectiveTaskName, effectiveTaskAmount, profile.get());
 			panel.display(recommendations);
 			return;
 		}
 
 		String strategyOverride = configManager.getConfiguration(
-			SlayerGearAdvisorConfig.GROUP, strategyKey(lastTaskName));
+			SlayerGearAdvisorConfig.GROUP, strategyKey(effectiveTaskName));
 		if (bankFlow.isBankOpen() && bankSessionGearPool == null)
 		{
 			bankSessionGearPool = combineGearPool(
@@ -893,9 +902,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		Item[] packedSupplyItems =
 			tripPreparation.suppliesForScoring(livePackedItems, itemManager::canonicalize);
 		GearRecommendations scored = gearScorer.score(
-			lastTaskName,
-			lastTaskAmount,
-			lastTaskLocation,
+			effectiveTaskName,
+			effectiveTaskAmount,
+			effectiveTaskLocation,
 			profile.get(),
 			scoringPool,
 			scoringBankItems,
@@ -912,7 +921,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			config.excludedItems(),
 			config.lowRiskMode(),
 			config.riskCapThousands() * 1_000,
-			loadedQuiverAmmo.length > 0);
+			loadedQuiverAmmo.length > 0,
+			client.getVarbitValue(VarbitID.SPELLBOOK) == 3);
+		if (!config.bossWeaponSwitches()) scored = scored.withoutWeaponSwitches();
 		if (bankFlow.isBankOpen())
 		{
 			bankFlow.lockLoadout();
@@ -927,6 +938,19 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		{
 			queueBankViewRefresh();
 		}
+	}
+
+	private void selectBoss(String boss)
+	{
+		selectedBoss = boss == null ? "" : boss.trim();
+		panel.setBossChoices(BossSlayerCatalog.forTask(lastTaskName), selectedBoss);
+		tripPreparation.reset();
+		if (bankFlow.isLoadoutLocked())
+		{
+			markBankRefreshPending();
+			return;
+		}
+		clientThread.invoke((Runnable) this::recalculate);
 	}
 
 	private void queueBankViewRefresh()

@@ -250,6 +250,78 @@ public class WeaponScoringRegressionTest
 		assertTrue("Attack speed must scale the full attack contribution", fourTick > fiveTick);
 	}
 
+	@Test
+	public void toxicBlowpipeCountsLoadedDartsAgainstSunlightCrossbow()
+	{
+		GearStrategy ordinary = GearStrategy.builder()
+			.name("Ordinary ranged Slayer")
+			.combatStyle(CombatStyle.RANGED)
+			.build();
+
+		double blowpipe = GearScorer.scoreStats(ordinary, "Toxic blowpipe",
+			EquipmentInventorySlot.WEAPON, ranged(30, 20, 3));
+		double sunlightCrossbow = GearScorer.scoreStats(ordinary, "Hunter's sunlight crossbow",
+			EquipmentInventorySlot.WEAPON, ranged(79, 0, 4));
+		double sunlightBolts = GearScorer.scoreStats(ordinary, "Sunlight antler bolts",
+			EquipmentInventorySlot.AMMO, rangedAmmo(55));
+
+		assertTrue("Loaded darts must keep Toxic blowpipe ahead of the sunlight crossbow package",
+			blowpipe > sunlightCrossbow + sunlightBolts);
+	}
+
+	@Test
+	public void venatorStrategyOnlyAllowsVenatorBow()
+	{
+		GearStrategy venator = GearStrategy.builder()
+			.name("Venator multi-target")
+			.combatStyle(CombatStyle.RANGED)
+			.requiredWeapon("venator bow")
+			.build();
+
+		assertTrue(GearScorer.allowed(weapon("Venator bow", ranged(90, 25, 5)), venator));
+		assertTrue(!GearScorer.allowed(weapon("Hunter's sunlight crossbow", ranged(79, 0, 4)), venator));
+	}
+
+	@Test
+	public void jadProfileUsesOwnedBlowpipeMethodBeforeGenericRangedFallback()
+	{
+		SlayerTaskProfile jad = TaskProfiles.find("TzTok-Jad").orElseThrow();
+		GearStrategy primary = jad.getStrategies().get(0);
+		GearStrategy fallback = jad.getStrategies().get(1);
+
+		assertTrue(NameMatcher.matchesAnyToken("Toxic blowpipe", primary.getRequiredWeapon()));
+		assertTrue(GearScorer.allowed(weapon("Toxic blowpipe", ranged(30, 20, 3)), primary));
+		assertTrue(!GearScorer.allowed(weapon("Hunter's sunlight crossbow", ranged(79, 0, 4)), primary));
+		assertTrue(fallback.getRequiredWeapon() == null);
+	}
+
+	@Test
+	public void thermyWikiOrderPlacesFangAheadOfNoxiousHalberd()
+	{
+		GearStrategy thermy = TaskProfiles.find("Thermonuclear smoke devil").orElseThrow()
+			.getStrategies().get(0);
+		double fang = GearScorer.scoreStats(thermy, "Osmumten's fang",
+			EquipmentInventorySlot.WEAPON, melee(105, 75, 0, 103, 5));
+		double halberd = GearScorer.scoreStats(thermy, "Noxious halberd",
+			EquipmentInventorySlot.WEAPON, melee(95, 145, 0, 124, 5));
+
+		assertTrue("Thermy must follow the Wiki method order even when raw stats favour Noxious halberd",
+			fang > halberd);
+	}
+
+	@Test
+	public void araxxorCrushMethodRejectsVoidwakerAsMainHand()
+	{
+		GearStrategy araxxor = TaskProfiles.find("Araxxor").orElseThrow()
+			.getStrategies().get(0);
+
+		assertTrue(GearScorer.allowed(weapon("Inquisitor's mace",
+			melee(0, 0, 95, 89, 4)), araxxor));
+		assertTrue("Voidwaker has no Crush attack style",
+			!GearScorer.allowed(weapon("Voidwaker",
+				melee(80, 80, -2, 80, 4)), araxxor));
+	}
+
 	private static ItemEquipmentStats melee(int stab, int slash, int crush, int strength, int speed)
 	{
 		return ItemEquipmentStats.builder()
@@ -270,6 +342,20 @@ public class WeaponScoringRegressionTest
 			.rstr(strength)
 			.aspeed(speed)
 			.build();
+	}
+
+	private static ItemEquipmentStats rangedAmmo(int strength)
+	{
+		return ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.AMMO.getSlotIdx())
+			.rstr(strength)
+			.build();
+	}
+
+	private static GearScorer.BankEquipment weapon(String name, ItemEquipmentStats stats)
+	{
+		return new GearScorer.BankEquipment(1, 1, name,
+			EquipmentInventorySlot.WEAPON, stats, true, false);
 	}
 
 	private static ItemEquipmentStats magic(int accuracy, int damagePercent, int speed)

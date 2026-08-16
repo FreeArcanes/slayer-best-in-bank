@@ -22,6 +22,7 @@ final class GearStrategy
 	private final String requiredWeapon;
 	private final String requiredOffhand;
 	private final List<String> preferredItems;
+	private final List<String> rankedWeapons;
 	private final double magicDefenceWeight;
 	private final double prayerWeight;
 	private final boolean ancientAoe;
@@ -43,6 +44,7 @@ final class GearStrategy
 		this.requiredWeapon = builder.requiredWeapon;
 		this.requiredOffhand = builder.requiredOffhand;
 		this.preferredItems = Collections.unmodifiableList(new ArrayList<>(builder.preferredItems));
+		this.rankedWeapons = Collections.unmodifiableList(new ArrayList<>(builder.rankedWeapons));
 		this.magicDefenceWeight = builder.magicDefenceWeight;
 		this.prayerWeight = builder.prayerWeight;
 		this.ancientAoe = builder.ancientAoe;
@@ -67,6 +69,7 @@ final class GearStrategy
 	String getRequiredWeapon() { return requiredWeapon; }
 	String getRequiredOffhand() { return requiredOffhand; }
 	List<String> getPreferredItems() { return preferredItems; }
+	List<String> getRankedWeapons() { return rankedWeapons; }
 	double getMagicDefenceWeight() { return magicDefenceWeight; }
 	double getPrayerWeight() { return prayerWeight; }
 	boolean isAncientAoe() { return ancientAoe; }
@@ -87,6 +90,7 @@ final class GearStrategy
 		private String requiredWeapon;
 		private String requiredOffhand;
 		private final List<String> preferredItems = new ArrayList<>();
+		private final List<String> rankedWeapons = new ArrayList<>();
 		// Extra weighting beyond the small all-defence tie-breaker. Most methods
 		// leave this at zero; magic-heavy encounters opt in explicitly.
 		private double magicDefenceWeight;
@@ -112,6 +116,7 @@ final class GearStrategy
 		Builder requiredWeapon(String value) { this.requiredWeapon = value; return this; }
 		Builder requiredOffhand(String value) { this.requiredOffhand = value; return this; }
 		Builder preferredItem(String value) { if (value != null) this.preferredItems.add(value); return this; }
+		Builder rankedWeapon(String value) { if (value != null) this.rankedWeapons.add(value); return this; }
 		Builder magicDefenceWeight(double value) { this.magicDefenceWeight = value; return this; }
 		Builder prayerWeight(double value) { this.prayerWeight = value; return this; }
 		Builder ancientAoe(boolean value) { this.ancientAoe = value; return this; }

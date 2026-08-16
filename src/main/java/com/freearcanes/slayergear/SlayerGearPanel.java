@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -26,6 +27,7 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.ImageIcon;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
@@ -101,8 +103,13 @@ class SlayerGearPanel extends PluginPanel
 	private Runnable loadoutRefreshHandler = () -> { };
 	private Runnable advisorToggleHandler = () -> { };
 	private Runnable turaelAyaSpeedToggleHandler = () -> { };
+	private Consumer<String> bossSelectionHandler = boss -> { };
 	private JButton advisorToggleButton;
 	private JCheckBox turaelAyaSpeedCheckBox;
+	private JComboBox<String> bossSelector;
+	private boolean updatingBossSelector;
+	private List<String> eligibleBosses = new ArrayList<>();
+	private String selectedBoss = "";
 	private boolean advisorEnabled = true;
 	private boolean turaelAyaSpeedMode;
 	private boolean showAlternatives;
@@ -155,6 +162,21 @@ class SlayerGearPanel extends PluginPanel
 	void setTuraelAyaSpeedToggleHandler(Runnable handler)
 	{
 		this.turaelAyaSpeedToggleHandler = handler == null ? () -> { } : handler;
+	}
+
+	void setBossSelectionHandler(Consumer<String> handler)
+	{
+		bossSelectionHandler = handler == null ? boss -> { } : handler;
+	}
+
+	void setBossChoices(List<String> bosses, String selected)
+	{
+		SwingUtilities.invokeLater(() ->
+		{
+			eligibleBosses = bosses == null ? new ArrayList<>() : new ArrayList<>(bosses);
+			selectedBoss = selected == null ? "" : selected;
+			rebuildBossSelector();
+		});
 	}
 
 	void setAdvisorEnabled(boolean enabled)
@@ -304,7 +326,47 @@ class SlayerGearPanel extends PluginPanel
 		turaelAyaSpeedCheckBox.addActionListener(event -> turaelAyaSpeedToggleHandler.run());
 		updateTuraelAyaSpeedToggle();
 		root.add(turaelAyaSpeedCheckBox);
+		root.add(Box.createVerticalStrut(4));
+
+		bossSelector = new JComboBox<>();
+		bossSelector.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+		bossSelector.setPreferredSize(new Dimension(WRAP_WIDTH, 30));
+		bossSelector.setMinimumSize(new Dimension(80, 30));
+		bossSelector.setAlignmentX(Component.LEFT_ALIGNMENT);
+		bossSelector.setFont(FontManager.getRunescapeSmallFont());
+		bossSelector.setToolTipText("Choose a boss to build an owned Best-in-Bank boss loadout");
+		bossSelector.addActionListener(event ->
+		{
+			if (updatingBossSelector) return;
+			Object selected = bossSelector.getSelectedItem();
+			selectedBoss = bossSelector.getSelectedIndex() <= 0 ? "" : String.valueOf(selected);
+			bossSelectionHandler.accept(selectedBoss);
+		});
+		rebuildBossSelector();
+		root.add(bossSelector);
 		return root;
+	}
+
+	private void rebuildBossSelector()
+	{
+		if (bossSelector == null) return;
+		updatingBossSelector = true;
+		try
+		{
+			bossSelector.removeAllItems();
+			bossSelector.addItem("Current Slayer task");
+			List<String> choices = eligibleBosses.isEmpty() ? BossSlayerCatalog.names() : eligibleBosses;
+			for (String boss : choices) bossSelector.addItem(boss);
+			if (!selectedBoss.isEmpty()) bossSelector.setSelectedItem(selectedBoss);
+			else bossSelector.setSelectedIndex(0);
+			bossSelector.setToolTipText(eligibleBosses.isEmpty()
+				? "Choose a boss to build an owned Best-in-Bank boss loadout"
+				: "Bosses that count for the current Slayer assignment");
+		}
+		finally
+		{
+			updatingBossSelector = false;
+		}
 	}
 
 	private void updateAdvisorToggle()
@@ -377,6 +439,7 @@ class SlayerGearPanel extends PluginPanel
 					if (prepFocusMode != PrepFocusMode.SUPPLIES)
 					{
 						addLoadout(recommendations, prepFocusMode == PrepFocusMode.MISSING);
+						addBossWeaponSwitches(recommendations, prepFocusMode == PrepFocusMode.MISSING);
 					}
 					if (prepFocusMode != PrepFocusMode.GEAR)
 					{
@@ -391,6 +454,28 @@ class SlayerGearPanel extends PluginPanel
 
 		content.revalidate();
 		content.repaint();
+	}
+
+	private void addBossWeaponSwitches(GearRecommendations recommendations, boolean missingOnly)
+	{
+		List<GearRecommendation> switches = new ArrayList<>();
+		for (GearRecommendation item : recommendations.getWeaponSwitches())
+		{
+			if (!missingOnly || !item.isPacked()) switches.add(item);
+		}
+		if (switches.isEmpty()) return;
+		content.add(sectionHeading("BOSS WEAPON SWITCHES", "Best owned applicable options"));
+		content.add(Box.createVerticalStrut(5));
+		for (GearRecommendation item : switches)
+		{
+			String label = item.getReason().startsWith("Defence")
+				? "DEFENCE REDUCTION"
+				: item.getReason().startsWith("Spawn") || item.getReason().startsWith("Phase")
+					? "SPAWN / PHASE SWITCH" : "DAMAGE SPECIAL";
+			content.add(buildSlotCard(label, Arrays.asList(item)));
+			content.add(Box.createVerticalStrut(5));
+		}
+		content.add(Box.createVerticalStrut(5));
 	}
 
 	private void addTaskHero(GearRecommendations recommendations)

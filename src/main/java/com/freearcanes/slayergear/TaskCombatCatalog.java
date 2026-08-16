@@ -406,6 +406,7 @@ final class TaskCombatCatalog
 		// are scored dynamically by WeaponCombatRules instead of receiving a hard
 		// +1000 override that can make a weaker weapon win incorrectly.
 		for (String preferred : source.getPreferredItems()) copy.preferredItem(preferred);
+		for (String weapon : source.getRankedWeapons()) copy.rankedWeapon(weapon);
 		return copy.build();
 	}
 

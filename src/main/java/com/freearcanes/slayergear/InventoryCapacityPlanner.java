@@ -152,6 +152,10 @@ final class InventoryCapacityPlanner
 				slots++;
 			}
 		}
+		for (GearRecommendation recommendation : recommendations.getWeaponSwitches())
+		{
+			if (recommendation.isBanked() && !recommendation.isPacked()) slots++;
+		}
 		return slots;
 	}
 

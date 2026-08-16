@@ -424,7 +424,17 @@ final class TaskProfiles
 		register(profile("jad", "TzTok-Jad",
 				"Ranged is the standard Fight Caves setup.",
 				"Encounter supplies and prayer switching matter more than small gear-score differences.",
-				ranged("Fight Caves Ranged", "Fight Caves", "Ranks ranged damage and prayer gear")),
+				GearStrategy.builder()
+					.name("Fight Caves Blowpipe")
+					.location("Fight Caves")
+					.rationale("Uses the Toxic blowpipe as the primary owned Fight Caves weapon for fast waves and Jad.")
+					.combatStyle(CombatStyle.RANGED)
+					.requiredWeapon("toxic blowpipe")
+					.preferredItem("toxic blowpipe")
+					.build(),
+				ranged("Fight Caves Ranged fallback", "Fight Caves",
+					"Ranks the best compatible ranged setup when no Toxic blowpipe is owned.",
+					"twisted bow", "bow of faerdhinen", "venator bow", "crystal bow")),
 			"tztok-jad", "jad");
 
 		register(profile("zuk", "TzKal-Zuk",
@@ -749,6 +759,7 @@ final class TaskProfiles
 		if (source.getRequiredWeapon() != null) copy.requiredWeapon(source.getRequiredWeapon());
 		if (source.getRequiredOffhand() != null) copy.requiredOffhand(source.getRequiredOffhand());
 		for (String preferred : source.getPreferredItems()) copy.preferredItem(preferred);
+		for (String weapon : source.getRankedWeapons()) copy.rankedWeapon(weapon);
 		return copy.build();
 	}
 
@@ -794,6 +805,7 @@ final class TaskProfiles
 			if (source.getRequiredWeapon() != null) fallback.requiredWeapon(source.getRequiredWeapon());
 			if (source.getRequiredOffhand() != null) fallback.requiredOffhand(source.getRequiredOffhand());
 			for (String preferred : source.getPreferredItems()) fallback.preferredItem(preferred);
+			for (String weapon : source.getRankedWeapons()) fallback.rankedWeapon(weapon);
 			builder.strategy(fallback.build());
 		}
 		return builder.build();
@@ -996,13 +1008,104 @@ final class TaskProfiles
 
 	private static void registerBossAliases()
 	{
+		registerOverride(profile("amoxliatl-boss", "Amoxliatl",
+				"Crush-focused melee using Blood moon weapons and armour where owned.",
+				"Avoid unstable ice and preserve inventory room for encounter supplies.",
+				GearStrategy.builder().name("Amoxliatl - Crush").location("Ruins of Tapoyauik")
+					.rationale("Wiki-ranked Crush setup led by Scythe, Dual macuahuitl and Inquisitor options.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
+					.preferredItem("dual macuahuitl").preferredItem("blood moon").build()),
+			"amoxliatl");
+
+		registerOverride(profile("branda-boss", "Branda the Fire Queen",
+				"Water Magic is the dedicated elemental counter to the Fire Queen.",
+				"Bring the Royal Titans encounter supplies and movement tools.",
+				GearStrategy.builder().name("Branda - Water Magic").location("Royal Titans arena")
+					.rationale("Ranks the strongest owned Water spell setup for Branda.")
+					.combatStyle(CombatStyle.MAGIC).elementalWeakness(ElementalWeakness.WATER, 100).build()),
+			"branda the fire queen");
+
+		registerOverride(profile("brutus-boss", "Brutus",
+				"Earth Magic exploits Brutus' elemental weakness.",
+				"Keep the Cowbell amulet and encounter food available.",
+				GearStrategy.builder().name("Brutus - Earth Magic").location("Brutus arena")
+					.rationale("Ranks the strongest owned Earth spell setup from the current strategy guide.")
+					.combatStyle(CombatStyle.MAGIC).elementalWeakness(ElementalWeakness.EARTH, 100)
+					.preferredItem("cowbell amulet").build()),
+			"brutus");
+
+		registerOverride(profile("bryophyta-boss", "Bryophyta",
+				"Fast melee clears Bryophyta and her growthlings reliably.",
+				"An axe is required to finish the growthlings.",
+				melee("Bryophyta - Slash", "Bryophyta's lair", AttackType.SLASH,
+					"Ranks fast Slash melee and owned strength gear.")),
+			"bryophyta");
+
+		registerOverride(profile("demonic-gorillas-boss", "Demonic Gorillas",
+				"Their protection prayers require a melee plus Ranged combat switch.",
+				"Bring both styles; the panel keeps the selected method as the primary set.",
+				demonMelee("Demonic gorillas - Demonbane melee", "Crash Site Cavern",
+					"Ranks Emberlight and other real Demonbane effects."),
+				GearStrategy.builder().name("Demonic gorillas - Ranged switch").location("Crash Site Cavern")
+					.rationale("Ranks the best owned Ranged switch for protection-prayer changes.")
+					.combatStyle(CombatStyle.RANGED).targetTrait(TargetTrait.DEMON)
+					.preferredItem("scorching bow").build()),
+			"demonic gorillas", "demonic gorilla");
+
+		registerOverride(profile("eldric-boss", "Eldric the Ice King",
+				"Fire Magic exploits the Ice King's elemental weakness.",
+				"Bring the Royal Titans encounter supplies and movement tools.",
+				GearStrategy.builder().name("Eldric - Fire Magic").location("Royal Titans arena")
+					.rationale("Ranks the strongest owned Fire spell setup for Eldric.")
+					.combatStyle(CombatStyle.MAGIC).elementalWeakness(ElementalWeakness.FIRE, 100).build()),
+			"eldric the ice king");
+
+		registerOverride(profile("obor-boss", "Obor",
+				"Strong melee is the straightforward Hill Giant boss method.",
+				"Protect from Melee and bring enough food for his knockback damage.",
+				melee("Obor - Melee", "Edgeville Dungeon", AttackType.SLASH,
+					"Ranks the strongest owned fast melee setup.")),
+			"obor");
+
+		registerOverride(profile("scurrius-boss", "Scurrius",
+				"Rat-bone weapons receive their real +10 max-hit value against Scurrius.",
+				"Use protection prayer and handle falling debris during the fight.",
+				GearStrategy.builder().name("Scurrius - Ratbane melee").location("Varrock Sewers")
+					.rationale("Prioritizes the Bone mace and models its Ratbane max-hit effect.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
+					.weaponRule(WeaponRule.RATBANE).targetTrait(TargetTrait.RAT).build()),
+			"scurrius");
+
+		registerOverride(profile("shellbane-gryphon-boss", "Shellbane Gryphon",
+				"The Wiki setup balances melee DPS with the encounter's 40 kg threshold.",
+				"A Tortugan shield is mandatory; heavy equipment prevents the devastating knockback.",
+				GearStrategy.builder().name("Shellbane Gryphon - Heavy melee").location("The Great Conch")
+					.rationale("Ranks Slash melee while enforcing the Tortugan shield; verify the shown setup reaches 40 kg.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
+					.requiredOffhand("tortugan shield").preferredItem("amulet of rancour")
+					.preferredItem("burning claws").build()),
+			"shellbane gryphon", "the shellbane gryphon");
+
+		registerOverride(profile("tormented-demons-boss", "Tormented Demons",
+				"Demonbane weapons and combat-style switches are required around their protection prayer.",
+				"Use Darklight once to remove the fire shield before the main Demonbane rotation.",
+				demonMelee("Tormented Demons - Demonbane melee", "Ancient Guthixian Temple",
+					"Ranks Emberlight/Arclight for the melee portion."),
+				GearStrategy.builder().name("Tormented Demons - Scorching bow").location("Ancient Guthixian Temple")
+					.rationale("Uses the purpose-built ranged Demonbane switch when owned.")
+					.combatStyle(CombatStyle.RANGED).targetTrait(TargetTrait.DEMON)
+					.requiredWeapon("scorching bow").preferredItem("scorching bow").build()),
+			"tormented demons", "tormented demon");
+
 		registerOverride(profile("araxxor-boss", "Araxxor",
 				"Crush is Araxxor's primary weakness; Noxious halberd is kept as a separate encounter switch.",
 				"Use a Noxious halberd or another safe answer for hatched araxytes and mirrorbacks.",
 				GearStrategy.builder().name("Araxxor - Crush melee").location("Araxxor's lair")
 					.rationale("Ranks main-hand Crush DPS and models all three Scythe hits on Araxxor.")
 					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
-					.targetTrait(TargetTrait.ARAXXOR).targetTrait(TargetTrait.SCYTHE_THREE_HIT).build(),
+					.targetTrait(TargetTrait.ARAXXOR).targetTrait(TargetTrait.SCYTHE_THREE_HIT)
+					.preferredItem("amulet of rancour").preferredItem("amulet of torture")
+					.preferredItem("amulet of blood fury").build(),
 				GearStrategy.builder().name("Araxxor - Noxious halberd switch").location("Araxxor's lair")
 					.rationale("Dedicated Araxyte and mirrorback switch from the strategy guide.")
 					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
@@ -1087,6 +1190,24 @@ final class TaskProfiles
 					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
 					.targetTrait(TargetTrait.WILDERNESS).targetTrait(TargetTrait.UNDEAD).build()),
 			"vet'ion", "vetion");
+
+		registerOverride(profile("thermonuclear-smoke-devil-boss", "Thermonuclear Smoke Devil",
+				"The melee method follows the current Wiki equipment table instead of generic raw-stat ordering.",
+				"A Slayer helmet or facemask is mandatory in the smoke; Redemption and Thralls are optional method settings.",
+				GearStrategy.builder().name("Thermy - Melee / Redemption").location("Smoke Devil Dungeon")
+					.rationale("Wiki weapon order: Scythe, Soulreaper axe, Fang/Blade, then Noxious halberd/Inquisitor's mace.")
+					.combatStyle(CombatStyle.MELEE).attackType(AttackType.BALANCED)
+					.rankedWeapon("scythe of vitur")
+					.rankedWeapon("soulreaper axe")
+					.rankedWeapon("osmumten's fang")
+					.rankedWeapon("blade of saeldor")
+					.rankedWeapon("noxious halberd")
+					.rankedWeapon("inquisitor's mace")
+					.rankedWeapon("abyssal tentacle")
+					.rankedWeapon("ghrazi rapier")
+					.preferredItem("amulet of rancour")
+					.preferredItem("bellator ring").build()),
+			"the thermonuclear smoke devil", "thermonuclear smoke devil");
 
 		SlayerTaskProfile meleeBoss = profile("melee-boss", "Melee boss",
 			"Boss-task fallback using offensive melee gear.",

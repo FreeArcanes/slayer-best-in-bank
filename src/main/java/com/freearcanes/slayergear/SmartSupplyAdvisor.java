@@ -211,6 +211,18 @@ class SmartSupplyAdvisor
 		boolean venator = strategy != null && isVenator(strategy);
 		boolean wildernessTask = isWildernessTask(assignedLocation, strategy);
 		boolean turaelAyaSpeed = TuraelSpeedProfiles.isSpeedStrategy(strategy);
+		boolean bossPvm = key.contains("boss")
+			|| (profile != null && BossSlayerCatalog.contains(profile.getDisplayName()));
+
+		if (bossPvm && config.useBossThralls())
+		{
+			rules.add(rule("Thrall book",
+				"Required in the inventory or off-hand to cast Arceuus resurrection spells",
+				true, "Book of the dead", "book of the dead"));
+			rules.add(rule("Thrall runes",
+				"Carries the selected Greater Thrall runes; verify the pouch contents before leaving",
+				true, "Rune pouch", "divine rune pouch", "rune pouch"));
+		}
 
 		// These are useful owned trip accelerators across Slayer methods, not only
 		// Ancient AoE and Venator. They remain optional and therefore appear only

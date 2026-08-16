@@ -120,7 +120,7 @@ class GearScorer
 			packedGearItems, packedSupplyItems, alternativesPerSlot, magicLevel,
 			rangedLevel, kourendEliteComplete, ancientSpellbookActive,
 			preferredStrategy, gearPriority, pinnedItems, excludedItems,
-			lowRiskMode, riskCapGp, false);
+			lowRiskMode, riskCapGp, false, false);
 	}
 
 	GearRecommendations score(
@@ -143,7 +143,8 @@ class GearScorer
 		String excludedItems,
 		boolean lowRiskMode,
 		int riskCapGp,
-		boolean loadedDizanasQuiver)
+		boolean loadedDizanasQuiver,
+		boolean arceuusSpellbookActive)
 	{
 		Set<Integer> bankCanonical = canonicalIds(bankItems);
 		Set<Integer> packedCanonical = canonicalIds(packedGearItems);
@@ -218,10 +219,121 @@ class GearScorer
 		}
 		ReadinessReport readiness = readiness(
 			best, requirements, supplies, selected, magicLevel,
-			ancientSpellbookActive, bestUsesLoadedDizanasQuiver);
+			ancientSpellbookActive, arceuusSpellbookActive, bestUsesLoadedDizanasQuiver);
+		List<GearRecommendation> weaponSwitches = bossWeaponSwitches(
+			taskName, profile, selected, equipment, best);
 
 		return GearRecommendations.ready(taskName, taskAmount, profile, selected, alternatives,
-			bySlot, loadoutTiers, supplies, readiness, equipment.size());
+			bySlot, loadoutTiers, weaponSwitches, supplies, readiness, equipment.size());
+	}
+
+	private List<GearRecommendation> bossWeaponSwitches(
+		String taskName,
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		List<BankEquipment> equipment,
+		Map<EquipmentInventorySlot, GearRecommendation> best)
+	{
+		String key = NameMatcher.normalize(profile.getKey());
+		String task = NameMatcher.normalize(taskName);
+		boolean boss = key.contains("boss") || BossSlayerCatalog.contains(task);
+		if (!boss) return Collections.emptyList();
+
+		Set<Integer> selectedIds = best.values().stream()
+			.map(GearRecommendation::getCanonicalItemId).collect(java.util.stream.Collectors.toSet());
+		List<GearRecommendation> switches = new ArrayList<>();
+		// Vardorvis is immune to defence reduction. Most other melee/ranged bosses
+		// can benefit from one owned drain option; only the highest tier is packed.
+		if (!task.contains("vardorvis") && strategy.getCombatStyle() != CombatStyle.MAGIC)
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Defence reduction", "elder maul", "dragon warhammer", "bandos godsword");
+		}
+		if (strategy.getCombatStyle() == CombatStyle.RANGED)
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Damage special", "zaryte crossbow");
+		}
+		else if (strategy.getCombatStyle() == CombatStyle.MAGIC)
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Damage special", "volatile nightmare staff", "eldritch nightmare staff");
+		}
+		else if (strategy.getTargetTraits().contains(TargetTrait.DEMON))
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Damage special", "burning claws", "dragon claws", "voidwaker", "armadyl godsword");
+		}
+		else
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Damage special", "dragon claws", "burning claws", "voidwaker", "armadyl godsword");
+		}
+		if (task.contains("araxxor"))
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Spawn weapon", "noxious halberd", "heavy ballista", "dragon crossbow");
+		}
+		else if (task.contains("abyssal sire"))
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Phase weapon", "blood ancient sceptre", "ancient blood sceptre",
+				"sanguinesti staff", "trident of the swamp", "trident of the seas");
+		}
+		else if (task.contains("kalphite queen"))
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Phase weapon", "bow of faerdhinen", "toxic blowpipe", "twisted bow",
+				"dragon hunter crossbow");
+		}
+		else if (task.contains("grotesque guardians"))
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Phase weapon", "bow of faerdhinen", "toxic blowpipe", "eclipse atlatl");
+		}
+		else if (task.contains("demonic gorilla") || task.contains("tormented demon"))
+		{
+			if (strategy.getCombatStyle() == CombatStyle.MELEE)
+				addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+					"Phase weapon", "scorching bow", "bow of faerdhinen", "toxic blowpipe");
+			else
+				addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+					"Phase weapon", "emberlight", "arclight", "darklight");
+		}
+		else if (task.contains("phantom muspah"))
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Phase weapon", "zaryte crossbow", "dragon crossbow", "armadyl crossbow");
+		}
+		else if (task.contains("zulrah"))
+		{
+			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+				"Phase weapon", "tumeken's shadow", "sanguinesti staff", "trident of the swamp",
+				"bow of faerdhinen", "twisted bow", "toxic blowpipe");
+		}
+		return switches;
+	}
+
+	private void addFirstOwnedSwitch(
+		List<GearRecommendation> result,
+		List<BankEquipment> equipment,
+		Set<Integer> selectedIds,
+		GearStrategy strategy,
+		String reason,
+		String... orderedNames)
+	{
+		for (String wanted : orderedNames)
+		{
+			for (BankEquipment item : equipment)
+			{
+				if (item.slot != EquipmentInventorySlot.WEAPON
+					|| selectedIds.contains(item.canonicalItemId)
+					|| !NameMatcher.normalize(item.name).contains(wanted)) continue;
+				result.add(recommendation(item, 1, strategy, item.score,
+					reason + " switch (best owned applicable tier)"));
+				return;
+			}
+		}
 	}
 
 	void usePrayerBlessings(
@@ -1344,7 +1456,7 @@ class GearScorer
 	private ReadinessReport readiness(Map<EquipmentInventorySlot, GearRecommendation> selected,
 		List<GearRequirement> requirements, List<SupplyRecommendation> supplies,
 		GearStrategy strategy, int magicLevel, boolean ancientSpellbookActive,
-		boolean loadedDizanasQuiver)
+		boolean arceuusSpellbookActive, boolean loadedDizanasQuiver)
 	{
 		List<String> missing = new ArrayList<>();
 		boolean protection = true;
@@ -1419,6 +1531,16 @@ class GearScorer
 				spell = highest + " • spellbook ready";
 			}
 		}
+		else if (supplies.stream().anyMatch(s -> "Thrall book".equals(s.getCategory())))
+		{
+			spell = arceuusSpellbookActive
+				? "Thralls • Arceuus spellbook ready"
+				: "Thralls • Arceuus spellbook inactive";
+			if (!arceuusSpellbookActive)
+			{
+				missing.add("Switch to the Arceuus spellbook for Thralls");
+			}
+		}
 		return new ReadinessReport(packedGear, gearTotal, protection, ammoReady, spell,
 			suppliesPacked, suppliesTotal, missing);
 	}
@@ -1491,10 +1613,13 @@ class GearScorer
 				break;
 			case RANGED:
 				// Eclipse atlatl ranged damage scales from Melee Strength.
-				damage = (slot == EquipmentInventorySlot.WEAPON
+				damage = ((slot == EquipmentInventorySlot.WEAPON
 					&& normalizedItemName.contains("eclipse atlatl")
 					? stats.getStr()
-					: stats.getRstr()) * 5.0;
+					: stats.getRstr())
+					+ (slot == EquipmentInventorySlot.WEAPON
+						? WeaponCombatRules.intrinsicRangedStrength(itemName)
+						: 0)) * 5.0;
 				accuracy = stats.getArange() * .32;
 				break;
 			default:
@@ -1552,6 +1677,21 @@ class GearScorer
 
 		double score = damage + accuracy + utility;
 		String n = normalizedItemName;
+
+		// Curated boss strategy tables are an explicit method constraint. Unlike
+		// ordinary preferred items, their published weapon order must not be
+		// reversed by RuneLite's incomplete item-only stat proxy.
+		if (slot == EquipmentInventorySlot.WEAPON)
+		{
+			for (int x = 0; x < strategy.getRankedWeapons().size(); x++)
+			{
+				if (n.contains(NameMatcher.normalize(strategy.getRankedWeapons().get(x))))
+				{
+					score += 100_000 - x * 1_000;
+					break;
+				}
+			}
+		}
 
 		if (slot == EquipmentInventorySlot.HEAD && (n.contains("slayer helm") || n.startsWith("black mask"))
 			&& (strategy.getCombatStyle() == CombatStyle.MELEE || n.contains("(i)") || n.contains("imbued")))

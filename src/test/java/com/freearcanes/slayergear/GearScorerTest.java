@@ -1133,7 +1133,7 @@ public class GearScorerTest
 	{
 		assertTrue(TaskProfiles.find("Cerberus").orElseThrow().getKey().equals("cerberus-boss"));
 		assertTrue(TaskProfiles.find("Hellhounds").orElseThrow().getKey().equals("hellhounds"));
-		assertTrue(TaskProfiles.find("The Thermonuclear Smoke Devil").orElseThrow().getKey().equals("melee-boss"));
+		assertTrue(TaskProfiles.find("The Thermonuclear Smoke Devil").orElseThrow().getKey().equals("thermonuclear-smoke-devil-boss"));
 	}
 
 	@Test

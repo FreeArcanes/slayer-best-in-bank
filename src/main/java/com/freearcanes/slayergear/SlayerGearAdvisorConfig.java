@@ -125,6 +125,15 @@ public interface SlayerGearAdvisorConfig extends Config
 	default int riskCapThousands() { return 500; }
 
 	@ConfigItem(
+		keyName = "bossWeaponSwitches",
+		name = "Boss weapon switches",
+		description = "Include the best applicable owned defence-reduction and damage-special weapons in boss loadouts.",
+		position = 6,
+		section = preferenceSection
+	)
+	default boolean bossWeaponSwitches() { return true; }
+
+	@ConfigItem(
 		keyName = "tripPlan",
 		name = "Trip length",
 		description = "Full assignment scales from the remaining task, Short trip plans for at most 40 kills, and Custom uses the configured kill count.",
@@ -201,10 +210,19 @@ public interface SlayerGearAdvisorConfig extends Config
 	default boolean usePrayerRegen() { return true; }
 
 	@ConfigItem(
+		keyName = "useBossThralls",
+		name = "Use Thralls for boss PvM",
+		description = "For boss loadouts, require the Book of the dead and a rune pouch and check that the Arceuus spellbook is active.",
+		position = 9,
+		section = tripPlanningSection
+	)
+	default boolean useBossThralls() { return false; }
+
+	@ConfigItem(
 		keyName = "preferDivineBoosts",
 		name = "Prefer Divine boosts",
 		description = "Prefer owned Divine combat boosts over their regular versions.",
-		position = 9,
+		position = 10,
 		section = tripPlanningSection
 	)
 	default boolean preferDivineBoosts() { return true; }
@@ -213,7 +231,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "useSlayerBracelet",
 		name = "Bring Slayer bracelet",
 		description = "Include the selected Expeditious or Slaughter bracelet in bank preparation. The bracelet is packed as a switch so the main glove-slot recommendation is preserved.",
-		position = 10,
+		position = 11,
 		section = tripPlanningSection
 	)
 	default boolean useSlayerBracelet() { return false; }
@@ -222,7 +240,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "slayerBraceletPreference",
 		name = "Slayer bracelet",
 		description = "Expeditious can shorten an assignment; Slaughter can extend it. Choose either one or bring both as glove switches.",
-		position = 11,
+		position = 12,
 		section = tripPlanningSection
 	)
 	default SlayerBraceletPreference slayerBraceletPreference()
@@ -234,7 +252,7 @@ public interface SlayerGearAdvisorConfig extends Config
 		keyName = "prayerRemainsPreference",
 		name = "Bone/Ash tools",
 		description = "Optionally bring a Bonecrusher or Ash sanctifier. Automatic chooses from the task's normal remains and shows both for mixed or boss assignments.",
-		position = 12,
+		position = 13,
 		section = tripPlanningSection
 	)
 	default PrayerRemainsPreference prayerRemainsPreference()

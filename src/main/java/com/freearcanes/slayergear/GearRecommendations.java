@@ -25,6 +25,7 @@ final class GearRecommendations
 	private final List<GearStrategy> alternativeStrategies;
 	private final Map<EquipmentInventorySlot, List<GearRecommendation>> bySlot;
 	private final List<LoadoutTier> loadoutTiers;
+	private final List<GearRecommendation> weaponSwitches;
 	private final List<SupplyRecommendation> supplies;
 	private final ReadinessReport readiness;
 	private final int bankItemsChecked;
@@ -42,6 +43,7 @@ final class GearRecommendations
 		List<GearStrategy> alternativeStrategies,
 		Map<EquipmentInventorySlot, List<GearRecommendation>> bySlot,
 		List<LoadoutTier> loadoutTiers,
+		List<GearRecommendation> weaponSwitches,
 		List<SupplyRecommendation> supplies,
 		ReadinessReport readiness,
 		int bankItemsChecked,
@@ -66,6 +68,7 @@ final class GearRecommendations
 		}
 		this.bySlot = Collections.unmodifiableMap(copy);
 		this.loadoutTiers = immutable(loadoutTiers);
+		this.weaponSwitches = immutable(weaponSwitches);
 		this.supplies = immutable(supplies);
 		this.readiness = readiness == null ? ReadinessReport.empty() : readiness;
 		this.bankItemsChecked = bankItemsChecked;
@@ -85,7 +88,7 @@ final class GearRecommendations
 	{
 		return new GearRecommendations(State.NO_TASK, "", 0, null, null,
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
-			Collections.emptyList(), ReadinessReport.empty(), 0, Collections.emptyList(),
+			Collections.emptyList(), Collections.emptyList(), ReadinessReport.empty(), 0, Collections.emptyList(),
 			InventoryCapacityPlan.unavailable(), false, false);
 	}
 
@@ -93,7 +96,7 @@ final class GearRecommendations
 	{
 		return new GearRecommendations(State.UNSUPPORTED_TASK, taskName, taskAmount, null, null,
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
-			Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName),
+			Collections.emptyList(), Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName),
 			InventoryCapacityPlan.unavailable(), false, false);
 	}
 
@@ -101,8 +104,26 @@ final class GearRecommendations
 	{
 		return new GearRecommendations(State.OPEN_BANK, taskName, taskAmount, profile, null,
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
-			Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName),
+			Collections.emptyList(), Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName),
 			InventoryCapacityPlan.unavailable(), false, false);
+	}
+
+	static GearRecommendations ready(
+		String taskName,
+		int taskAmount,
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		List<GearStrategy> alternativeStrategies,
+		Map<EquipmentInventorySlot, List<GearRecommendation>> bySlot,
+		List<LoadoutTier> loadoutTiers,
+		List<GearRecommendation> weaponSwitches,
+		List<SupplyRecommendation> supplies,
+		ReadinessReport readiness,
+		int bankItemsChecked)
+	{
+		return new GearRecommendations(State.READY, taskName, taskAmount, profile, strategy,
+			alternativeStrategies, bySlot, loadoutTiers, weaponSwitches, supplies, readiness, bankItemsChecked,
+			SlayerMasterCatalog.mastersFor(taskName), InventoryCapacityPlan.unavailable(), false, false);
 	}
 
 	static GearRecommendations ready(
@@ -117,9 +138,8 @@ final class GearRecommendations
 		ReadinessReport readiness,
 		int bankItemsChecked)
 	{
-		return new GearRecommendations(State.READY, taskName, taskAmount, profile, strategy,
-			alternativeStrategies, bySlot, loadoutTiers, supplies, readiness, bankItemsChecked,
-			SlayerMasterCatalog.mastersFor(taskName), InventoryCapacityPlan.unavailable(), false, false);
+		return ready(taskName, taskAmount, profile, strategy, alternativeStrategies,
+			bySlot, loadoutTiers, Collections.emptyList(), supplies, readiness, bankItemsChecked);
 	}
 
 	State getState() { return state; }
@@ -130,6 +150,7 @@ final class GearRecommendations
 	List<GearStrategy> getAlternativeStrategies() { return alternativeStrategies; }
 	Map<EquipmentInventorySlot, List<GearRecommendation>> getBySlot() { return bySlot; }
 	List<LoadoutTier> getLoadoutTiers() { return loadoutTiers; }
+	List<GearRecommendation> getWeaponSwitches() { return weaponSwitches; }
 	List<SupplyRecommendation> getSupplies() { return supplies; }
 	ReadinessReport getReadiness() { return readiness; }
 	int getBankItemsChecked() { return bankItemsChecked; }
@@ -155,6 +176,7 @@ final class GearRecommendations
 			alternativeStrategies,
 			bySlot,
 			loadoutTiers,
+			weaponSwitches,
 			effectiveSupplies,
 			readiness.withSupplyProgress(effectiveSupplies),
 			bankItemsChecked,
@@ -175,6 +197,7 @@ final class GearRecommendations
 			alternativeStrategies,
 			bySlot,
 			loadoutTiers,
+			weaponSwitches,
 			supplies,
 			readiness,
 			bankItemsChecked,
@@ -182,6 +205,15 @@ final class GearRecommendations
 			inventoryPlan,
 			locked,
 			refreshPending);
+	}
+
+	GearRecommendations withoutWeaponSwitches()
+	{
+		return new GearRecommendations(
+			state, taskName, taskAmount, profile, strategy, alternativeStrategies,
+			bySlot, loadoutTiers, Collections.emptyList(), supplies, readiness,
+			bankItemsChecked, assignableMasters, inventoryPlan,
+			bankPlanLocked, bankRefreshPending);
 	}
 
 	List<GearRecommendation> get(EquipmentInventorySlot slot)
@@ -192,13 +224,18 @@ final class GearRecommendations
 	boolean isRecommended(int canonicalItemId)
 	{
 		return bySlot.values().stream().flatMap(List::stream)
-			.anyMatch(recommendation -> recommendation.getCanonicalItemId() == canonicalItemId);
+			.anyMatch(recommendation -> recommendation.getCanonicalItemId() == canonicalItemId)
+			|| weaponSwitches.stream().anyMatch(item -> item.getCanonicalItemId() == canonicalItemId);
 	}
 
 	GearRecommendation find(int canonicalItemId)
 	{
-		return bySlot.values().stream().flatMap(List::stream)
+		GearRecommendation equipped = bySlot.values().stream().flatMap(List::stream)
 			.filter(recommendation -> recommendation.getCanonicalItemId() == canonicalItemId)
+			.findFirst().orElse(null);
+		if (equipped != null) return equipped;
+		return weaponSwitches.stream()
+			.filter(item -> item.getCanonicalItemId() == canonicalItemId)
 			.findFirst().orElse(null);
 	}
 
