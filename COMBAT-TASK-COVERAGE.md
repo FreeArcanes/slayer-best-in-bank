@@ -4,9 +4,9 @@ Embedded combat-affinity audit for the current **Slayer Best in Bank** release c
 
 This catalog covers every unique Slayer assignment category currently embedded in `SlayerMasterCatalog`. It records only mechanics that are stable for the whole task category: target attributes, special weapon families, preferred melee attack types, and Standard-spellbook elemental weaknesses. When a task can be completed using variants with conflicting weaknesses, the plugin deliberately leaves that field neutral instead of inventing one answer.
 
-- **Unique Slayer-master assignment categories audited:** 116
-- **Categories with an encoded task-wide affinity/attribute:** 70
-- **Conservative generic categories:** 46
+- **Unique Slayer-master assignment categories audited:** 117
+- **Categories with an encoded task-wide affinity/attribute:** 80
+- **Conservative generic categories:** 37
 - **Location-aware cannon routes:** 81 (documented separately in `CANNON-TASK-COVERAGE.md`)
 
 ## Target-specific weapon families
@@ -35,12 +35,12 @@ This catalog covers every unique Slayer assignment category currently embedded i
 | --- | --- | --- | --- | --- | --- |
 | Aberrant spectres | ANY | — | SPECTRAL,  UNDEAD | Air 50% | Undead/spectral target; Air spells receive the listed elemental weakness. |
 | Abyssal demons | DEMONBANE | — | DEMON | — | Demonic target: Demonbane weapon/spell effects are included in scoring. |
-| Ankou | ANY | — | UNDEAD | — | Undead target. |
+| Ankou | ANY | — | SPECTRAL,  UNDEAD | — | Undead/spectral target; the rare Dark Ankou variant prevents one task-wide elemental value. |
 | Aquanites | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Araxytes | ANY | — | — | Fire 50% | Araxytes have a strong Fire elemental weakness. |
 | Aviansies | ANY | — | FLYING | Air 45% | Flying target with a strong Air elemental weakness. |
 | Bandits | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
-| Banshees | ANY | — | — | Air 30% | Banshees have a 30% Air elemental weakness. |
+| Banshees | ANY | — | SPECTRAL,  UNDEAD | Air 30% | Banshees are undead/spectral and have a 30% Air elemental weakness; the Catacombs route uses Twisted banshees at 25%. |
 | Basilisks | ANY | Crush | — | Earth 40% | Basilisks favour Crush and have a 40% Earth elemental weakness. |
 | Bats | ANY | — | FLYING | — | Bat assignments include variants with different Air weakness values; no single task-wide element is forced. |
 | Bears | ANY | — | — | — | Bear assignments include variants with different Fire weakness values; no single task-wide element is forced. |
@@ -56,14 +56,14 @@ This catalog covers every unique Slayer assignment category currently embedded i
 | Cave bugs | ANY | — | — | Fire 50% | Cave bugs have a 50% Fire elemental weakness. |
 | Cave crawlers | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Cave horrors | ANY | — | — | Fire 30% | Cave horrors have a 30% Fire elemental weakness. |
-| Cave kraken | ANY | — | — | Earth 50% | Cave kraken have a 50% Earth elemental weakness. |
+| Cave kraken | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Cave slimes | ANY | — | — | Earth 50% | Cave slimes have a 50% Earth elemental weakness. |
 | Chaos druids | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Cockatrice | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Cows | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Crabs | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
-| Crawling hands | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
-| Crocodiles | ANY | Stab | — | — | Stab is the preferred melee attack type for this target. |
+| Crawling hands | ANY | — | UNDEAD | — | Undead target. |
+| Crocodiles | ANY | Slash | — | Earth 40% | Crocodiles favour Slash and have a 40% Earth elemental weakness. |
 | Custodian stalkers | ANY | — | — | Fire 30% | Mature Custodian stalkers have a Fire elemental weakness. |
 | Dagannoth | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Dark beasts | ANY | — | — | Earth 60% | Dark beasts have a 60% Earth elemental weakness. |
@@ -77,7 +77,7 @@ This catalog covers every unique Slayer assignment category currently embedded i
 | Ents | ANY | — | — | Fire 40% | Ents have a 40% Fire elemental weakness. |
 | Fever spiders | ANY | — | — | Fire 25% | Fever spiders have a 25% Fire elemental weakness. |
 | Fire giants | ANY | — | FIERY | Water 100% | Fiery target with a 100% Water elemental weakness. |
-| Flesh crawlers | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
+| Flesh crawlers | ANY | — | — | Fire 20% | Flesh crawlers have a 20% Fire elemental weakness. |
 | Fossil island wyverns | DRAGONBANE | — | DRAGON | — | Fossil Island wyvern variants are draconic but their elemental values vary by variant; Dragonbane is scored without forcing one task-wide element. |
 | Frost dragons | DRAGONBANE | — | DRAGON | Fire 100% | Draconic icy target: Dragonbane applies and Fire Magic receives a 100% elemental weakness. |
 | Gargoyles | GOLEMBANE | Crush | GOLEM | Earth 40% | Gargoyles are golems: Granite hammer gains Golembane, Crush is favoured, and Earth Magic is an alternative. |
@@ -88,7 +88,7 @@ This catalog covers every unique Slayer assignment category currently embedded i
 | Green dragons | DRAGONBANE | — | DRAGON,  FIERY | Water 50% | Draconic target: Dragonbane effects are included in scoring. Water Magic receives a 50% weakness. |
 | Gryphons | ANY | — | FLYING | Air 50% | Flying target with a 50% Air elemental weakness. |
 | Harpie bug swarms | ANY | — | — | Fire 50% | Harpie bug swarms have a Fire elemental weakness. |
-| Hellhounds | DEMONBANE | — | DEMON | Water 50% | Demonic target: Demonbane weapon/spell effects are included in scoring. Water Magic receives a 50% weakness. |
+| Hellhounds | DEMONBANE | — | DEMON | — | Ordinary Hellhounds are demonic but have no elemental weakness; Cerberus is handled separately with Water 40%. |
 | Hill giants | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Hobgoblins | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Hydras | DRAGONBANE | — | DRAGON | — | Draconic target: Dragonbane effects are included in scoring. |
@@ -97,7 +97,7 @@ This catalog covers every unique Slayer assignment category currently embedded i
 | Icefiends | DEMONBANE | — | DEMON | Fire 100% | Icefiends are demons: Demonbane passives apply and Fire Magic has a 100% elemental weakness. |
 | Infernal mages | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Jellies | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
-| Jungle horrors | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
+| Jungle horrors | ANY | — | — | Fire 25% | Jungle horrors have a 25% Fire elemental weakness. |
 | Kalphites | KALPHITE | — | KALPHITE | — | Keris weapons gain Kalphite/Scabarite damage effects; Breaching also gains target accuracy. |
 | Killerwatts | ANY | — | FLYING | Air 60% | Flying target with a 60% Air elemental weakness. |
 | Kurask | LEAF_BLADED | — | LEAFY | — | Only valid leaf-bane/Slayer weapons can damage this target; Leaf-bladed battleaxe gains a target damage bonus. |
@@ -118,7 +118,7 @@ This catalog covers every unique Slayer assignment category currently embedded i
 | Mutated zygomites | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Nechryael | DEMONBANE | — | DEMON | — | Demonic target: Demonbane weapon/spell effects are included in scoring. |
 | Ogres | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
-| Otherworldly beings | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
+| Otherworldly beings | ANY | — | SPECTRAL | Air 35% | Otherworldly beings are spectral and have a 35% Air elemental weakness. |
 | Pirates | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Pyrefiends | DEMONBANE | — | DEMON,  FIERY | Water 100% | Demonic/fiery target: Demonbane applies and Water Magic receives a 100% elemental weakness. |
 | Rats | RATBANE | — | RAT | — | Rat-bone weapons receive their rat-specific +10 max-hit effect. |
@@ -126,8 +126,8 @@ This catalog covers every unique Slayer assignment category currently embedded i
 | Revenants | ANY | — | UNDEAD,  WILDERNESS | Air 30% | Undead Wilderness target: charged Wilderness weapons gain +50% accuracy/damage, and Air Magic has a 30% elemental weakness. |
 | Rockslugs | ANY | — | — | Earth 25% | Rockslugs have a 25% Earth elemental weakness. |
 | Rogues | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
-| Scorpions | ANY | Slash | — | — | Slash is the preferred melee attack type for this target. |
-| Sea snakes | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
+| Scorpions | ANY | — | — | — | Scorpion variants have different melee defences and Fire weakness values; no task-wide affinity is forced. |
+| Sea snakes | ANY | — | — | Earth 20% | Both Sea snake variants have a 20% Earth elemental weakness. |
 | Shades | SHADE | — | SHADE,  SPECTRAL,  UNDEAD | Air 40% | Shades are undead/spectral; Gadderhammer has a Shade-specific damage effect and Air Magic is effective. |
 | Shadow warriors | ANY | Crush | — | — | Crush is the preferred melee attack type for this target. |
 | Skeletal wyverns | DRAGONBANE | — | DRAGON | Fire 25% | Draconic target: Dragonbane effects are included in scoring. Fire Magic receives a 25% weakness. |
@@ -135,7 +135,7 @@ This catalog covers every unique Slayer assignment category currently embedded i
 | Smoke devils | ANY | — | — | Air 30% | Smoke devils have an Air elemental weakness; Burst/Barrage remains the primary multi-target XP method. |
 | Sourhogs | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Spiders | ANY | — | — | — | Spider assignments can be completed on substantially different spider variants; no single task-wide element is forced. |
-| Spiritual creatures | ANY | — | — | — | Elemental weakness is faction-dependent: non-Zaros spiritual creatures use Air weakness while Zarosian variants use a much larger Fire weakness; no single task-wide element is forced. |
+| Spiritual creatures | ANY | — | SPECTRAL | — | Elemental weakness is faction-dependent: non-Zaros spiritual creatures use Air weakness while Zarosian variants use a much larger Fire weakness; no single task-wide element is forced. |
 | Suqahs | ANY | — | — | Earth 20% | Suqahs have a 20% Earth elemental weakness. |
 | Terror dogs | ANY | — | — | — | Generic / no task-wide special weapon modifier encoded. |
 | Trolls | ANY | — | — | Fire 50% | Mountain-troll routes have a Fire elemental weakness. |

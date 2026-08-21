@@ -3,6 +3,17 @@
 This release candidate consolidates the current loadout, supply-planning,
 bank-layout, customization, and support improvements into one reviewable update.
 
+## Internal reliability
+
+- Consolidated bank, inventory, and worn-item canonicalization so duplicate
+  snapshots no longer repeat equipment metadata and stat lookups.
+- Supply ownership now builds exact-variant and canonical views in one pass
+  instead of decoding every bank and inventory item twice.
+- Centralized strategy cloning so newly added constraints and rankings cannot
+  be silently omitted by separate copy blocks.
+- Removed redundant broad boss aliases and added a catalog regression guard so
+  curated task registrations cannot be silently discarded.
+
 ## Preparation quality of life
 
 - Added All, Missing, Gear, and Supplies focus views in the sidebar.
@@ -29,6 +40,17 @@ bank-layout, customization, and support improvements into one reviewable update.
 
 ## Coherent loadout tiers
 
+- One-handed boss, phase, and special-attack switches now include the best
+  owned style-appropriate off-hand when it is not already equipped; two-handed
+  switches remain off-hand-free.
+- Fixed Shellbane Gryphon preparation: Tortugan shield is now enforced in its
+  actual cape slot, a normal off-hand can be selected independently, and the
+  boss loadout is automatically adjusted to at least 40 kg equipped weight.
+- Re-audited every Slayer-monster row twice against the current OSRS Wiki,
+  correcting stale affinities, attributes, and elemental weaknesses for Cave
+  kraken, Hellhounds/Cerberus, Crocodiles, Scorpions/Scorpia, Banshees,
+  Crawling hands, Flesh crawlers, Jungle horrors, Otherworldly beings, Sea
+  snakes, Spiritual creatures, Ankou, Hydras, and the Shellbane Gryphon.
 - Replaced several generic Slayer-boss fallbacks with encounter-aware weapon
   methods for Araxxor, Cerberus, Duke Sucellus, Sarachnis, Vardorvis, Abyssal
   Sire, Kalphite Queen, and Vet'ion.

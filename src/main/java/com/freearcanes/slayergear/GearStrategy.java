@@ -21,6 +21,8 @@ final class GearStrategy
 	private final int minimumRanged;
 	private final String requiredWeapon;
 	private final String requiredOffhand;
+	private final String requiredCape;
+	private final double minimumEquippedWeightKg;
 	private final List<String> preferredItems;
 	private final List<String> rankedWeapons;
 	private final double magicDefenceWeight;
@@ -43,6 +45,8 @@ final class GearStrategy
 		this.minimumRanged = builder.minimumRanged;
 		this.requiredWeapon = builder.requiredWeapon;
 		this.requiredOffhand = builder.requiredOffhand;
+		this.requiredCape = builder.requiredCape;
+		this.minimumEquippedWeightKg = builder.minimumEquippedWeightKg;
 		this.preferredItems = Collections.unmodifiableList(new ArrayList<>(builder.preferredItems));
 		this.rankedWeapons = Collections.unmodifiableList(new ArrayList<>(builder.rankedWeapons));
 		this.magicDefenceWeight = builder.magicDefenceWeight;
@@ -53,6 +57,31 @@ final class GearStrategy
 	static Builder builder()
 	{
 		return new Builder();
+	}
+
+	Builder toBuilder()
+	{
+		Builder copy = builder()
+			.name(name)
+			.location(location)
+			.rationale(rationale)
+			.combatStyle(combatStyle)
+			.attackType(attackType)
+			.weaponRule(weaponRule)
+			.targetTraits(targetTraits)
+			.elementalWeakness(elementalWeakness, elementalWeaknessPercent)
+			.minimumMagic(minimumMagic)
+			.minimumRanged(minimumRanged)
+			.requiredWeapon(requiredWeapon)
+			.requiredOffhand(requiredOffhand)
+			.requiredCape(requiredCape)
+			.minimumEquippedWeightKg(minimumEquippedWeightKg)
+			.magicDefenceWeight(magicDefenceWeight)
+			.prayerWeight(prayerWeight)
+			.ancientAoe(ancientAoe);
+		for (String item : preferredItems) copy.preferredItem(item);
+		for (String weapon : rankedWeapons) copy.rankedWeapon(weapon);
+		return copy;
 	}
 
 	String getName() { return name; }
@@ -68,6 +97,8 @@ final class GearStrategy
 	int getMinimumRanged() { return minimumRanged; }
 	String getRequiredWeapon() { return requiredWeapon; }
 	String getRequiredOffhand() { return requiredOffhand; }
+	String getRequiredCape() { return requiredCape; }
+	double getMinimumEquippedWeightKg() { return minimumEquippedWeightKg; }
 	List<String> getPreferredItems() { return preferredItems; }
 	List<String> getRankedWeapons() { return rankedWeapons; }
 	double getMagicDefenceWeight() { return magicDefenceWeight; }
@@ -89,6 +120,8 @@ final class GearStrategy
 		private int minimumRanged = 1;
 		private String requiredWeapon;
 		private String requiredOffhand;
+		private String requiredCape;
+		private double minimumEquippedWeightKg;
 		private final List<String> preferredItems = new ArrayList<>();
 		private final List<String> rankedWeapons = new ArrayList<>();
 		// Extra weighting beyond the small all-defence tie-breaker. Most methods
@@ -115,6 +148,12 @@ final class GearStrategy
 		Builder minimumRanged(int value) { this.minimumRanged = value; return this; }
 		Builder requiredWeapon(String value) { this.requiredWeapon = value; return this; }
 		Builder requiredOffhand(String value) { this.requiredOffhand = value; return this; }
+		Builder requiredCape(String value) { this.requiredCape = value; return this; }
+		Builder minimumEquippedWeightKg(double value)
+		{
+			this.minimumEquippedWeightKg = Math.max(0, value);
+			return this;
+		}
 		Builder preferredItem(String value) { if (value != null) this.preferredItems.add(value); return this; }
 		Builder rankedWeapon(String value) { if (value != null) this.rankedWeapons.add(value); return this; }
 		Builder magicDefenceWeight(double value) { this.magicDefenceWeight = value; return this; }

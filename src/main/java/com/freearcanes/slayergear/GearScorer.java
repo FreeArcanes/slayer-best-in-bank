@@ -146,9 +146,11 @@ class GearScorer
 		boolean loadedDizanasQuiver,
 		boolean arceuusSpellbookActive)
 	{
-		Set<Integer> bankCanonical = canonicalIds(bankItems);
-		Set<Integer> packedCanonical = canonicalIds(packedGearItems);
-		List<BankEquipment> equipment = collectEquipment(gearPool, bankCanonical, packedCanonical);
+		Map<Integer, Integer> canonicalByItemId = new HashMap<>();
+		Set<Integer> bankCanonical = canonicalIds(bankItems, canonicalByItemId);
+		Set<Integer> packedCanonical = canonicalIds(packedGearItems, canonicalByItemId);
+		List<BankEquipment> equipment = collectEquipment(
+			gearPool, bankCanonical, packedCanonical, canonicalByItemId);
 		Set<String> ownedNames = collectOwnedNames(equipment);
 		List<GearStrategy> eligible = eligibleStrategies(profile, ownedNames, magicLevel, rangedLevel);
 		GearStrategy selected = selectStrategy(profile, eligible, preferredStrategy);
@@ -221,18 +223,23 @@ class GearScorer
 			best, requirements, supplies, selected, magicLevel,
 			ancientSpellbookActive, arceuusSpellbookActive, bestUsesLoadedDizanasQuiver);
 		List<GearRecommendation> weaponSwitches = bossWeaponSwitches(
-			taskName, profile, selected, equipment, best);
+			taskName, profile, selected, equipment, best, requirements,
+			gearPriority, pinned, excluded);
 
 		return GearRecommendations.ready(taskName, taskAmount, profile, selected, alternatives,
 			bySlot, loadoutTiers, weaponSwitches, supplies, readiness, equipment.size());
 	}
 
-	private List<GearRecommendation> bossWeaponSwitches(
+	List<GearRecommendation> bossWeaponSwitches(
 		String taskName,
 		SlayerTaskProfile profile,
 		GearStrategy strategy,
 		List<BankEquipment> equipment,
-		Map<EquipmentInventorySlot, GearRecommendation> best)
+		Map<EquipmentInventorySlot, GearRecommendation> best,
+		List<GearRequirement> requirements,
+		GearPriority gearPriority,
+		Set<String> pinned,
+		Set<String> excluded)
 	{
 		String key = NameMatcher.normalize(profile.getKey());
 		String task = NameMatcher.normalize(taskName);
@@ -311,7 +318,92 @@ class GearScorer
 				"Phase weapon", "tumeken's shadow", "sanguinesti staff", "trident of the swamp",
 				"bow of faerdhinen", "twisted bow", "toxic blowpipe");
 		}
-		return switches;
+		return includeApplicableOffhands(
+			switches, equipment, best, requirements, gearPriority, pinned, excluded, strategy);
+	}
+
+	private List<GearRecommendation> includeApplicableOffhands(
+		List<GearRecommendation> weaponSwitches,
+		List<BankEquipment> equipment,
+		Map<EquipmentInventorySlot, GearRecommendation> best,
+		List<GearRequirement> requirements,
+		GearPriority gearPriority,
+		Set<String> pinned,
+		Set<String> excluded,
+		GearStrategy taskStrategy)
+	{
+		List<GearRecommendation> result = new ArrayList<>();
+		Set<Integer> alreadyAvailable = best.values().stream()
+			.map(GearRecommendation::getCanonicalItemId)
+			.collect(java.util.stream.Collectors.toSet());
+		for (GearRecommendation weapon : weaponSwitches)
+		{
+			result.add(weapon);
+			alreadyAvailable.add(weapon.getCanonicalItemId());
+			if (weapon.isTwoHanded()) continue;
+
+			GearStrategy switchStrategy = offhandStrategy(taskStrategy, weapon.getItemName());
+			BankEquipment bestOffhand = null;
+			double bestScore = Double.NEGATIVE_INFINITY;
+			for (BankEquipment item : equipment)
+			{
+				if (item.slot != EquipmentInventorySlot.SHIELD
+					|| matchesAnyPreference(item.name, excluded)
+					|| !satisfiesOffhandRequirements(item, requirements)) continue;
+				double score = scoreStats(
+					switchStrategy, item.name, item.slot, item.stats, gearPriority);
+				if (matchesAnyPreference(item.name, pinned)) score += 5_000;
+				if (bestOffhand == null || score > bestScore
+					|| (score == bestScore && item.name.compareTo(bestOffhand.name) < 0))
+				{
+					bestOffhand = item;
+					bestScore = score;
+				}
+			}
+			if (bestOffhand == null || alreadyAvailable.contains(bestOffhand.canonicalItemId)) continue;
+
+			result.add(recommendation(
+				bestOffhand,
+				1,
+				switchStrategy,
+				bestScore,
+				weapon.getReason().split(" switch", 2)[0]
+					+ " off-hand for " + weapon.getItemName() + " switch"));
+			alreadyAvailable.add(bestOffhand.canonicalItemId);
+		}
+		return result;
+	}
+
+	private static boolean satisfiesOffhandRequirements(
+		BankEquipment item,
+		List<GearRequirement> requirements)
+	{
+		if (requirements == null) return true;
+		for (GearRequirement requirement : requirements)
+		{
+			if (requirement.restricts(EquipmentInventorySlot.SHIELD)
+				&& !requirement.matchesForSlot(EquipmentInventorySlot.SHIELD, item.name)) return false;
+		}
+		return true;
+	}
+
+	private static GearStrategy offhandStrategy(GearStrategy taskStrategy, String weaponName)
+	{
+		String name = NameMatcher.normalize(weaponName);
+		CombatStyle style = has(name, "crossbow", "bow", "blowpipe", "ballista", "atlatl")
+			? CombatStyle.RANGED
+			: has(name, "staff", "sceptre", "trident", "tumeken's shadow")
+				? CombatStyle.MAGIC
+				: CombatStyle.MELEE;
+		if (style == taskStrategy.getCombatStyle()) return taskStrategy;
+		return GearStrategy.builder()
+			.name("Boss switch off-hand")
+			.combatStyle(style)
+			.attackType(AttackType.BALANCED)
+			.targetTraits(taskStrategy.getTargetTraits())
+			.magicDefenceWeight(taskStrategy.getMagicDefenceWeight())
+			.prayerWeight(taskStrategy.getPrayerWeight())
+			.build();
 	}
 
 	private void addFirstOwnedSwitch(
@@ -529,7 +621,101 @@ class GearScorer
 			applyInquisitorSetIfBetter(
 				selected, candidates, strategy, requirements, rank);
 		}
+		// Encounter safety takes precedence over the optional risk budget, just as
+		// mandatory protection gear does. If the bank cannot reach the threshold,
+		// readiness reports the exact selected weight instead.
+		ensureMinimumEquippedWeight(selected, candidates, strategy, requirements, rank);
 		return selected;
+	}
+
+	private void ensureMinimumEquippedWeight(
+		Map<EquipmentInventorySlot, GearRecommendation> selected,
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates,
+		GearStrategy strategy,
+		List<GearRequirement> requirements,
+		int rank)
+	{
+		double minimum = strategy.getMinimumEquippedWeightKg();
+		if (minimum <= 0) return;
+
+		while (totalEquippedWeight(selected) + 0.0001 < minimum)
+		{
+			WeightUpgrade best = null;
+			GearRecommendation weapon = selected.get(EquipmentInventorySlot.WEAPON);
+			String weaponName = weapon == null ? "" : weapon.getItemName();
+			for (EquipmentInventorySlot slot : LOADOUT_SLOT_ORDER)
+			{
+				if (slot == EquipmentInventorySlot.WEAPON
+					|| (slot == EquipmentInventorySlot.SHIELD
+						&& weapon != null && weapon.isTwoHanded())) continue;
+
+				GearRecommendation current = selected.get(slot);
+				double currentWeight = current == null ? 0 : current.getWeightKg();
+				double currentScore = current == null ? 0 : current.getScore();
+				List<BankEquipment> slotCandidates = preferredPinnedChoices(
+					candidates.getOrDefault(slot, Collections.emptyList()));
+				for (BankEquipment candidate : slotCandidates)
+				{
+					if (current != null
+						&& candidate.canonicalItemId == current.getCanonicalItemId()) continue;
+					if (!preservesRequirements(selected, slot, candidate.name, requirements)) continue;
+					double gain = candidate.weightKg - currentWeight;
+					if (gain <= 0.0001) continue;
+					double candidateScore = contextualScore(
+						strategy, weaponName, candidate.name, slot,
+						candidate.stats, candidate.score);
+					double loss = currentScore - candidateScore;
+					WeightUpgrade upgrade = new WeightUpgrade(
+						slot, candidate, gain, loss,
+						totalEquippedWeight(selected) + gain >= minimum);
+					if (upgrade.isBetterThan(best)) best = upgrade;
+				}
+			}
+			if (best == null) break;
+			selected.put(best.slot, contextualRecommendation(
+				best.candidate, rank, strategy, weaponName));
+		}
+	}
+
+	private static boolean preservesRequirements(
+		Map<EquipmentInventorySlot, GearRecommendation> selected,
+		EquipmentInventorySlot replacedSlot,
+		String replacementName,
+		List<GearRequirement> requirements)
+	{
+		for (GearRequirement requirement : requirements)
+		{
+			boolean satisfied = false;
+			for (GearRequirement.Option option : requirement.getOptions())
+			{
+				if (option.getSlot() == replacedSlot)
+				{
+					satisfied |= option.matches(replacementName);
+				}
+				else
+				{
+					GearRecommendation retained = selected.get(option.getSlot());
+					satisfied |= retained != null && option.matches(retained.getItemName());
+				}
+				if (satisfied) break;
+			}
+			if (!satisfied) return false;
+		}
+		return true;
+	}
+
+	static double totalEquippedWeight(
+		Map<EquipmentInventorySlot, GearRecommendation> selected)
+	{
+		double total = 0;
+		if (selected != null)
+		{
+			for (GearRecommendation recommendation : selected.values())
+			{
+				total += recommendation.getWeightKg();
+			}
+		}
+		return total;
 	}
 
 	private void applyInquisitorSetIfBetter(
@@ -959,6 +1145,7 @@ class GearScorer
 					applyInquisitorSetIfBetter(
 						neighbor, candidates, strategy, requirements, 1);
 				}
+				ensureMinimumEquippedWeight(neighbor, candidates, strategy, requirements, 1);
 				if (!isCoherentLoadout(neighbor, strategy, requirements)) continue;
 
 				long guidePrice = lowRiskMode
@@ -1105,6 +1292,8 @@ class GearScorer
 		GearRecommendation weapon = selected.get(EquipmentInventorySlot.WEAPON);
 		if (weapon == null) return false;
 		if (weapon.isTwoHanded() && selected.containsKey(EquipmentInventorySlot.SHIELD)) return false;
+		if (strategy.getMinimumEquippedWeightKg() > 0
+			&& totalEquippedWeight(selected) + 0.0001 < strategy.getMinimumEquippedWeightKg()) return false;
 		if (strategy.getCombatStyle() == CombatStyle.RANGED)
 		{
 			String weaponName = NameMatcher.normalize(weapon.getItemName());
@@ -1283,7 +1472,7 @@ class GearScorer
 			}
 			BankEquipment copy = new BankEquipment(
 				item.itemId, item.canonicalItemId, item.name, item.slot,
-				item.stats, item.banked, item.packed);
+				item.stats, item.banked, item.packed, item.weightKg);
 			copy.score = contextualScore;
 			copy.guidePrice = item.guidePrice;
 			copy.pinned = item.pinned;
@@ -1450,7 +1639,7 @@ class GearScorer
 		}
 		return GearRecommendation.builder().itemId(item.itemId).canonicalItemId(item.canonicalItemId)
 			.itemName(item.name).slot(item.slot).score(score).rank(rank).twoHanded(item.stats.isTwoHanded())
-			.reason(reason).packed(item.packed).banked(item.banked).build();
+			.weightKg(item.weightKg).reason(reason).packed(item.packed).banked(item.banked).build();
 	}
 
 	private ReadinessReport readiness(Map<EquipmentInventorySlot, GearRecommendation> selected,
@@ -1463,6 +1652,15 @@ class GearScorer
 		for (GearRequirement req : requirements)
 		{
 			if (!req.isSatisfied(selected)) { protection = false; missing.add(req.getLabel()); }
+		}
+		double selectedWeight = totalEquippedWeight(selected);
+		if (strategy.getMinimumEquippedWeightKg() > 0
+			&& selectedWeight + 0.0001 < strategy.getMinimumEquippedWeightKg())
+		{
+			protection = false;
+			missing.add(String.format(Locale.ENGLISH,
+				"Equipped weight %.0f kg required (%.1f kg selected)",
+				strategy.getMinimumEquippedWeightKg(), selectedWeight));
 		}
 		GearRecommendation weapon = selected.get(EquipmentInventorySlot.WEAPON);
 		boolean ammoReady = weapon != null;
@@ -1741,16 +1939,24 @@ class GearScorer
 		return visibleBonus;
 	}
 
-	private List<BankEquipment> collectEquipment(Item[] items, Set<Integer> bank, Set<Integer> packed)
+	private List<BankEquipment> collectEquipment(
+		Item[] items,
+		Set<Integer> bank,
+		Set<Integer> packed,
+		Map<Integer, Integer> canonicalByItemId)
 	{
 		Map<Integer, BankEquipment> dedup = new HashMap<>();
 		if (items == null) return new ArrayList<>();
 		for (Item item : items)
 		{
 			if (item == null || item.getId() <= 0 || item.getQuantity() <= 0) continue;
+			int canonical = canonicalId(item.getId(), canonicalByItemId);
+			// Packed/banked state is tracked by canonical id, so a later variation
+			// cannot improve this entry. Avoid repeating composition/stat lookups for
+			// the same item appearing in bank, inventory, and worn snapshots.
+			if (dedup.containsKey(canonical)) continue;
 			ItemComposition comp = itemManager.getItemComposition(item.getId());
 			if (comp == null || comp.getPlaceholderTemplateId() != -1) continue;
-			int canonical = itemManager.canonicalize(item.getId());
 			ItemStats stat = itemManager.getItemStats(item.getId());
 			if (stat == null) stat = itemManager.getItemStats(canonical);
 			if (stat == null || !stat.isEquipable() || stat.getEquipment() == null) continue;
@@ -1758,18 +1964,35 @@ class GearScorer
 			if (slot == null || !SUPPORTED_SLOTS.contains(slot)) continue;
 			String name = comp.getName();
 			if (name == null || name.trim().isEmpty() || "null".equalsIgnoreCase(name)) continue;
-			BankEquipment candidate = new BankEquipment(item.getId(), canonical, name, slot, stat.getEquipment(), bank.contains(canonical), packed.contains(canonical));
-			BankEquipment existing = dedup.get(canonical);
-			if (existing == null || (!existing.packed && candidate.packed)) dedup.put(canonical, candidate);
+			BankEquipment candidate = new BankEquipment(item.getId(), canonical, name, slot,
+				stat.getEquipment(), bank.contains(canonical), packed.contains(canonical), stat.getWeight());
+			dedup.put(canonical, candidate);
 		}
 		return new ArrayList<>(dedup.values());
 	}
 
-	private Set<Integer> canonicalIds(Item[] items)
+	private Set<Integer> canonicalIds(
+		Item[] items,
+		Map<Integer, Integer> canonicalByItemId)
 	{
 		Set<Integer> result = new HashSet<>(); if (items == null) return result;
-		for (Item i : items) if (i != null && i.getId() > 0 && i.getQuantity() > 0) result.add(itemManager.canonicalize(i.getId()));
+		for (Item item : items)
+		{
+			if (item != null && item.getId() > 0 && item.getQuantity() > 0)
+			{
+				result.add(canonicalId(item.getId(), canonicalByItemId));
+			}
+		}
 		return result;
+	}
+
+	private int canonicalId(int itemId, Map<Integer, Integer> canonicalByItemId)
+	{
+		Integer cached = canonicalByItemId.get(itemId);
+		if (cached != null) return cached;
+		int canonical = itemManager.canonicalize(itemId);
+		canonicalByItemId.put(itemId, canonical);
+		return canonical;
 	}
 
 	private static Set<String> collectOwnedNames(List<BankEquipment> items) { Set<String> r=new HashSet<>(); for(BankEquipment i:items) r.add(NameMatcher.normalize(i.name)); return r; }
@@ -1982,9 +2205,54 @@ class GearScorer
 		}
 	}
 
+	private static final class WeightUpgrade
+	{
+		private final EquipmentInventorySlot slot;
+		private final BankEquipment candidate;
+		private final double weightGain;
+		private final double scoreLoss;
+		private final boolean reachesMinimum;
+
+		private WeightUpgrade(
+			EquipmentInventorySlot slot,
+			BankEquipment candidate,
+			double weightGain,
+			double scoreLoss,
+			boolean reachesMinimum)
+		{
+			this.slot = slot;
+			this.candidate = candidate;
+			this.weightGain = weightGain;
+			this.scoreLoss = scoreLoss;
+			this.reachesMinimum = reachesMinimum;
+		}
+
+		private boolean isBetterThan(WeightUpgrade other)
+		{
+			if (other == null) return true;
+			if (reachesMinimum != other.reachesMinimum) return reachesMinimum;
+			if (reachesMinimum)
+			{
+				return scoreLoss < other.scoreLoss
+					|| (scoreLoss == other.scoreLoss && weightGain < other.weightGain);
+			}
+			double efficiency = Math.max(0, scoreLoss) / weightGain;
+			double otherEfficiency = Math.max(0, other.scoreLoss) / other.weightGain;
+			return efficiency < otherEfficiency
+				|| (efficiency == otherEfficiency && scoreLoss < other.scoreLoss);
+		}
+	}
+
 	static final class BankEquipment
 	{
-		final int itemId,canonicalItemId; final String name; final EquipmentInventorySlot slot; final ItemEquipmentStats stats; final boolean banked,packed; double score; int guidePrice; boolean pinned;
-		BankEquipment(int itemId,int canonical,String name,EquipmentInventorySlot slot,ItemEquipmentStats stats,boolean banked,boolean packed){this.itemId=itemId;this.canonicalItemId=canonical;this.name=name;this.slot=slot;this.stats=stats;this.banked=banked;this.packed=packed;}
+		final int itemId,canonicalItemId; final String name; final EquipmentInventorySlot slot; final ItemEquipmentStats stats; final boolean banked,packed; final double weightKg; double score; int guidePrice; boolean pinned;
+		BankEquipment(int itemId,int canonical,String name,EquipmentInventorySlot slot,ItemEquipmentStats stats,boolean banked,boolean packed)
+		{
+			this(itemId, canonical, name, slot, stats, banked, packed, 0);
+		}
+		BankEquipment(int itemId,int canonical,String name,EquipmentInventorySlot slot,ItemEquipmentStats stats,boolean banked,boolean packed,double weightKg)
+		{
+			this.itemId=itemId;this.canonicalItemId=canonical;this.name=name;this.slot=slot;this.stats=stats;this.banked=banked;this.packed=packed;this.weightKg=weightKg;
+		}
 	}
 }

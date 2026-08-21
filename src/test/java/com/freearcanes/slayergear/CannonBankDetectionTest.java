@@ -10,6 +10,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class CannonBankDetectionTest
@@ -49,5 +51,7 @@ public class CannonBankDetectionTest
 		assertEquals("Dwarf cannon set", setRecommendation.get(0).getItemName());
 		assertEquals(SupplyStatus.BANKED, setRecommendation.get(0).getStatus());
 		assertEquals(4, missingParts.size());
+		verify(itemManager, times(1)).getItemComposition(ItemID.DWARF_CANNON_SET);
+		verify(itemManager, times(1)).canonicalize(ItemID.DWARF_CANNON_SET);
 	}
 }

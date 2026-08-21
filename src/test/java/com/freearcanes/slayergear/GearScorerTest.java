@@ -7,13 +7,23 @@ import java.util.List;
 import java.util.Map;
 import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.Item;
+import net.runelite.api.ItemComposition;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.client.game.ItemEquipmentStats;
+import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.ItemStats;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class GearScorerTest
 {
@@ -1215,6 +1225,161 @@ public class GearScorerTest
 			"Travel", "xeric's talisman", false, false));
 	}
 
+	@Test
+	public void shellbaneUsesTortuganCapeNormalOffhandAndFortyKgLoadout()
+	{
+		GearStrategy strategy = TaskProfiles.find("Shellbane Gryphon")
+			.orElseThrow().getStrategies().get(0);
+		assertEquals("tortugan shield", strategy.getRequiredCape());
+		assertEquals(40.0, strategy.getMinimumEquippedWeightKg(), 0.0001);
+		assertTrue(TaskSafetyRules.gearRequirements(
+			"shellbane-gryphon-boss", strategy).stream()
+			.anyMatch(requirement -> requirement.restricts(EquipmentInventorySlot.CAPE)));
+		assertFalse(TaskSafetyRules.gearRequirements(
+			"shellbane-gryphon-boss", strategy).stream()
+			.anyMatch(requirement -> requirement.restricts(EquipmentInventorySlot.SHIELD)));
+
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(EquipmentInventorySlot.WEAPON, Collections.singletonList(
+			weightedEquipment(1, "Ghrazi rapier", EquipmentInventorySlot.WEAPON, 4, 100, false)));
+		candidates.put(EquipmentInventorySlot.CAPE, Arrays.asList(
+			weightedEquipment(9, "Heavy decorative cape", EquipmentInventorySlot.CAPE, 50, 100, false),
+			weightedEquipment(2, "Tortugan shield", EquipmentInventorySlot.CAPE, 10, 1, false)));
+		candidates.put(EquipmentInventorySlot.SHIELD, Collections.singletonList(
+			weightedEquipment(3, "Dragon defender", EquipmentInventorySlot.SHIELD, 0.5, 50, false)));
+		candidates.put(EquipmentInventorySlot.HEAD, Collections.singletonList(
+			weightedEquipment(4, "Black mask (i)", EquipmentInventorySlot.HEAD, 8, 100, false)));
+		candidates.put(EquipmentInventorySlot.BODY, Arrays.asList(
+			weightedEquipment(5, "Fighter torso", EquipmentInventorySlot.BODY, 5, 100, false),
+			weightedEquipment(6, "Granite body", EquipmentInventorySlot.BODY, 20, 70, false)));
+		candidates.put(EquipmentInventorySlot.LEGS, Arrays.asList(
+			weightedEquipment(7, "Obsidian platelegs", EquipmentInventorySlot.LEGS, 3, 100, false),
+			weightedEquipment(8, "Granite legs", EquipmentInventorySlot.LEGS, 15, 70, false)));
+
+		List<GearRequirement> requirements = TaskSafetyRules.gearRequirements(
+			"shellbane-gryphon-boss", strategy);
+		Map<EquipmentInventorySlot, GearRecommendation> loadout =
+			new GearScorer(null, null).buildCoherentLoadouts(
+				1, candidates, strategy, requirements, Collections.emptySet(), false, 0)
+				.get(0);
+
+		assertEquals("Tortugan shield",
+			loadout.get(EquipmentInventorySlot.CAPE).getItemName());
+		assertEquals("Dragon defender",
+			loadout.get(EquipmentInventorySlot.SHIELD).getItemName());
+		assertTrue(GearScorer.totalEquippedWeight(loadout) >= 40.0);
+
+		Map<EquipmentInventorySlot, GearRecommendation> lowRiskLoadout =
+			new GearScorer(mock(ItemManager.class), null).buildCoherentLoadouts(
+				1, candidates, strategy, requirements, Collections.emptySet(), true, 1)
+				.get(0);
+		assertEquals("Tortugan shield",
+			lowRiskLoadout.get(EquipmentInventorySlot.CAPE).getItemName());
+		assertEquals("Dragon defender",
+			lowRiskLoadout.get(EquipmentInventorySlot.SHIELD).getItemName());
+		assertTrue(GearScorer.totalEquippedWeight(lowRiskLoadout) >= 40.0);
+	}
+
+	@Test
+	public void oneHandedBossSwitchIncludesBestOwnedOffhand()
+	{
+		GearStrategy strategy = TaskProfiles.find("Araxxor")
+			.orElseThrow().getStrategies().get(0);
+		List<GearScorer.BankEquipment> equipment = Arrays.asList(
+			riskItem(100, "Scythe of vitur", EquipmentInventorySlot.WEAPON, 0, 500, false, true),
+			riskItem(101, "Dragon warhammer", EquipmentInventorySlot.WEAPON, 0, 100, false),
+			equipment(102, "Avernic defender", EquipmentInventorySlot.SHIELD,
+				ItemEquipmentStats.builder()
+					.slot(EquipmentInventorySlot.SHIELD.getSlotIdx())
+					.acrush(30).str(8).build()),
+			equipment(103, "Dragon defender", EquipmentInventorySlot.SHIELD,
+				ItemEquipmentStats.builder()
+					.slot(EquipmentInventorySlot.SHIELD.getSlotIdx())
+					.acrush(28).str(6).build()));
+		Map<EquipmentInventorySlot, GearRecommendation> best =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		best.put(EquipmentInventorySlot.WEAPON, GearRecommendation.builder()
+			.itemId(100).canonicalItemId(100).itemName("Scythe of vitur")
+			.slot(EquipmentInventorySlot.WEAPON).twoHanded(true).build());
+
+		List<GearRecommendation> switches = new GearScorer(null, null).bossWeaponSwitches(
+			"Araxxor", TaskProfiles.find("Araxxor").orElseThrow(), strategy,
+			equipment, best, Collections.emptyList(), GearPriority.BALANCED,
+			Collections.emptySet(), Collections.emptySet());
+
+		assertTrue(switches.stream().anyMatch(item ->
+			"Dragon warhammer".equals(item.getItemName())));
+		assertTrue(switches.stream().anyMatch(item ->
+			item.getSlot() == EquipmentInventorySlot.SHIELD
+				&& "Avernic defender".equals(item.getItemName())
+				&& item.getReason().contains("Dragon warhammer")));
+	}
+
+	@Test
+	public void twoHandedBossSwitchDoesNotIncludeOffhand()
+	{
+		GearStrategy strategy = TaskProfiles.find("Araxxor")
+			.orElseThrow().getStrategies().get(0);
+		List<GearScorer.BankEquipment> equipment = Arrays.asList(
+			riskItem(110, "Abyssal whip", EquipmentInventorySlot.WEAPON, 0, 500, false),
+			riskItem(111, "Elder maul", EquipmentInventorySlot.WEAPON, 0, 100, false, true),
+			riskItem(112, "Avernic defender", EquipmentInventorySlot.SHIELD, 0, 50, false));
+		Map<EquipmentInventorySlot, GearRecommendation> best =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		best.put(EquipmentInventorySlot.WEAPON, GearRecommendation.builder()
+			.itemId(110).canonicalItemId(110).itemName("Abyssal whip")
+			.slot(EquipmentInventorySlot.WEAPON).build());
+
+		List<GearRecommendation> switches = new GearScorer(null, null).bossWeaponSwitches(
+			"Araxxor", TaskProfiles.find("Araxxor").orElseThrow(), strategy,
+			equipment, best, Collections.emptyList(), GearPriority.BALANCED,
+			Collections.emptySet(), Collections.emptySet());
+
+		assertTrue(switches.stream().anyMatch(item -> "Elder maul".equals(item.getItemName())));
+		assertFalse(switches.stream().anyMatch(item ->
+			item.getSlot() == EquipmentInventorySlot.SHIELD));
+	}
+
+	@Test
+	public void repeatedGearSnapshotsDecodeCanonicalEquipmentOnce()
+	{
+		int itemId = 2_000;
+		ItemManager itemManager = mock(ItemManager.class);
+		ItemComposition composition = mock(ItemComposition.class);
+		ItemStats itemStats = mock(ItemStats.class);
+		SmartSupplyAdvisor supplyAdvisor = mock(SmartSupplyAdvisor.class);
+		ItemEquipmentStats equipmentStats = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.WEAPON.getSlotIdx())
+			.aslash(80).str(80).aspeed(4).build();
+		when(itemManager.canonicalize(itemId)).thenReturn(itemId);
+		when(itemManager.getItemComposition(itemId)).thenReturn(composition);
+		when(composition.getPlaceholderTemplateId()).thenReturn(-1);
+		when(composition.getName()).thenReturn("Abyssal whip");
+		when(itemManager.getItemStats(itemId)).thenReturn(itemStats);
+		when(itemStats.isEquipable()).thenReturn(true);
+		when(itemStats.getEquipment()).thenReturn(equipmentStats);
+		when(supplyAdvisor.recommend(
+			any(SlayerTaskProfile.class), any(GearStrategy.class), any(), anyInt(),
+			any(Item[].class), any(Item[].class), anyBoolean()))
+			.thenReturn(Collections.emptyList());
+
+		Item item = new Item(itemId, 1);
+		SlayerTaskProfile profile = TaskProfiles.find("Bloodveld").orElseThrow();
+		new GearScorer(itemManager, supplyAdvisor).score(
+			"Bloodveld", 100, profile,
+			new Item[] {item, item, item},
+			new Item[] {item},
+			new Item[] {item},
+			new Item[0],
+			1, 99, 99, false, false, "", GearPriority.BALANCED,
+			"", "", false, 0);
+
+		verify(itemManager, times(1)).canonicalize(itemId);
+		verify(itemManager, times(1)).getItemComposition(itemId);
+		verify(itemManager, times(1)).getItemStats(itemId);
+	}
+
 	private static GearScorer.BankEquipment riskItem(
 		int itemId,
 		String name,
@@ -1255,6 +1420,24 @@ public class GearScorerTest
 	{
 		return new GearScorer.BankEquipment(
 			itemId, itemId, name, slot, stats, true, false);
+	}
+
+	private static GearScorer.BankEquipment weightedEquipment(
+		int itemId,
+		String name,
+		EquipmentInventorySlot slot,
+		double weightKg,
+		double score,
+		boolean twoHanded)
+	{
+		ItemEquipmentStats stats = ItemEquipmentStats.builder()
+			.slot(slot.getSlotIdx())
+			.isTwoHanded(twoHanded)
+			.build();
+		GearScorer.BankEquipment item = new GearScorer.BankEquipment(
+			itemId, itemId, name, slot, stats, true, false, weightKg);
+		item.score = score;
+		return item;
 	}
 
 	private static String bestItem(

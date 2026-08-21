@@ -82,6 +82,12 @@ final class TaskSafetyRules
 		{
 			requirements.add(shield("Required off-hand", strategy.getRequiredOffhand()));
 		}
+		if (strategy != null && strategy.getRequiredCape() != null)
+		{
+			requirements.add(GearRequirement.anyOf(
+				"Required cape-slot protection",
+				GearRequirement.option(EquipmentInventorySlot.CAPE, strategy.getRequiredCape())));
+		}
 		return dedupe(requirements);
 	}
 

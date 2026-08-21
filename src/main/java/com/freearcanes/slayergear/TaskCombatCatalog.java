@@ -46,8 +46,13 @@ final class TaskCombatCatalog
 			traits(TargetTrait.UNDEAD, TargetTrait.SPECTRAL), ElementalWeakness.AIR, 50,
 			"Undead/spectral target; Air spells receive the listed elemental weakness."),
 			"Aberrant spectres");
+		register(rule(WeaponRule.ANY, AttackType.BALANCED,
+			traits(TargetTrait.UNDEAD, TargetTrait.SPECTRAL), ElementalWeakness.NONE, 0,
+			"Undead/spectral target; the rare Dark Ankou variant prevents one task-wide elemental value."), "Ankou");
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.UNDEAD), ElementalWeakness.NONE, 0,
-			"Undead target."), "Ankou", "Zombies");
+			"Undead target; valid Zombie alternatives have conflicting elemental weaknesses."), "Zombies");
+		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.UNDEAD), ElementalWeakness.NONE, 0,
+			"Undead target."), "Crawling hands");
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(), ElementalWeakness.NONE, 0,
 			"Current Slayer task data does not classify Ghouls with a special target attribute."), "Ghouls");
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.UNDEAD, TargetTrait.WILDERNESS), ElementalWeakness.AIR, 30,
@@ -67,7 +72,8 @@ final class TaskCombatCatalog
 		register(demon(ElementalWeakness.NONE, 0), "Abyssal demons");
 		register(demon(ElementalWeakness.WATER, 40), "Black demons", "Greater demons", "Lesser demons");
 		register(demon(ElementalWeakness.NONE, 0), "Bloodveld", "Nechryael");
-		register(demon(ElementalWeakness.WATER, 50), "Hellhounds");
+		register(demon(ElementalWeakness.NONE, 0), "Hellhounds");
+		register(demon(ElementalWeakness.WATER, 40), "Cerberus");
 		register(rule(WeaponRule.DEMONBANE, AttackType.BALANCED, traits(TargetTrait.DEMON, TargetTrait.FIERY), ElementalWeakness.WATER, 100,
 			"Demonic/fiery target: Demonbane applies and Water Magic receives a 100% elemental weakness."), "Pyrefiends");
 
@@ -83,6 +89,7 @@ final class TaskCombatCatalog
 		register(rule(WeaponRule.DRAGONBANE, AttackType.BALANCED, traits(TargetTrait.DRAGON), ElementalWeakness.FIRE, 100,
 			"Draconic icy target: Dragonbane applies and Fire Magic receives a 100% elemental weakness."), "Frost dragons");
 		register(dragon(ElementalWeakness.NONE, 0, false), "Fossil island wyverns", "Hydras");
+		register(dragon(ElementalWeakness.EARTH, 50, false), "Alchemical Hydra");
 		register(dragon(ElementalWeakness.FIRE, 25, false), "Skeletal wyverns");
 		register(dragon(ElementalWeakness.EARTH, 50, false), "Wyrms");
 
@@ -97,10 +104,12 @@ final class TaskCombatCatalog
 			"Ice warriors favour Crush and have a 100% Fire elemental weakness."), "Ice warriors");
 		register(rule(WeaponRule.ANY, AttackType.CRUSH, traits(), ElementalWeakness.NONE, 0,
 			"Crush is the preferred melee attack type for this target."), "Earth warriors", "Dark warriors", "Shadow warriors");
-		register(rule(WeaponRule.ANY, AttackType.STAB, traits(), ElementalWeakness.NONE, 0,
-			"Stab is the preferred melee attack type for this target."), "Crocodiles");
-		register(rule(WeaponRule.ANY, AttackType.SLASH, traits(), ElementalWeakness.NONE, 0,
-			"Slash is the preferred melee attack type for this target."), "Scorpions");
+		register(rule(WeaponRule.ANY, AttackType.SLASH, traits(), ElementalWeakness.EARTH, 40,
+			"Crocodiles favour Slash and have a 40% Earth elemental weakness."), "Crocodiles");
+		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(), ElementalWeakness.NONE, 0,
+			"Scorpion variants have different melee defences and Fire weakness values; no task-wide affinity is forced."), "Scorpions");
+		register(element(ElementalWeakness.FIRE, 35,
+			"Scorpia has a 35% Fire elemental weakness."), "Scorpia");
 		register(rule(WeaponRule.ANY, AttackType.CRUSH, traits(), ElementalWeakness.EARTH, 40,
 			"Basilisks favour Crush and have a 40% Earth elemental weakness."), "Basilisks");
 		register(rule(WeaponRule.ANY, AttackType.CRUSH, traits(), ElementalWeakness.EARTH, 60,
@@ -126,18 +135,20 @@ final class TaskCombatCatalog
 		register(element(ElementalWeakness.FIRE, 50, "Araxytes have a strong Fire elemental weakness."), "Araxytes");
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.FLYING), ElementalWeakness.AIR, 45,
 			"Flying target with a strong Air elemental weakness."), "Aviansies");
-		register(element(ElementalWeakness.AIR, 30, "Banshees have a 30% Air elemental weakness."), "Banshees");
+		register(rule(WeaponRule.ANY, AttackType.BALANCED,
+			traits(TargetTrait.UNDEAD, TargetTrait.SPECTRAL), ElementalWeakness.AIR, 30,
+			"Banshees are undead/spectral and have a 30% Air elemental weakness."), "Banshees");
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.FLYING), ElementalWeakness.NONE, 0,
 			"Bat assignments include variants with different Air weakness values; no single task-wide element is forced."), "Bats");
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(), ElementalWeakness.NONE, 0,
 			"Bear assignments include variants with different Fire weakness values; no single task-wide element is forced."), "Bears");
 		register(element(ElementalWeakness.FIRE, 50, "Cave bugs have a 50% Fire elemental weakness."), "Cave bugs");
 		register(element(ElementalWeakness.FIRE, 30, "Cave horrors have a 30% Fire elemental weakness."), "Cave horrors");
-		register(element(ElementalWeakness.EARTH, 50, "Cave kraken have a 50% Earth elemental weakness."), "Cave kraken");
 		register(element(ElementalWeakness.EARTH, 50, "Cave slimes have a 50% Earth elemental weakness."), "Cave slimes");
 		register(element(ElementalWeakness.EARTH, 60, "Dark beasts have a 60% Earth elemental weakness."), "Dark beasts");
 		register(element(ElementalWeakness.FIRE, 40, "Ents have a 40% Fire elemental weakness."), "Ents");
 		register(element(ElementalWeakness.FIRE, 25, "Fever spiders have a 25% Fire elemental weakness."), "Fever spiders");
+		register(element(ElementalWeakness.FIRE, 20, "Flesh crawlers have a 20% Fire elemental weakness."), "Flesh crawlers");
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.FLYING), ElementalWeakness.NONE, 0,
 			"Bird assignments span many variants with different or absent elemental weaknesses; no single task-wide element is forced."), "Birds");
 		register(element(ElementalWeakness.FIRE, 30, "Mature Custodian stalkers have a Fire elemental weakness."), "Custodian stalkers");
@@ -147,6 +158,7 @@ final class TaskCombatCatalog
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.FLYING), ElementalWeakness.AIR, 50,
 			"Flying target with a 50% Air elemental weakness."), "Gryphons");
 		register(element(ElementalWeakness.FIRE, 50, "Harpie bug swarms have a Fire elemental weakness."), "Harpie bug swarms");
+		register(element(ElementalWeakness.FIRE, 25, "Jungle horrors have a 25% Fire elemental weakness."), "Jungle horrors");
 		register(element(ElementalWeakness.FIRE, 100, "Ice giants have a 100% Fire elemental weakness."), "Ice giants");
 		register(rule(WeaponRule.DEMONBANE, AttackType.BALANCED, traits(TargetTrait.DEMON), ElementalWeakness.FIRE, 100,
 			"Icefiends are demons: Demonbane passives apply and Fire Magic has a 100% elemental weakness."), "Icefiends");
@@ -155,15 +167,20 @@ final class TaskCombatCatalog
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.SPECTRAL), ElementalWeakness.NONE, 0,
 			"Spectral target; no stable task-wide weapon passive is forced by the current optimizer."), "Lesser Nagua");
 		register(element(ElementalWeakness.FIRE, 50, "Moss giants have a Fire elemental weakness."), "Moss giants");
+		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.SPECTRAL), ElementalWeakness.AIR, 35,
+			"Otherworldly beings are spectral and have a 35% Air elemental weakness."), "Otherworldly beings");
 		register(element(ElementalWeakness.EARTH, 25, "Rockslugs have a 25% Earth elemental weakness."), "Rockslugs");
+		register(element(ElementalWeakness.EARTH, 20, "Both Sea snake variants have a 20% Earth elemental weakness."), "Sea snakes");
 		register(element(ElementalWeakness.AIR, 30, "Smoke devils have an Air elemental weakness; Burst/Barrage remains the primary multi-target XP method."), "Smoke devils");
 		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(), ElementalWeakness.NONE, 0,
 			"Spider assignments can be completed on substantially different spider variants; no single task-wide element is forced."), "Spiders");
 		register(element(ElementalWeakness.EARTH, 20, "Suqahs have a 20% Earth elemental weakness."), "Suqahs");
 		register(element(ElementalWeakness.FIRE, 50, "Mountain-troll routes have a Fire elemental weakness."), "Trolls");
-		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(), ElementalWeakness.NONE, 0,
+		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.SPECTRAL), ElementalWeakness.NONE, 0,
 			"Elemental weakness is faction-dependent: non-Zaros spiritual creatures use Air weakness while Zarosian variants use a much larger Fire weakness; no single task-wide element is forced."),
 			"Spiritual creatures");
+		register(rule(WeaponRule.ANY, AttackType.BALANCED, traits(TargetTrait.FLYING), ElementalWeakness.AIR, 50,
+			"Flying boss with a 50% Air elemental weakness."), "Shellbane Gryphon");
 		register(rule(WeaponRule.DRAGONBANE, AttackType.BALANCED, traits(TargetTrait.DRAGON), ElementalWeakness.NONE, 0,
 			"Fossil Island wyvern variants are draconic but their elemental values vary by variant; Dragonbane is scored without forcing one task-wide element."),
 			"Fossil island wyverns");
@@ -289,6 +306,17 @@ final class TaskCombatCatalog
 			}
 		}
 
+		// Twisted banshees in the Catacombs retain the same Air element but use
+		// a 25% weakness instead of an ordinary banshee's 30%.
+		if ((task.equals("banshees") || task.equals("banshee"))
+			&& location.contains("catacombs"))
+		{
+			return rule(WeaponRule.ANY, AttackType.BALANCED,
+				traits(TargetTrait.UNDEAD, TargetTrait.SPECTRAL),
+				ElementalWeakness.AIR, 25,
+				"Twisted banshee route with a 25% Air elemental weakness.");
+		}
+
 		return base;
 	}
 
@@ -385,29 +413,12 @@ final class TaskCombatCatalog
 		int elementPercent = source.getElementalWeakness() == ElementalWeakness.NONE
 			? rule.elementalWeaknessPercent : source.getElementalWeaknessPercent();
 
-		GearStrategy.Builder copy = GearStrategy.builder()
-			.name(source.getName())
-			.location(source.getLocation())
-			.rationale(source.getRationale())
-			.combatStyle(source.getCombatStyle())
+		return source.toBuilder()
 			.attackType(attackType)
 			.weaponRule(weaponRule)
 			.targetTraits(traits)
 			.elementalWeakness(element, elementPercent)
-			.minimumMagic(source.getMinimumMagic())
-			.minimumRanged(source.getMinimumRanged())
-			.magicDefenceWeight(source.getMagicDefenceWeight())
-			.prayerWeight(source.getPrayerWeight())
-			.ancientAoe(source.isAncientAoe());
-		if (source.getRequiredWeapon() != null) copy.requiredWeapon(source.getRequiredWeapon());
-		if (source.getRequiredOffhand() != null) copy.requiredOffhand(source.getRequiredOffhand());
-
-		// Only explicit method-specific preferences survive. Target-family weapons
-		// are scored dynamically by WeaponCombatRules instead of receiving a hard
-		// +1000 override that can make a weaker weapon win incorrectly.
-		for (String preferred : source.getPreferredItems()) copy.preferredItem(preferred);
-		for (String weapon : source.getRankedWeapons()) copy.rankedWeapon(weapon);
-		return copy.build();
+			.build();
 	}
 
 	private static Rule demon(ElementalWeakness element, int percent)

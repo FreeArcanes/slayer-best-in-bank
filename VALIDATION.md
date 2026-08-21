@@ -1,17 +1,17 @@
 # Slayer Best in Bank Release-Candidate Validation
 
-Validation date: 2026-07-26
+Validation date: 2026-08-21
 
 ## Current status
 
-The current release candidate is published on a source review branch and pinned
-by an open Plugin Hub update. The remaining manual checks below should be
-completed before the source review is merged.
+The current release candidate is published on a source review branch and is
+ready to be pinned by the Plugin Hub update. The remaining manual checks below
+are retained as the ongoing in-client regression matrix.
 
 Automated result:
 
 ```text
-128 tests passed
+234 tests passed
 0 failures
 0 errors
 ```
@@ -19,7 +19,7 @@ Automated result:
 The complete Gradle task graph was recompiled and rerun with:
 
 ```text
-gradle --no-daemon test --rerun-tasks
+.\gradlew.bat clean test
 ```
 
 Main source targets Java 11 and enforces:
@@ -182,7 +182,7 @@ Before publishing:
 - [x] Recapture the four-column equipment and supply paths.
 - [x] Replace README references to older screenshots that no longer match the
       UI.
-- [ ] Close the developer client and run a clean build.
+- [x] Close the developer client and run a clean build.
 - [ ] Build the final source/archive from the exact intended commit.
 - [ ] Verify `runelite-plugin.properties`, README, release notes, and the Plugin
       Hub manifest all point to that same source state.
