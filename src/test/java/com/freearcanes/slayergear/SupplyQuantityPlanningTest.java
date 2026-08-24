@@ -28,6 +28,12 @@ public class SupplyQuantityPlanningTest
 			"Antifire", 4, GearPriority.DEFENCE_FIRST));
 		assertEquals(100, SmartSupplyAdvisor.applyObjectiveQuantity(
 			"Cannon ammo", 100, GearPriority.BALANCED));
+		assertEquals(101, SmartSupplyAdvisor.applyObjectiveQuantity(
+			"Cannon ammo", 101, GearPriority.BALANCED));
+		assertEquals(5, SmartSupplyAdvisor.applyObjectiveQuantity(
+			"Antifire", 5, GearPriority.DEFENCE_FIRST));
+		assertEquals(8, SmartSupplyAdvisor.applyObjectiveQuantity(
+			"Combat boost", 8, null));
 	}
 
 	@Test

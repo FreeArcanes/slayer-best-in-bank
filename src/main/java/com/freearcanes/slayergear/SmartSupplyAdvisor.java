@@ -52,7 +52,7 @@ class SmartSupplyAdvisor
 			bankItems,
 			packedItems,
 			false,
-			GearPriority.BALANCED);
+			null);
 	}
 
 	List<SupplyRecommendation> recommend(
@@ -71,7 +71,7 @@ class SmartSupplyAdvisor
 			bankItems,
 			packedItems,
 			false,
-			GearPriority.BALANCED);
+			null);
 	}
 
 	List<SupplyRecommendation> recommend(
@@ -84,7 +84,7 @@ class SmartSupplyAdvisor
 		boolean allowRadasBlessing)
 	{
 		return recommend(profile, strategy, assignedLocation, taskAmount,
-			bankItems, packedItems, allowRadasBlessing, GearPriority.BALANCED);
+			bankItems, packedItems, allowRadasBlessing, null);
 	}
 
 	List<SupplyRecommendation> recommend(
@@ -1035,6 +1035,7 @@ class SmartSupplyAdvisor
 				}
 				break;
 		}
+		if (multiplier == 1.0) return quantity;
 		int scaled = (int) Math.ceil(quantity * multiplier);
 		return Math.max(unit, ((scaled + unit - 1) / unit) * unit);
 	}
