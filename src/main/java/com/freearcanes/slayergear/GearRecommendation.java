@@ -11,6 +11,7 @@ final class GearRecommendation
 	private final double score;
 	private final int rank;
 	private final boolean twoHanded;
+	private final double weightKg;
 	private final String reason;
 	private final boolean packed;
 	private final boolean banked;
@@ -24,6 +25,7 @@ final class GearRecommendation
 		score = builder.score;
 		rank = builder.rank;
 		twoHanded = builder.twoHanded;
+		weightKg = builder.weightKg;
 		reason = builder.reason;
 		packed = builder.packed;
 		banked = builder.banked;
@@ -37,6 +39,7 @@ final class GearRecommendation
 	double getScore() { return score; }
 	int getRank() { return rank; }
 	boolean isTwoHanded() { return twoHanded; }
+	double getWeightKg() { return weightKg; }
 	String getReason() { return reason; }
 	boolean isPacked() { return packed; }
 	boolean isBanked() { return banked; }
@@ -50,6 +53,7 @@ final class GearRecommendation
 			.score(score)
 			.rank(value)
 			.twoHanded(twoHanded)
+			.weightKg(weightKg)
 			.reason(reason)
 			.packed(packed)
 			.banked(banked)
@@ -65,6 +69,7 @@ final class GearRecommendation
 		private double score;
 		private int rank;
 		private boolean twoHanded;
+		private double weightKg;
 		private String reason;
 		private boolean packed;
 		private boolean banked;
@@ -75,6 +80,7 @@ final class GearRecommendation
 		Builder score(double value) { score = value; return this; }
 		Builder rank(int value) { rank = value; return this; }
 		Builder twoHanded(boolean value) { twoHanded = value; return this; }
+		Builder weightKg(double value) { weightKg = value; return this; }
 		Builder reason(String value) { reason = value; return this; }
 		Builder packed(boolean value) { packed = value; return this; }
 		Builder banked(boolean value) { banked = value; return this; }

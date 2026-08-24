@@ -1,18 +1,25 @@
 package com.freearcanes.slayergear;
 
 import com.google.inject.Provides;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import net.runelite.api.Client;
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
+import net.runelite.api.Prayer;
 import net.runelite.api.GameState;
 import net.runelite.api.ScriptID;
 import net.runelite.api.Skill;
@@ -32,6 +39,8 @@ import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
+import net.runelite.client.chat.ChatMessageManager;
+import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -74,6 +83,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 
 	@Inject
 	private ConfigManager configManager;
+
+	@Inject
+	private ChatMessageManager chatMessageManager;
 
 	@Inject
 	private SlayerGearAdvisorConfig config;
@@ -126,11 +138,15 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private int lastTaskAmount = -1;
 	private volatile boolean highlightsActive;
 	private boolean turaelAyaSpeedMode;
+	private boolean updateNoticeChecked;
+	private String selectedBoss = "";
 	private final BankFlowState bankFlow = new BankFlowState();
 	private final TripPreparationState tripPreparation = new TripPreparationState();
+	private final TaskConsumptionTracker consumptionTracker = new TaskConsumptionTracker();
 	private final AtomicBoolean pluginRunning = new AtomicBoolean();
 	private final AtomicBoolean strategyCycleRequestQueued = new AtomicBoolean();
 	private final AtomicBoolean loadoutRefreshRequestQueued = new AtomicBoolean();
+	private final AtomicBoolean presetImportInProgress = new AtomicBoolean();
 	private String bankSearchTextBeforeFilter = "";
 
 	@Provides
@@ -150,6 +166,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		panel.setLoadoutRefreshHandler(this::queueRefreshBankLoadout);
 		panel.setAdvisorToggleHandler(this::toggleAdvisor);
 		panel.setTuraelAyaSpeedToggleHandler(this::toggleTuraelAyaSpeedMode);
+		panel.setBossSelectionHandler(this::selectBoss);
+		panel.setObjectiveSelectionHandler(this::selectObjective);
+		panel.setPresetHandlers(this::exportPreset, this::importPreset);
 		panel.setAdvisorEnabled(config.advisorEnabled());
 		turaelAyaSpeedMode = readTuraelAyaSpeedMode();
 		panel.setTuraelAyaSpeedMode(turaelAyaSpeedMode);
@@ -177,6 +196,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 
 		clientThread.invoke(() ->
 		{
+			maybeShowUpdateNotice();
 			lastInventoryItems = snapshotContainer(InventoryID.INV);
 			lastWornItems = snapshotContainer(InventoryID.WORN);
 			ItemContainer bank = client.getItemContainer(InventoryID.BANK);
@@ -259,6 +279,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			lastTaskAmount = -1;
 			bankFlow.resetSession();
 			tripPreparation.reset();
+			consumptionTracker.reset();
 			recommendations = GearRecommendations.noTask();
 			panel.display(recommendations);
 		});
@@ -282,10 +303,43 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			lastTaskAmount = -1;
 			bankFlow.resetSession();
 			tripPreparation.reset();
+			consumptionTracker.reset();
 			recommendations = GearRecommendations.noTask();
 			prepReminderOverlay.hide();
 			panel.display(recommendations);
+			if (state == GameState.LOGIN_SCREEN)
+			{
+				updateNoticeChecked = false;
+			}
 		}
+		else if (state == GameState.LOGGED_IN)
+		{
+			maybeShowUpdateNotice();
+		}
+	}
+
+	private void maybeShowUpdateNotice()
+	{
+		if (updateNoticeChecked || client.getGameState() != GameState.LOGGED_IN)
+		{
+			return;
+		}
+		updateNoticeChecked = true;
+		String lastSeen = configManager.getConfiguration(
+			SlayerGearAdvisorConfig.GROUP, PluginUpdateNotice.CONFIG_KEY);
+		if (!PluginUpdateNotice.shouldShow(lastSeen))
+		{
+			return;
+		}
+		for (String line : PluginUpdateNotice.LINES)
+		{
+			chatMessageManager.queue(QueuedMessage.builder()
+				.type(ChatMessageType.GAMEMESSAGE)
+				.runeLiteFormattedMessage(line)
+				.build());
+		}
+		configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+			PluginUpdateNotice.CONFIG_KEY, PluginUpdateNotice.ID);
 	}
 
 	@Subscribe
@@ -386,6 +440,11 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				snapshotLoadedQuiverAmmo(),
 				EMPTY_ITEMS),
 			itemManager::canonicalize);
+		consumptionTracker.start(recommendations, lastTaskName, lastTaskAmount,
+			combineGearPool(
+				combineGearPool(EMPTY_ITEMS, lastInventoryItems, lastWornItems),
+				snapshotLoadedQuiverAmmo(), EMPTY_ITEMS),
+			itemManager, System.currentTimeMillis());
 		prepReminderOverlay.show(recommendations);
 		bankButton.hide();
 	}
@@ -488,6 +547,10 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		{
 			return;
 		}
+		if (presetImportInProgress.get() && isRecommendationConfigKey(event.getKey()))
+		{
+			return;
+		}
 
 		if ("highlightsEnabled".equals(event.getKey()))
 		{
@@ -524,6 +587,11 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		// cached highlight toggle and every recommendation after a profile switch.
 		clientThread.invokeLater(() ->
 		{
+			// The notice is stored in the active RuneLite profile. Release the
+			// in-memory guard as well so a profile switched while logged in gets
+			// its own once-per-version check.
+			updateNoticeChecked = false;
+			maybeShowUpdateNotice();
 			highlightsActive = config.highlightsEnabled();
 			panel.setTheme(config.panelTheme());
 			panel.setAdvisorEnabled(config.advisorEnabled());
@@ -553,6 +621,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			|| "excludedItems".equals(key)
 			|| "lowRiskMode".equals(key)
 			|| "riskCapThousands".equals(key)
+			|| "bossWeaponSwitches".equals(key)
 			|| "tripPlan".equals(key)
 			|| "customTripKills".equals(key)
 			|| "potionEstimatesEnabled".equals(key)
@@ -561,6 +630,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			|| "prayerRestorePreference".equals(key)
 			|| "useGoading".equals(key)
 			|| "usePrayerRegen".equals(key)
+			|| "useBossThralls".equals(key)
 			|| "preferDivineBoosts".equals(key)
 			|| "useSlayerBracelet".equals(key)
 			|| "slayerBraceletPreference".equals(key)
@@ -682,11 +752,27 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			taskLocation,
 			taskAmount))
 		{
+			boolean newAssignment = !safeTask(lastTaskName).equals(safeTask(taskName))
+				|| taskAmount > lastTaskAmount;
+			boolean completedSignal = safeTask(taskName).isEmpty()
+				|| (safeTask(lastTaskName).equals(safeTask(taskName))
+					&& taskAmount > lastTaskAmount);
+			TaskCompletionSummary summary = newAssignment
+				? consumptionTracker.finish(completedSignal ? 0 : Math.max(0, lastTaskAmount),
+					System.currentTimeMillis())
+				: null;
+			if (summary != null)
+			{
+				panel.setCompletionSummary(summary);
+				if (config.taskSummaryChat()) queueCompletionSummary(summary);
+			}
 			tripPreparation.reset();
+			selectedBoss = "";
 		}
 		lastTaskName = taskName;
 		lastTaskLocation = taskLocation;
 		lastTaskAmount = taskAmount;
+		panel.setBossChoices(BossSlayerCatalog.forTask(taskName), selectedBoss);
 		if (bankFlow.isLoadoutLocked())
 		{
 			markBankRefreshPending();
@@ -711,6 +797,119 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			!turaelAyaSpeedMode);
 	}
 
+	private void selectObjective(GearPriority objective)
+	{
+		if (objective == null || objective == config.gearPriority()) return;
+		configManager.setConfiguration(
+			SlayerGearAdvisorConfig.GROUP, "gearPriority", objective);
+	}
+
+	private void exportPreset()
+	{
+		try
+		{
+			Map<String, String> values = new LinkedHashMap<>();
+			values.put("objective", config.gearPriority().name());
+			String configuredStrategy = configManager.getConfiguration(
+				SlayerGearAdvisorConfig.GROUP,
+				strategyKey(recommendations.getTaskName()));
+			values.put("strategy", configuredStrategy == null ? "" : configuredStrategy);
+			values.put("pinned", config.pinnedItems());
+			values.put("excluded", config.excludedItems());
+			values.put("tripPlan", config.tripPlan().name());
+			values.put("customKills", Integer.toString(config.customTripKills()));
+			values.put("foodSafety", config.foodSafety().name());
+			values.put("prayerSafety", config.prayerSafety().name());
+			values.put("lowRisk", Boolean.toString(config.lowRiskMode()));
+			values.put("riskCap", Integer.toString(config.riskCapThousands()));
+			String token = TaskPresetCodec.encode(values);
+			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+				new StringSelection(token), null);
+			panel.setPresetStatus("Preset copied to clipboard.");
+		}
+		catch (RuntimeException exception)
+		{
+			panel.setPresetStatus("Clipboard unavailable; preset was not copied.");
+		}
+	}
+
+	private void importPreset()
+	{
+		try
+		{
+			Object clipboard = Toolkit.getDefaultToolkit().getSystemClipboard()
+				.getData(DataFlavor.stringFlavor);
+			Map<String, String> values = TaskPresetCodec.decode(String.valueOf(clipboard));
+			if (!validPreset(values))
+			{
+				panel.setPresetStatus("Invalid or incompatible SBIB preset.");
+				return;
+			}
+			presetImportInProgress.set(true);
+			try
+			{
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					"gearPriority", GearPriority.valueOf(values.get("objective")));
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					"pinnedItems", values.get("pinned"));
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					"excludedItems", values.get("excluded"));
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					"tripPlan", TripPlan.valueOf(values.get("tripPlan")));
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					"customTripKills", Integer.parseInt(values.get("customKills")));
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					"foodSafety", SupplyLevel.valueOf(values.get("foodSafety")));
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					"prayerSafety", SupplyLevel.valueOf(values.get("prayerSafety")));
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					"lowRiskMode", Boolean.parseBoolean(values.get("lowRisk")));
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					"riskCapThousands", Integer.parseInt(values.get("riskCap")));
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					strategyKey(recommendations.getTaskName()), values.get("strategy"));
+			}
+			finally
+			{
+				presetImportInProgress.set(false);
+			}
+			panel.setPresetStatus("Preset applied; refresh a locked bank plan.");
+			clientThread.invokeLater(this::recalculateOrMarkBankRefresh);
+		}
+		catch (Exception exception)
+		{
+			panel.setPresetStatus("Clipboard does not contain a valid SBIB preset.");
+		}
+	}
+
+	private boolean validPreset(Map<String, String> values)
+	{
+		try
+		{
+			if (values == null || values.size() != 10) return false;
+			GearPriority.valueOf(values.get("objective"));
+			TripPlan.valueOf(values.get("tripPlan"));
+			SupplyLevel.valueOf(values.get("foodSafety"));
+			SupplyLevel.valueOf(values.get("prayerSafety"));
+			int kills = Integer.parseInt(values.get("customKills"));
+			int cap = Integer.parseInt(values.get("riskCap"));
+			if (kills < 10 || kills > 250 || cap < 50 || cap > 10000) return false;
+			if (!"true".equals(values.get("lowRisk"))
+				&& !"false".equals(values.get("lowRisk"))) return false;
+			if (values.get("pinned").length() > 1000
+				|| values.get("excluded").length() > 1000) return false;
+			String strategy = values.get("strategy");
+			if (!strategy.isEmpty() && (recommendations.getProfile() == null
+				|| recommendations.getProfile().getStrategies().stream()
+					.noneMatch(candidate -> candidate.getName().equals(strategy)))) return false;
+			return true;
+		}
+		catch (RuntimeException exception)
+		{
+			return false;
+		}
+	}
+
 	private boolean readTuraelAyaSpeedMode()
 	{
 		return Boolean.parseBoolean(configManager.getConfiguration(
@@ -729,10 +928,31 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		closeBankFilter();
 		bankFlow.unlockLoadout();
 		tripPreparation.reset();
+		consumptionTracker.reset();
 		prepReminderOverlay.hide();
 		bankButton.hide();
 		recommendations = GearRecommendations.noTask();
 		panel.display(recommendations);
+	}
+
+	private void queueCompletionSummary(TaskCompletionSummary summary)
+	{
+		List<String> consumed = summary.getConsumed();
+		String used = consumed.isEmpty() ? "no modeled supplies observed"
+			: String.join(", ", consumed.subList(0, Math.min(3, consumed.size())))
+				+ (consumed.size() > 3 ? " +" + (consumed.size() - 3) + " more" : "");
+		chatMessageManager.queue(QueuedMessage.builder()
+			.type(ChatMessageType.GAMEMESSAGE)
+			.runeLiteFormattedMessage("<col=66d9d1>SBIB task summary:</col> "
+				+ summary.getKills() + " kills in "
+				+ SlayerGearPanel.formatDuration(summary.getElapsedSeconds())
+				+ "; " + used + ".")
+			.build());
+	}
+
+	private static String safeTask(String task)
+	{
+		return task == null ? "" : task.trim();
 	}
 
 	private void queueRecalculate()
@@ -834,8 +1054,11 @@ public class SlayerGearAdvisorPlugin extends Plugin
 
 	private void recalculate(boolean rebuildBankView)
 	{
+		String effectiveTaskName = selectedBoss.isEmpty() ? lastTaskName : selectedBoss;
+		String effectiveTaskLocation = selectedBoss.isEmpty() ? lastTaskLocation : "Boss lair";
+		int effectiveTaskAmount = selectedBoss.isEmpty() ? lastTaskAmount : 1;
 		if (!config.advisorEnabled()
-			|| lastTaskName == null || lastTaskName.isEmpty())
+			|| effectiveTaskName == null || effectiveTaskName.isEmpty())
 		{
 			closeBankFilter();
 			bankFlow.unlockLoadout();
@@ -845,15 +1068,15 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		}
 
 		Optional<SlayerTaskProfile> profile = TaskProfiles.find(
-			lastTaskName,
-			lastTaskLocation,
+			effectiveTaskName,
+			effectiveTaskLocation,
 			turaelAyaSpeedMode);
 		if (!profile.isPresent())
 		{
 			closeBankFilter();
 			bankFlow.unlockLoadout();
 			recommendations = GearRecommendations.unsupported(
-				lastTaskName, lastTaskAmount);
+				effectiveTaskName, effectiveTaskAmount);
 			panel.display(recommendations);
 			return;
 		}
@@ -863,13 +1086,13 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			closeBankFilter();
 			bankFlow.unlockLoadout();
 			recommendations = GearRecommendations.openBank(
-				lastTaskName, lastTaskAmount, profile.get());
+				effectiveTaskName, effectiveTaskAmount, profile.get());
 			panel.display(recommendations);
 			return;
 		}
 
 		String strategyOverride = configManager.getConfiguration(
-			SlayerGearAdvisorConfig.GROUP, strategyKey(lastTaskName));
+			SlayerGearAdvisorConfig.GROUP, strategyKey(effectiveTaskName));
 		if (bankFlow.isBankOpen() && bankSessionGearPool == null)
 		{
 			bankSessionGearPool = combineGearPool(
@@ -893,9 +1116,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		Item[] packedSupplyItems =
 			tripPreparation.suppliesForScoring(livePackedItems, itemManager::canonicalize);
 		GearRecommendations scored = gearScorer.score(
-			lastTaskName,
-			lastTaskAmount,
-			lastTaskLocation,
+			effectiveTaskName,
+			effectiveTaskAmount,
+			effectiveTaskLocation,
 			profile.get(),
 			scoringPool,
 			scoringBankItems,
@@ -912,7 +1135,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			config.excludedItems(),
 			config.lowRiskMode(),
 			config.riskCapThousands() * 1_000,
-			loadedQuiverAmmo.length > 0);
+			loadedQuiverAmmo.length > 0,
+			client.getVarbitValue(VarbitID.SPELLBOOK) == 3,
+			client.getRealSkillLevel(Skill.ATTACK),
+			client.getRealSkillLevel(Skill.STRENGTH),
+			combatLevelContext());
+		if (!config.bossWeaponSwitches()) scored = scored.withoutWeaponSwitches();
 		if (bankFlow.isBankOpen())
 		{
 			bankFlow.lockLoadout();
@@ -923,10 +1151,94 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			bankFlow.isLoadoutLocked(),
 			bankFlow.isLoadoutRefreshPending());
 		panel.display(recommendations);
+		if (!bankFlow.isBankOpen())
+		{
+			consumptionTracker.observe(
+				combineGearPool(EMPTY_ITEMS, lastInventoryItems, lastWornItems),
+				itemManager, lastTaskAmount);
+		}
 		if (bankFlow.isFilterActive() && rebuildBankView)
 		{
 			queueBankViewRefresh();
 		}
+	}
+
+	private CombatLevelContext combatLevelContext()
+	{
+		return CombatLevelContext.effective(
+			client.getBoostedSkillLevel(Skill.ATTACK), meleeAttackPrayerMultiplier(),
+			client.getBoostedSkillLevel(Skill.STRENGTH), meleeStrengthPrayerMultiplier(),
+			client.getBoostedSkillLevel(Skill.RANGED), rangedAttackPrayerMultiplier(),
+			rangedStrengthPrayerMultiplier(), client.getBoostedSkillLevel(Skill.MAGIC),
+			magicAttackPrayerMultiplier(), magicDamagePrayerPercent())
+			.withKandarinHardDiary(client.getVarbitValue(
+				VarbitID.KANDARIN_DIARY_HARD_COMPLETE) == 1);
+	}
+
+	private double meleeAttackPrayerMultiplier()
+	{
+		if (active(Prayer.PIETY)) return 1.20;
+		if (active(Prayer.CHIVALRY) || active(Prayer.INCREDIBLE_REFLEXES)) return 1.15;
+		if (active(Prayer.IMPROVED_REFLEXES)) return 1.10;
+		return active(Prayer.CLARITY_OF_THOUGHT) ? 1.05 : 1.0;
+	}
+
+	private double meleeStrengthPrayerMultiplier()
+	{
+		if (active(Prayer.PIETY)) return 1.23;
+		if (active(Prayer.CHIVALRY)) return 1.18;
+		if (active(Prayer.ULTIMATE_STRENGTH)) return 1.15;
+		if (active(Prayer.SUPERHUMAN_STRENGTH)) return 1.10;
+		return active(Prayer.BURST_OF_STRENGTH) ? 1.05 : 1.0;
+	}
+
+	private double rangedAttackPrayerMultiplier()
+	{
+		if (active(Prayer.RIGOUR)) return 1.20;
+		if (active(Prayer.DEADEYE)) return 1.18;
+		if (active(Prayer.EAGLE_EYE)) return 1.15;
+		if (active(Prayer.HAWK_EYE)) return 1.10;
+		return active(Prayer.SHARP_EYE) ? 1.05 : 1.0;
+	}
+
+	private double rangedStrengthPrayerMultiplier()
+	{
+		return active(Prayer.RIGOUR) ? 1.23 : rangedAttackPrayerMultiplier();
+	}
+
+	private double magicAttackPrayerMultiplier()
+	{
+		if (active(Prayer.AUGURY)) return 1.25;
+		if (active(Prayer.MYSTIC_VIGOUR)) return 1.18;
+		if (active(Prayer.MYSTIC_MIGHT)) return 1.15;
+		if (active(Prayer.MYSTIC_LORE)) return 1.10;
+		return active(Prayer.MYSTIC_WILL) ? 1.05 : 1.0;
+	}
+
+	private int magicDamagePrayerPercent()
+	{
+		if (active(Prayer.AUGURY)) return 4;
+		if (active(Prayer.MYSTIC_VIGOUR)) return 3;
+		if (active(Prayer.MYSTIC_MIGHT)) return 2;
+		return active(Prayer.MYSTIC_LORE) ? 1 : 0;
+	}
+
+	private boolean active(Prayer prayer)
+	{
+		return client.getVarbitValue(prayer.getVarbit()) == 1;
+	}
+
+	private void selectBoss(String boss)
+	{
+		selectedBoss = boss == null ? "" : boss.trim();
+		panel.setBossChoices(BossSlayerCatalog.forTask(lastTaskName), selectedBoss);
+		tripPreparation.reset();
+		if (bankFlow.isLoadoutLocked())
+		{
+			markBankRefreshPending();
+			return;
+		}
+		clientThread.invoke((Runnable) this::recalculate);
 	}
 
 	private void queueBankViewRefresh()
@@ -986,7 +1298,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		return new Item[] {new Item(ammoId, ammoCount)};
 	}
 
-	private static Set<Integer> dizanasQuiverIds()
+	static Set<Integer> dizanasQuiverIds()
 	{
 		Set<Integer> ids = new HashSet<>();
 		ids.addAll(ItemVariationMapping.getVariations(
@@ -1205,7 +1517,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			// One more click after the final explicit method returns the task to Auto.
 			configManager.setConfiguration(
 				SlayerGearAdvisorConfig.GROUP,
-				strategyKey(lastTaskName),
+				strategyKey(recommendations.getTaskName()),
 				"");
 		}
 		else
@@ -1213,7 +1525,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			GearStrategy next = eligible.get(current + 1);
 			configManager.setConfiguration(
 				SlayerGearAdvisorConfig.GROUP,
-				strategyKey(lastTaskName),
+				strategyKey(recommendations.getTaskName()),
 				next.getName());
 		}
 

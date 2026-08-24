@@ -146,12 +146,60 @@ public class CatalogConsistencyTest
 	}
 
 	@Test
-	public void exactBossProfilesCanRefineBroaderAssignmentAliases()
+	public void exactBossProfilesRemainSeparateFromBroaderAssignments()
 	{
 		assertEquals("hellhounds", TaskProfiles.find("Hellhounds").orElseThrow().getKey());
 		assertEquals("cerberus-boss", TaskProfiles.find("Cerberus").orElseThrow().getKey());
 		assertEquals("araxytes", TaskProfiles.find("Araxytes").orElseThrow().getKey());
 		assertEquals("araxxor-boss", TaskProfiles.find("Araxxor").orElseThrow().getKey());
+		assertEquals("gryphons", TaskProfiles.find("Gryphons").orElseThrow().getKey());
+		assertEquals("shellbane-gryphon-boss",
+			TaskProfiles.find("Shellbane Gryphon").orElseThrow().getKey());
+	}
+
+	@Test
+	public void broadProfilesDoNotAttemptToReregisterCuratedAliases()
+	{
+		assertTrue(
+			"Redundant task profile registrations: " + TaskProfiles.ignoredAliasCollisions().keySet(),
+			TaskProfiles.ignoredAliasCollisions().isEmpty());
+	}
+
+	@Test
+	public void strategyCopyPreservesEveryConstraintAndRanking()
+	{
+		GearStrategy source = GearStrategy.builder()
+			.name("Original").location("Original location").rationale("Original rationale")
+			.combatStyle(CombatStyle.MAGIC).attackType(AttackType.CRUSH)
+			.weaponRule(WeaponRule.DRAGONBANE).targetTrait(TargetTrait.DRAGON)
+			.elementalWeakness(ElementalWeakness.WATER, 50)
+			.minimumMagic(90).minimumRanged(80)
+			.requiredWeapon("weapon").requiredOffhand("offhand").requiredCape("cape")
+			.minimumEquippedWeightKg(40).preferredItem("preferred")
+			.rankedWeapon("ranked").magicDefenceWeight(0.5).prayerWeight(2.0)
+			.ancientAoe(true).build();
+		GearStrategy copy = source.toBuilder().location("New location").build();
+
+		assertEquals(source.getName(), copy.getName());
+		assertEquals("New location", copy.getLocation());
+		assertEquals(source.getRationale(), copy.getRationale());
+		assertEquals(source.getCombatStyle(), copy.getCombatStyle());
+		assertEquals(source.getAttackType(), copy.getAttackType());
+		assertEquals(source.getWeaponRule(), copy.getWeaponRule());
+		assertEquals(source.getTargetTraits(), copy.getTargetTraits());
+		assertEquals(source.getElementalWeakness(), copy.getElementalWeakness());
+		assertEquals(source.getElementalWeaknessPercent(), copy.getElementalWeaknessPercent());
+		assertEquals(source.getMinimumMagic(), copy.getMinimumMagic());
+		assertEquals(source.getMinimumRanged(), copy.getMinimumRanged());
+		assertEquals(source.getRequiredWeapon(), copy.getRequiredWeapon());
+		assertEquals(source.getRequiredOffhand(), copy.getRequiredOffhand());
+		assertEquals(source.getRequiredCape(), copy.getRequiredCape());
+		assertEquals(source.getMinimumEquippedWeightKg(), copy.getMinimumEquippedWeightKg(), 0.0001);
+		assertEquals(source.getPreferredItems(), copy.getPreferredItems());
+		assertEquals(source.getRankedWeapons(), copy.getRankedWeapons());
+		assertEquals(source.getMagicDefenceWeight(), copy.getMagicDefenceWeight(), 0.0001);
+		assertEquals(source.getPrayerWeight(), copy.getPrayerWeight(), 0.0001);
+		assertEquals(source.isAncientAoe(), copy.isAncientAoe());
 	}
 
 	private static void assertText(String field, String value, String context)
@@ -164,7 +212,7 @@ public class CatalogConsistencyTest
 	{
 		if (requiredWeapon == null) return false;
 		String normalized = NameMatcher.normalize(requiredWeapon);
-		return normalized.contains("bow")
+		return (normalized.contains("bow") && !normalized.contains("crossbow"))
 			|| normalized.contains("halberd")
 			|| normalized.contains("godsword")
 			|| normalized.contains("maul")

@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -26,6 +27,7 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.ImageIcon;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
@@ -94,6 +96,7 @@ class SlayerGearPanel extends PluginPanel
 	);
 
 	private final ItemManager itemManager;
+	private final SlayerGearAdvisorConfig config;
 	private final JPanel content = transparentPanel();
 	private Runnable strategyCycleHandler = () -> { };
 	private BiConsumer<SupplyRecommendation, SupplyQuantityAction> supplyQuantityHandler =
@@ -101,20 +104,35 @@ class SlayerGearPanel extends PluginPanel
 	private Runnable loadoutRefreshHandler = () -> { };
 	private Runnable advisorToggleHandler = () -> { };
 	private Runnable turaelAyaSpeedToggleHandler = () -> { };
+	private Consumer<String> bossSelectionHandler = boss -> { };
+	private Consumer<GearPriority> objectiveSelectionHandler = objective -> { };
+	private Runnable presetExportHandler = () -> { };
+	private Runnable presetImportHandler = () -> { };
 	private JButton advisorToggleButton;
 	private JCheckBox turaelAyaSpeedCheckBox;
+	private JComboBox<String> bossSelector;
+	private boolean updatingBossSelector;
+	private List<String> eligibleBosses = new ArrayList<>();
+	private String selectedBoss = "";
 	private boolean advisorEnabled = true;
 	private boolean turaelAyaSpeedMode;
 	private boolean showAlternatives;
+	private boolean showDpsDetails;
+	private boolean showRecommendationExplanations;
+	private boolean showObjectiveComparison;
 	private boolean showTaskDetails;
+	private GearPriority previousObjective;
+	private String presetStatus = "";
+	private TaskCompletionSummary completionSummary;
 	private PrepFocusMode prepFocusMode = PrepFocusMode.ALL;
 	private GearRecommendations lastRecommendations;
 	private PanelTheme panelTheme = PanelTheme.MIDNIGHT;
 
 	@Inject
-	SlayerGearPanel(ItemManager itemManager)
+	SlayerGearPanel(ItemManager itemManager, SlayerGearAdvisorConfig config)
 	{
 		this.itemManager = itemManager;
+		this.config = config;
 
 		setLayout(new BorderLayout(0, 10));
 		setBackground(PANEL_BG);
@@ -155,6 +173,50 @@ class SlayerGearPanel extends PluginPanel
 	void setTuraelAyaSpeedToggleHandler(Runnable handler)
 	{
 		this.turaelAyaSpeedToggleHandler = handler == null ? () -> { } : handler;
+	}
+
+	void setBossSelectionHandler(Consumer<String> handler)
+	{
+		bossSelectionHandler = handler == null ? boss -> { } : handler;
+	}
+
+	void setObjectiveSelectionHandler(Consumer<GearPriority> handler)
+	{
+		objectiveSelectionHandler = handler == null ? objective -> { } : handler;
+	}
+
+	void setPresetHandlers(Runnable exportHandler, Runnable importHandler)
+	{
+		presetExportHandler = exportHandler == null ? () -> { } : exportHandler;
+		presetImportHandler = importHandler == null ? () -> { } : importHandler;
+	}
+
+	void setPresetStatus(String status)
+	{
+		SwingUtilities.invokeLater(() ->
+		{
+			presetStatus = status == null ? "" : status;
+			refreshLastRecommendations();
+		});
+	}
+
+	void setCompletionSummary(TaskCompletionSummary summary)
+	{
+		SwingUtilities.invokeLater(() ->
+		{
+			completionSummary = summary;
+			refreshLastRecommendations();
+		});
+	}
+
+	void setBossChoices(List<String> bosses, String selected)
+	{
+		SwingUtilities.invokeLater(() ->
+		{
+			eligibleBosses = bosses == null ? new ArrayList<>() : new ArrayList<>(bosses);
+			selectedBoss = selected == null ? "" : selected;
+			rebuildBossSelector();
+		});
 	}
 
 	void setAdvisorEnabled(boolean enabled)
@@ -304,7 +366,47 @@ class SlayerGearPanel extends PluginPanel
 		turaelAyaSpeedCheckBox.addActionListener(event -> turaelAyaSpeedToggleHandler.run());
 		updateTuraelAyaSpeedToggle();
 		root.add(turaelAyaSpeedCheckBox);
+		root.add(Box.createVerticalStrut(4));
+
+		bossSelector = new JComboBox<>();
+		bossSelector.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+		bossSelector.setPreferredSize(new Dimension(WRAP_WIDTH, 30));
+		bossSelector.setMinimumSize(new Dimension(80, 30));
+		bossSelector.setAlignmentX(Component.LEFT_ALIGNMENT);
+		bossSelector.setFont(FontManager.getRunescapeSmallFont());
+		bossSelector.setToolTipText("Choose a boss to build an owned Best-in-Bank boss loadout");
+		bossSelector.addActionListener(event ->
+		{
+			if (updatingBossSelector) return;
+			Object selected = bossSelector.getSelectedItem();
+			selectedBoss = bossSelector.getSelectedIndex() <= 0 ? "" : String.valueOf(selected);
+			bossSelectionHandler.accept(selectedBoss);
+		});
+		rebuildBossSelector();
+		root.add(bossSelector);
 		return root;
+	}
+
+	private void rebuildBossSelector()
+	{
+		if (bossSelector == null) return;
+		updatingBossSelector = true;
+		try
+		{
+			bossSelector.removeAllItems();
+			bossSelector.addItem("Current Slayer task");
+			List<String> choices = eligibleBosses.isEmpty() ? BossSlayerCatalog.names() : eligibleBosses;
+			for (String boss : choices) bossSelector.addItem(boss);
+			if (!selectedBoss.isEmpty()) bossSelector.setSelectedItem(selectedBoss);
+			else bossSelector.setSelectedIndex(0);
+			bossSelector.setToolTipText(eligibleBosses.isEmpty()
+				? "Choose a boss to build an owned Best-in-Bank boss loadout"
+				: "Bosses that count for the current Slayer assignment");
+		}
+		finally
+		{
+			updatingBossSelector = false;
+		}
 	}
 
 	private void updateAdvisorToggle()
@@ -346,6 +448,7 @@ class SlayerGearPanel extends PluginPanel
 					advisorEnabled
 						? "Best-in-Bank will wake up when RuneLite detects an assignment."
 						: "Use the switch above when you want Best-in-Bank to run.");
+				addCompletionSummary();
 				break;
 			case UNSUPPORTED_TASK:
 				showEmpty(
@@ -362,6 +465,7 @@ class SlayerGearPanel extends PluginPanel
 				break;
 			case READY:
 				addTaskHero(recommendations);
+				addCompletionSummary();
 				addReadiness(recommendations);
 				addPrepControls(recommendations);
 				if (prepFocusMode == PrepFocusMode.MISSING
@@ -377,6 +481,7 @@ class SlayerGearPanel extends PluginPanel
 					if (prepFocusMode != PrepFocusMode.SUPPLIES)
 					{
 						addLoadout(recommendations, prepFocusMode == PrepFocusMode.MISSING);
+						addBossWeaponSwitches(recommendations, prepFocusMode == PrepFocusMode.MISSING);
 					}
 					if (prepFocusMode != PrepFocusMode.GEAR)
 					{
@@ -391,6 +496,52 @@ class SlayerGearPanel extends PluginPanel
 
 		content.revalidate();
 		content.repaint();
+	}
+
+	private void addBossWeaponSwitches(GearRecommendations recommendations, boolean missingOnly)
+	{
+		List<GearRecommendation> switches = new ArrayList<>();
+		for (GearRecommendation item : recommendations.getWeaponSwitches())
+		{
+			if (!missingOnly || !item.isPacked()) switches.add(item);
+		}
+		if (switches.isEmpty()) return;
+		content.add(sectionHeading("BOSS WEAPON SWITCHES", "Best owned applicable options"));
+		content.add(Box.createVerticalStrut(5));
+		for (GearRecommendation item : switches)
+		{
+			String label = item.getReason().startsWith("Defence")
+				? "DEFENCE REDUCTION"
+				: item.getReason().startsWith("Spawn") || item.getReason().startsWith("Phase")
+					? "SPAWN / PHASE SWITCH" : "DAMAGE SPECIAL";
+			content.add(buildSlotCard(label, Arrays.asList(item)));
+			content.add(Box.createVerticalStrut(5));
+		}
+		content.add(Box.createVerticalStrut(5));
+	}
+
+	private void addCompletionSummary()
+	{
+		if (completionSummary == null || !completionSummary.isAvailable()) return;
+		content.add(Box.createVerticalStrut(6));
+		RoundedPanel card = card(SURFACE_RAISED);
+		card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+		card.setBorder(new EmptyBorder(8, 10, 8, 10));
+		card.add(smallCaps("LAST TASK SUMMARY", TEAL));
+		card.add(wrappedLabel(completionSummary.getTaskName() + " · "
+			+ completionSummary.getKills() + " kills · "
+			+ formatDuration(completionSummary.getElapsedSeconds()), SOFT_TEXT, WRAP_WIDTH));
+		card.add(wrappedLabel(completionSummary.getConsumed().isEmpty()
+			? "No modeled supply consumption observed."
+			: "Used: " + String.join(" · ", completionSummary.getConsumed()),
+			MUTED_TEXT, WRAP_WIDTH));
+		content.add(card);
+	}
+
+	static String formatDuration(long seconds)
+	{
+		long safe = Math.max(0, seconds);
+		return String.format(Locale.ENGLISH, "%d:%02d", safe / 60, safe % 60);
 	}
 
 	private void addTaskHero(GearRecommendations recommendations)
@@ -437,6 +588,88 @@ class SlayerGearPanel extends PluginPanel
 				location.setAlignmentX(Component.LEFT_ALIGNMENT);
 				hero.add(location);
 			}
+
+			hero.add(Box.createVerticalStrut(7));
+			RoundedPanel objective = new RoundedPanel(SURFACE_RAISED, ROW_RADIUS, BORDER);
+			objective.setLayout(new BoxLayout(objective, BoxLayout.Y_AXIS));
+			objective.setBorder(new EmptyBorder(6, 8, 6, 8));
+			objective.setAlignmentX(Component.LEFT_ALIGNMENT);
+			objective.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+			objective.add(smallCaps("OBJECTIVE · " + recommendations.getObjective(), GOLD));
+			objective.add(Box.createVerticalStrut(2));
+			objective.add(wrappedLabel(objectiveSummary(recommendations.getObjective()),
+				MUTED_TEXT, WRAP_WIDTH - 16));
+			objective.add(Box.createVerticalStrut(3));
+			objective.add(wrappedLabel(ObjectiveAdvisor.changeFromMaxDps(
+				recommendations.getObjective()), FAINT_TEXT, WRAP_WIDTH - 16));
+			ObjectiveAdvisor.Suggestion suggestion = ObjectiveAdvisor.suggest(
+				recommendations.getProfile(), strategy);
+			if (suggestion.getObjective() != recommendations.getObjective())
+			{
+				objective.add(Box.createVerticalStrut(4));
+				objective.add(wrappedLabel("Suggested: " + suggestion.getObjective()
+					+ " — " + suggestion.getReason(), TEAL, WRAP_WIDTH - 16));
+				objective.add(Box.createVerticalStrut(4));
+				RoundedButton applySuggested = new RoundedButton();
+				applySuggested.setText("Apply suggested");
+				applySuggested.setForeground(TEAL);
+				applySuggested.setAlignmentX(Component.LEFT_ALIGNMENT);
+				applySuggested.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+				applySuggested.setToolTipText("Apply this Objective; a locked bank plan will wait for Refresh");
+				applySuggested.addActionListener(event ->
+				{
+					previousObjective = recommendations.getObjective();
+					objectiveSelectionHandler.accept(suggestion.getObjective());
+				});
+				objective.add(applySuggested);
+			}
+			if (previousObjective != null
+				&& previousObjective != recommendations.getObjective())
+			{
+				objective.add(Box.createVerticalStrut(4));
+				RoundedButton restore = new RoundedButton();
+				restore.setText("Restore " + previousObjective);
+				restore.setForeground(MUTED_TEXT);
+				restore.setAlignmentX(Component.LEFT_ALIGNMENT);
+				restore.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+				restore.addActionListener(event ->
+				{
+					GearPriority restoreObjective = previousObjective;
+					previousObjective = recommendations.getObjective();
+					objectiveSelectionHandler.accept(restoreObjective);
+				});
+				objective.add(restore);
+			}
+			objective.add(Box.createVerticalStrut(5));
+			RoundedButton compare = new RoundedButton();
+			compare.setText(showObjectiveComparison ? "Hide comparison" : "Compare objectives");
+			compare.setForeground(showObjectiveComparison ? TEAL : MUTED_TEXT);
+			compare.setAlignmentX(Component.LEFT_ALIGNMENT);
+			compare.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+			compare.addActionListener(event ->
+			{
+				showObjectiveComparison = !showObjectiveComparison;
+				refreshLastRecommendations();
+			});
+			objective.add(compare);
+			if (showObjectiveComparison)
+			{
+				for (GearPriority candidate : GearPriority.values())
+				{
+					objective.add(Box.createVerticalStrut(4));
+					String marker = candidate == recommendations.getObjective() ? "Selected"
+						: candidate == suggestion.getObjective() ? "Suggested" : "";
+					String title = candidate.toString() + (marker.isEmpty() ? "" : " · " + marker);
+					objective.add(smallCaps(title, candidate == recommendations.getObjective()
+						? GOLD : candidate == suggestion.getObjective() ? TEAL : MUTED_TEXT));
+					objective.add(wrappedLabel(ObjectiveAdvisor.policy(candidate),
+						FAINT_TEXT, WRAP_WIDTH - 16));
+					objective.add(wrappedLabel(objectiveLoadoutText(
+						recommendations.getObjectiveComparisons(), candidate),
+						MUTED_TEXT, WRAP_WIDTH - 16));
+				}
+			}
+			hero.add(objective);
 
 			if (strategy.getRationale() != null && !strategy.getRationale().trim().isEmpty())
 			{
@@ -684,7 +917,9 @@ class SlayerGearPanel extends PluginPanel
 			}
 		}
 
-		String loadoutSubtitle = "T2/T3 show swaps only";
+		boolean hasDps = !recommendations.getLoadoutTiers().isEmpty()
+			&& recommendations.getLoadoutTiers().get(0).getOffenseEstimate().isAvailable();
+		String loadoutSubtitle = hasDps ? "" : "T2/T3 show swaps only";
 		if (!recommendations.getLoadoutTiers().isEmpty())
 		{
 			LoadoutTier tierOne = recommendations.getLoadoutTiers().get(0);
@@ -695,19 +930,54 @@ class SlayerGearPanel extends PluginPanel
 			}
 		}
 		JPanel heading = sectionHeading("LOADOUT", loadoutSubtitle);
+		JPanel headingActions = transparentPanel(new GridLayout(1, 0, 4, 0));
+		if (hasDps)
+		{
+			RoundedButton dps = new RoundedButton();
+			dps.setText(showDpsDetails ? "Hide DPS" : "DPS");
+			dps.setForeground(showDpsDetails ? TEAL : GOLD);
+			dps.setToolTipText("Show target-aware DPS estimates and tier comparisons");
+			dps.addActionListener(event ->
+			{
+				showDpsDetails = !showDpsDetails;
+				refreshLastRecommendations();
+			});
+			headingActions.add(dps);
+		}
+		RoundedButton explanations = new RoundedButton();
+		explanations.setText(showRecommendationExplanations ? "Hide why" : "Why?");
+		explanations.setForeground(showRecommendationExplanations ? TEAL : MUTED_TEXT);
+		explanations.setToolTipText(showRecommendationExplanations
+			? "Hide recommendation explanations"
+			: "Explain why each item and backup was selected");
+		explanations.addActionListener(event ->
+		{
+			showRecommendationExplanations = !showRecommendationExplanations;
+			refreshLastRecommendations();
+		});
+		headingActions.add(explanations);
 		RoundedButton alternatives = new RoundedButton();
-		alternatives.setText(showAlternatives ? "Hide backups" : "Show backups");
+		alternatives.setText(showAlternatives ? "Hide" : "Backups");
 		alternatives.setForeground(showAlternatives ? TEAL : MUTED_TEXT);
-		alternatives.setPreferredSize(new Dimension(78, 25));
+		alternatives.setPreferredSize(new Dimension(58, 25));
 		alternatives.setMargin(new Insets(2, 6, 2, 6));
+		alternatives.setToolTipText(showAlternatives
+			? "Hide Tier 2 and Tier 3 alternatives"
+			: "Show Tier 2 and Tier 3 alternatives");
 		alternatives.addActionListener(event ->
 		{
 			showAlternatives = !showAlternatives;
 			refreshLastRecommendations();
 		});
-		heading.add(alternatives, BorderLayout.EAST);
+		headingActions.add(alternatives);
+		heading.add(headingActions, BorderLayout.EAST);
 		content.add(heading);
 		content.add(Box.createVerticalStrut(5));
+		if (hasDps && showDpsDetails)
+		{
+			content.add(buildDpsCard(recommendations.getLoadoutTiers()));
+			content.add(Box.createVerticalStrut(6));
+		}
 
 		List<GearRecommendation> weapons = recommendations.get(EquipmentInventorySlot.WEAPON);
 		boolean topWeaponIsTwoHanded = !weapons.isEmpty() && weapons.get(0).isTwoHanded();
@@ -763,6 +1033,105 @@ class SlayerGearPanel extends PluginPanel
 		content.add(Box.createVerticalStrut(5));
 	}
 
+	private JPanel buildDpsCard(List<LoadoutTier> tiers)
+	{
+		RoundedPanel panel = card(SURFACE);
+		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+		panel.setBorder(new EmptyBorder(8, 10, 8, 10));
+		panel.add(smallCaps("DPS ESTIMATE", GOLD));
+		LoadoutOffenseEstimate top = tiers.get(0).getOffenseEstimate();
+		if (!top.getTargetName().isEmpty())
+		{
+			panel.add(Box.createVerticalStrut(3));
+			panel.add(wrappedLabel("Target: " + top.getTargetName(), SOFT_TEXT, WRAP_WIDTH));
+		}
+		if (!top.getMethodName().isEmpty())
+		{
+			panel.add(Box.createVerticalStrut(2));
+			panel.add(wrappedLabel("Method: " + top.getMethodName(), TEAL, WRAP_WIDTH));
+		}
+		for (LoadoutTier tier : tiers)
+		{
+			LoadoutOffenseEstimate estimate = tier.getOffenseEstimate();
+			if (!estimate.isAvailable()) continue;
+			panel.add(Box.createVerticalStrut(3));
+			String comparison = tier.getRank() == 1 ? "best owned"
+				: String.format(Locale.ENGLISH, "%+.1f%% vs T1", estimate.getRelativePercent());
+			panel.add(wrappedLabel("T" + tier.getRank() + ": "
+				+ formatDps(estimate) + "  ·  " + comparison,
+				tier.getRank() == 1 ? SUCCESS : MUTED_TEXT, WRAP_WIDTH));
+		}
+		if (top.hasKillRate())
+		{
+			panel.add(Box.createVerticalStrut(5));
+			panel.add(wrappedLabel(killRateText(top), TEAL, WRAP_WIDTH));
+		}
+		panel.add(Box.createVerticalStrut(5));
+		panel.add(wrappedLabel(
+			"Uses current visible boosts and active prayers. Combat-stance bonuses and unsupported special effects are excluded.",
+			FAINT_TEXT, WRAP_WIDTH));
+		return panel;
+	}
+
+	static String killRateText(LoadoutOffenseEstimate estimate)
+	{
+		if (estimate == null || !estimate.hasKillRate()) return "Kill rate unavailable";
+		String seconds = estimate.getMaximumSecondsPerKill()
+			> estimate.getMinimumSecondsPerKill() + 0.05
+			? String.format(Locale.ENGLISH, "%.1f–%.1f sec equivalent kill interval",
+				estimate.getMinimumSecondsPerKill(), estimate.getMaximumSecondsPerKill())
+			: String.format(Locale.ENGLISH, "%.1f sec estimated TTK",
+				estimate.getMinimumSecondsPerKill());
+		String kills = estimate.getMaximumKillsPerHour()
+			> estimate.getMinimumKillsPerHour() + 0.05
+			? String.format(Locale.ENGLISH, "%.0f–%.0f kills/hr",
+				estimate.getMinimumKillsPerHour(), estimate.getMaximumKillsPerHour())
+			: String.format(Locale.ENGLISH, "%.0f kills/hr", estimate.getMinimumKillsPerHour());
+		return seconds + " · " + kills;
+	}
+
+	static String formatDps(LoadoutOffenseEstimate estimate)
+	{
+		if (estimate == null || !estimate.isAvailable()) return "Unavailable";
+		String minimum = String.format(Locale.ENGLISH, "%.2f", estimate.getDamagePerSecond());
+		if (!estimate.isRange()) return minimum + " DPS";
+		return minimum + "–" + String.format(Locale.ENGLISH, "%.2f",
+			estimate.getMaximumDamagePerSecond()) + " DPS";
+	}
+
+	static String offenseComparisonSubtitle(List<LoadoutTier> tiers)
+	{
+		if (tiers == null || tiers.isEmpty()
+			|| !tiers.get(0).getOffenseEstimate().isAvailable())
+		{
+			return "T2/T3 show swaps only";
+		}
+		LoadoutOffenseEstimate topEstimate = tiers.get(0).getOffenseEstimate();
+		StringBuilder result = new StringBuilder("Est. ")
+			.append(String.format(Locale.ENGLISH, "%.2f", topEstimate.getDamagePerSecond()));
+		if (topEstimate.isRange())
+		{
+			result.append("–").append(String.format(Locale.ENGLISH, "%.2f",
+				topEstimate.getMaximumDamagePerSecond()));
+		}
+		result.append(" DPS");
+		String targetName = topEstimate.getTargetName();
+		if (!targetName.isEmpty())
+		{
+			result.append(" vs ").append(targetName);
+		}
+		for (int index = 1; index < tiers.size(); index++)
+		{
+			LoadoutOffenseEstimate estimate = tiers.get(index).getOffenseEstimate();
+			if (estimate.isAvailable())
+			{
+				result.append(" · T").append(tiers.get(index).getRank()).append(' ')
+					.append(String.format(Locale.ENGLISH, "%+.1f%%", estimate.getRelativePercent()));
+			}
+		}
+		return result.toString();
+	}
+
 	static boolean hasTierOneChoice(List<GearRecommendation> choices)
 	{
 		return choices != null
@@ -812,15 +1181,20 @@ class SlayerGearPanel extends PluginPanel
 				fallback.setForeground(choice.getRank() == 2 ? TEAL : MUTED_TEXT);
 				fallback.setToolTipText(choice.getItemName() + " — " + choice.getReason());
 				backups.add(fallback);
+				if (showRecommendationExplanations)
+				{
+					backups.add(wrappedLabel(recommendationExplanation(choice),
+						FAINT_TEXT, 128));
+				}
 			}
 			center.add(backups);
 		}
 
 		JPanel detail = transparentPanel();
 		detail.setLayout(new BoxLayout(detail, BoxLayout.Y_AXIS));
-		detail.setVisible(false);
+		detail.setVisible(showRecommendationExplanations);
 		detail.add(Box.createVerticalStrut(4));
-		detail.add(wrappedLabel(best.getReason(), MUTED_TEXT, 128));
+		detail.add(wrappedLabel(recommendationExplanation(best), MUTED_TEXT, 128));
 		center.add(detail);
 		card.add(center, BorderLayout.CENTER);
 
@@ -830,7 +1204,7 @@ class SlayerGearPanel extends PluginPanel
 		status.setAlignmentX(Component.RIGHT_ALIGNMENT);
 		right.add(status);
 		right.add(Box.createVerticalGlue());
-		JLabel chevron = new JLabel("›");
+		JLabel chevron = new JLabel(showRecommendationExplanations ? "⌄" : "›");
 		chevron.setFont(FontManager.getRunescapeBoldFont().deriveFont(16f));
 		chevron.setForeground(FAINT_TEXT);
 		chevron.setAlignmentX(Component.RIGHT_ALIGNMENT);
@@ -861,6 +1235,49 @@ class SlayerGearPanel extends PluginPanel
 			}
 		});
 		return card;
+	}
+
+	static String objectiveSummary(GearPriority objective)
+	{
+		if (objective == GearPriority.PRAYER_FIRST)
+		{
+			return "Favors Prayer-bonus gear and increases Prayer restoration for longer trips.";
+		}
+		if (objective == GearPriority.DEFENCE_FIRST)
+		{
+			return "Favors defensive armour and accessories and increases the food target.";
+		}
+		if (objective == GearPriority.VALUE)
+		{
+			return "Keeps DPS-valid gear while reducing optional boost and support quantities.";
+		}
+		return "Ranks practical target DPS first and increases combat boosts and aggression support.";
+	}
+
+	static String objectiveLoadoutText(
+		List<ObjectiveLoadoutComparison> comparisons, GearPriority objective)
+	{
+		if (comparisons != null)
+		{
+			for (ObjectiveLoadoutComparison comparison : comparisons)
+			{
+				if (comparison.getObjective() == objective)
+				{
+					return "Gear: " + comparison.getGearChanges();
+				}
+			}
+		}
+		return "Gear comparison unavailable";
+	}
+
+	static String recommendationExplanation(GearRecommendation recommendation)
+	{
+		if (recommendation == null || recommendation.getReason() == null
+			|| recommendation.getReason().trim().isEmpty())
+		{
+			return "Selected as the strongest valid owned option for this objective.";
+		}
+		return recommendation.getReason().trim();
 	}
 
 	private StatusPill gearStatus(GearRecommendation recommendation)
@@ -903,6 +1320,30 @@ class SlayerGearPanel extends PluginPanel
 
 		content.add(sectionHeading("TRIP SUPPLIES", packed + "/" + enabled + " packed"));
 		content.add(Box.createVerticalStrut(5));
+		int plannedKills = SmartSupplyAdvisor.plannedKillCount(
+			config.tripPlan(), recommendations.getTaskAmount(), config.customTripKills());
+		TripCostEstimate cost = TripCostEstimator.estimate(
+			recommendations, itemManager, plannedKills);
+		if (cost.isAvailable())
+		{
+			RoundedPanel estimate = card(SURFACE_RAISED);
+			estimate.setLayout(new BoxLayout(estimate, BoxLayout.Y_AXIS));
+			estimate.setBorder(new EmptyBorder(7, 8, 7, 8));
+			estimate.add(smallCaps("MODELED TRIP COST", GOLD));
+			estimate.add(wrappedLabel(TripCostEstimator.compactGp(cost.getTotalGp())
+				+ " · ~" + TripCostEstimator.compactGp(cost.getGpPerKill()) + "/kill",
+				TEAL, WRAP_WIDTH));
+			if (!cost.getBreakdown().isEmpty())
+			{
+				estimate.add(wrappedLabel(String.join(" · ", cost.getBreakdown()),
+					MUTED_TEXT, WRAP_WIDTH));
+			}
+			estimate.add(wrappedLabel(
+				"Estimate: planned supplies plus supported ammo/casts. Hidden quiver ammo, loot, and other charges are excluded.",
+				FAINT_TEXT, WRAP_WIDTH));
+			content.add(estimate);
+			content.add(Box.createVerticalStrut(5));
+		}
 
 		RoundedPanel card = card(SURFACE);
 		card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
@@ -1115,6 +1556,29 @@ class SlayerGearPanel extends PluginPanel
 		content.add(notes);
 		content.add(Box.createVerticalStrut(6));
 
+		JPanel presets = transparentPanel(new GridLayout(1, 2, 6, 0));
+		presets.setAlignmentX(Component.LEFT_ALIGNMENT);
+		presets.setMaximumSize(new Dimension(Integer.MAX_VALUE, 27));
+		RoundedButton exportPreset = new RoundedButton();
+		exportPreset.setText("Copy preset");
+		exportPreset.setForeground(MUTED_TEXT);
+		exportPreset.setToolTipText("Copy this method, Objective, preferences, and trip settings");
+		exportPreset.addActionListener(event -> presetExportHandler.run());
+		presets.add(exportPreset);
+		RoundedButton importPreset = new RoundedButton();
+		importPreset.setText("Import preset");
+		importPreset.setForeground(TEAL);
+		importPreset.setToolTipText("Validate and apply an SBIB1 preset from the clipboard");
+		importPreset.addActionListener(event -> presetImportHandler.run());
+		presets.add(importPreset);
+		content.add(presets);
+		if (!presetStatus.isEmpty())
+		{
+			content.add(Box.createVerticalStrut(3));
+			content.add(wrappedLabel(presetStatus, MUTED_TEXT, WRAP_WIDTH));
+		}
+		content.add(Box.createVerticalStrut(6));
+
 		JLabel disclaimer = wrappedLabel(
 			"Recommendations are bank-aware and safety-aware. Verify unusual boss mechanics, charges, and account-specific unlocks.",
 			FAINT_TEXT,
@@ -1166,6 +1630,11 @@ class SlayerGearPanel extends PluginPanel
 
 	private void refreshLastRecommendations()
 	{
+		if (!SwingUtilities.isEventDispatchThread())
+		{
+			SwingUtilities.invokeLater(this::refreshLastRecommendations);
+			return;
+		}
 		if (lastRecommendations != null)
 		{
 			displayOnEdt(lastRecommendations);

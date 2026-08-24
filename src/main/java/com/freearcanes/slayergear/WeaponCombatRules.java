@@ -23,6 +23,7 @@ final class WeaponCombatRules
 		if (has(n, "silverlight", "darklight", "arclight", "emberlight")) return attackType == AttackType.STAB || attackType == AttackType.SLASH;
 		if (has(n, "whip", "tentacle")) return attackType == AttackType.SLASH;
 		if (n.contains("rapier")) return attackType == AttackType.STAB;
+		if (n.contains("voidwaker")) return attackType == AttackType.STAB || attackType == AttackType.SLASH;
 		if (has(n, "scimitar", "dagger", "claw"))
 			return attackType == AttackType.STAB || attackType == AttackType.SLASH;
 		if (n.contains("fang")) return attackType == AttackType.STAB || attackType == AttackType.SLASH;
@@ -203,6 +204,23 @@ final class WeaponCombatRules
 			if (traits.contains(TargetTrait.SCYTHE_TWO_HIT)) return 1.50;
 		}
 		return 1.0;
+	}
+
+	/**
+	 * Ranged strength supplied by ammunition stored inside a self-ammo weapon.
+	 * RuneLite's equipment stats expose the Toxic blowpipe itself, but not the
+	 * darts loaded into it. External ammunition is scored as a separate equipped
+	 * item, so omitting this value unfairly gives crossbows an entire ammo slot's
+	 * advantage. Use dragon darts as the best-in-bank ceiling; the loadout can
+	 * downgrade the consumable separately when needed.
+	 */
+	static int intrinsicRangedStrength(String itemName)
+	{
+		String n = NameMatcher.normalize(itemName);
+		if (n.contains("toxic blowpipe")) return 35;
+		if (n.contains("ironwood blowpipe") || n.contains("rosewood blowpipe")) return 17;
+		if (n.contains("camphor blowpipe")) return 9;
+		return 0;
 	}
 
 	static String intrinsicReason(GearStrategy strategy, String itemName)

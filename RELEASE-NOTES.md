@@ -1,7 +1,36 @@
-# Slayer Best in Bank — Unreleased Release Candidate
+# Slayer Best in Bank — SBIB V1.82
 
 This release candidate consolidates the current loadout, supply-planning,
 bank-layout, customization, and support improvements into one reviewable update.
+
+## Polished planning and feedback
+
+- Added one-click task-aware Objective switching with a restore action.
+- Added modeled trip cost and GP-per-kill estimates for quantity-planned
+  supplies, compatible worn ammunition, and supported Magic casts.
+- Applied visible Ava recovery rates without guessing hidden Dizana's quiver
+  upgrades or inaccessible loaded ammunition.
+- Added conservative charge-state filtering for inactive, empty, broken,
+  damaged, and fully degraded equipment while retaining usable specialty forms
+  such as `(i)`, `(f)`, ornamented, locked, and Max cape variants.
+- Added explicit charge reminders for powered weapons, Crystal equipment,
+  wilderness weapons, Barrows gear, and Dizana's quiver variants.
+- Added validated, versioned task presets for sharing a method, Objective,
+  preferences, trip settings, and Low-risk policy.
+- Added session-only observed supply consumption and elapsed-time summaries.
+- Added an optional single chat summary when an assignment ends or changes.
+- Prepared the complete public update notice for **SBIB V1.82**.
+
+## Internal reliability
+
+- Consolidated bank, inventory, and worn-item canonicalization so duplicate
+  snapshots no longer repeat equipment metadata and stat lookups.
+- Supply ownership now builds exact-variant and canonical views in one pass
+  instead of decoding every bank and inventory item twice.
+- Centralized strategy cloning so newly added constraints and rankings cannot
+  be silently omitted by separate copy blocks.
+- Removed redundant broad boss aliases and added a catalog regression guard so
+  curated task registrations cannot be silently discarded.
 
 ## Preparation quality of life
 
@@ -29,6 +58,17 @@ bank-layout, customization, and support improvements into one reviewable update.
 
 ## Coherent loadout tiers
 
+- One-handed boss, phase, and special-attack switches now include the best
+  owned style-appropriate off-hand when it is not already equipped; two-handed
+  switches remain off-hand-free.
+- Fixed Shellbane Gryphon preparation: Tortugan shield is now enforced in its
+  actual cape slot, a normal off-hand can be selected independently, and the
+  boss loadout is automatically adjusted to at least 40 kg equipped weight.
+- Re-audited every Slayer-monster row twice against the current OSRS Wiki,
+  correcting stale affinities, attributes, and elemental weaknesses for Cave
+  kraken, Hellhounds/Cerberus, Crocodiles, Scorpions/Scorpia, Banshees,
+  Crawling hands, Flesh crawlers, Jungle horrors, Otherworldly beings, Sea
+  snakes, Spiritual creatures, Ankou, Hydras, and the Shellbane Gryphon.
 - Replaced several generic Slayer-boss fallbacks with encounter-aware weapon
   methods for Araxxor, Cerberus, Duke Sucellus, Sarachnis, Vardorvis, Abyssal
   Sire, Kalphite Queen, and Vet'ion.
@@ -131,7 +171,7 @@ bank-layout, customization, and support improvements into one reviewable update.
 ## Validation
 
 - Main source compiles for Java 11 with deprecation warnings treated as errors.
-- Full release-candidate suite: **128 tests passed, zero failures**.
+- Full release-candidate suite: **304 tests passed, zero failures**.
 - Prohibited API and lifecycle review completed.
 - Remaining in-client and screenshot gates are documented in
   [VALIDATION.md](VALIDATION.md).

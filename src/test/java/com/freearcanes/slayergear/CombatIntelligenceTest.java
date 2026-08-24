@@ -244,6 +244,23 @@ public class CombatIntelligenceTest
 	}
 
 	@Test
+	public void combatCoverageDocumentCountsStayCurrent()
+	{
+		Set<String> assignments = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+		for (java.util.List<String> tasks : SlayerMasterCatalog.allAssignments().values())
+		{
+			assignments.addAll(tasks);
+		}
+		long encoded = assignments.stream()
+			.filter(task -> !"Generic / no task-wide special weapon modifier encoded."
+				.equals(TaskCombatCatalog.noteFor(task)))
+			.count();
+
+		assertEquals(117, assignments.size());
+		assertEquals(80, encoded);
+	}
+
+	@Test
 	public void targetAffinityFamiliesAreAppliedAcrossGenericTasks()
 	{
 		assertEquals(WeaponRule.DEMONBANE, TaskCombatCatalog.ruleFor("Lesser demons"));
@@ -311,6 +328,34 @@ public class CombatIntelligenceTest
 		assertTrue(TaskCombatCatalog.traitsFor("Waterfiends").contains(TargetTrait.DEMON));
 		assertTrue(TaskCombatCatalog.traitsFor("Lesser Nagua").contains(TargetTrait.SPECTRAL));
 		assertFalse(TaskCombatCatalog.traitsFor("Ghouls").contains(TargetTrait.UNDEAD));
+	}
+
+	@Test
+	public void protectionPrayerAndNoPrayerMethodsNeverShareOneDefenceScore()
+	{
+		for (String task : new String[] {"Aberrant spectres", "Bloodveld", "Suqahs", "Jellies"})
+		{
+			SlayerTaskProfile profile = TaskProfiles.find(task).orElseThrow();
+			GearStrategy noPrayer = profile.getStrategies().stream()
+				.filter(strategy -> NameMatcher.normalize(strategy.getName()).contains("no-prayer"))
+				.findFirst().orElseThrow();
+			assertTrue(task + " no-prayer method must value magic defence",
+				noPrayer.getMagicDefenceWeight() > 0);
+
+			for (GearStrategy strategy : profile.getStrategies())
+			{
+				if (strategy == noPrayer) continue;
+				assertEquals(task + " protected/offensive method leaked defensive weighting",
+					0.0, strategy.getMagicDefenceWeight(), 0.0001);
+			}
+		}
+
+		GearStrategy waterfiend = TaskProfiles.find("Waterfiends").orElseThrow()
+			.getStrategies().stream()
+			.filter(strategy -> strategy.getCombatStyle() == CombatStyle.MELEE)
+			.findFirst().orElseThrow();
+		assertTrue("Waterfiends use two attack styles against Magic defence",
+			waterfiend.getMagicDefenceWeight() > 0);
 	}
 
 	@Test
@@ -389,8 +434,8 @@ public class CombatIntelligenceTest
 		assertEquals(50, TaskCombatCatalog.elementalWeaknessPercentFor("Cave bugs"));
 		assertEquals(ElementalWeakness.FIRE, TaskCombatCatalog.elementalWeaknessFor("Cave horrors"));
 		assertEquals(30, TaskCombatCatalog.elementalWeaknessPercentFor("Cave horrors"));
-		assertEquals(ElementalWeakness.EARTH, TaskCombatCatalog.elementalWeaknessFor("Cave kraken"));
-		assertEquals(50, TaskCombatCatalog.elementalWeaknessPercentFor("Cave kraken"));
+		assertEquals(ElementalWeakness.NONE, TaskCombatCatalog.elementalWeaknessFor("Cave kraken"));
+		assertEquals(0, TaskCombatCatalog.elementalWeaknessPercentFor("Cave kraken"));
 		assertEquals(ElementalWeakness.EARTH, TaskCombatCatalog.elementalWeaknessFor("Cave slimes"));
 		assertEquals(ElementalWeakness.EARTH, TaskCombatCatalog.elementalWeaknessFor("Dark beasts"));
 		assertEquals(60, TaskCombatCatalog.elementalWeaknessPercentFor("Dark beasts"));
@@ -404,6 +449,32 @@ public class CombatIntelligenceTest
 		assertEquals(25, TaskCombatCatalog.elementalWeaknessPercentFor("Skeletal wyverns"));
 		assertEquals(ElementalWeakness.EARTH, TaskCombatCatalog.elementalWeaknessFor("Suqahs"));
 		assertEquals(20, TaskCombatCatalog.elementalWeaknessPercentFor("Suqahs"));
+		assertEquals(AttackType.SLASH, TaskCombatCatalog.meleeAttackTypeFor("Crocodiles"));
+		assertEquals(ElementalWeakness.EARTH, TaskCombatCatalog.elementalWeaknessFor("Crocodiles"));
+		assertEquals(40, TaskCombatCatalog.elementalWeaknessPercentFor("Crocodiles"));
+		assertEquals(ElementalWeakness.NONE, TaskCombatCatalog.elementalWeaknessFor("Hellhounds"));
+		assertEquals(ElementalWeakness.WATER, TaskCombatCatalog.elementalWeaknessFor("Cerberus"));
+		assertEquals(40, TaskCombatCatalog.elementalWeaknessPercentFor("Cerberus"));
+		assertEquals(ElementalWeakness.NONE, TaskCombatCatalog.elementalWeaknessFor("Hydras"));
+		assertEquals(ElementalWeakness.EARTH, TaskCombatCatalog.elementalWeaknessFor("Alchemical Hydra"));
+		assertEquals(50, TaskCombatCatalog.elementalWeaknessPercentFor("Alchemical Hydra"));
+		assertEquals(ElementalWeakness.FIRE, TaskCombatCatalog.elementalWeaknessFor("Flesh crawlers"));
+		assertEquals(20, TaskCombatCatalog.elementalWeaknessPercentFor("Flesh crawlers"));
+		assertEquals(ElementalWeakness.FIRE, TaskCombatCatalog.elementalWeaknessFor("Jungle horrors"));
+		assertEquals(25, TaskCombatCatalog.elementalWeaknessPercentFor("Jungle horrors"));
+		assertEquals(ElementalWeakness.AIR, TaskCombatCatalog.elementalWeaknessFor("Otherworldly beings"));
+		assertEquals(35, TaskCombatCatalog.elementalWeaknessPercentFor("Otherworldly beings"));
+		assertEquals(ElementalWeakness.EARTH, TaskCombatCatalog.elementalWeaknessFor("Sea snakes"));
+		assertEquals(20, TaskCombatCatalog.elementalWeaknessPercentFor("Sea snakes"));
+		assertEquals(AttackType.BALANCED, TaskCombatCatalog.meleeAttackTypeFor("Scorpions"));
+		assertEquals(ElementalWeakness.NONE, TaskCombatCatalog.elementalWeaknessFor("Scorpions"));
+		assertEquals(ElementalWeakness.FIRE, TaskCombatCatalog.elementalWeaknessFor("Scorpia"));
+		assertEquals(35, TaskCombatCatalog.elementalWeaknessPercentFor("Scorpia"));
+		assertEquals(ElementalWeakness.AIR, TaskCombatCatalog.elementalWeaknessFor("Shellbane Gryphon"));
+		assertEquals(50, TaskCombatCatalog.elementalWeaknessPercentFor("Shellbane Gryphon"));
+		assertTrue(TaskCombatCatalog.traitsFor("Ankou").contains(TargetTrait.SPECTRAL));
+		assertTrue(TaskCombatCatalog.traitsFor("Crawling hands").contains(TargetTrait.UNDEAD));
+		assertTrue(TaskCombatCatalog.traitsFor("Otherworldly beings").contains(TargetTrait.SPECTRAL));
 	}
 
 	@Test
@@ -415,6 +486,10 @@ public class CombatIntelligenceTest
 		assertEquals(0, TaskCombatCatalog.elementalWeaknessPercentFor("Bats"));
 		assertEquals(ElementalWeakness.AIR, TaskCombatCatalog.elementalWeaknessFor("Revenants"));
 		assertEquals(30, TaskCombatCatalog.elementalWeaknessPercentFor("Revenants"));
+
+		SlayerTaskProfile twisted = TaskProfiles.find("Banshees", "Catacombs of Kourend").orElseThrow();
+		assertTrue(twisted.getStrategies().stream().anyMatch(s ->
+			s.getElementalWeakness() == ElementalWeakness.AIR && s.getElementalWeaknessPercent() == 25));
 	}
 
 	@Test
@@ -462,6 +537,7 @@ public class CombatIntelligenceTest
 	public void spiritualCreaturesDoNotForceOneElementAcrossFactions()
 	{
 		assertEquals(ElementalWeakness.NONE, TaskCombatCatalog.elementalWeaknessFor("Spiritual creatures"));
+		assertTrue(TaskCombatCatalog.traitsFor("Spiritual creatures").contains(TargetTrait.SPECTRAL));
 		assertTrue(TaskCombatCatalog.noteFor("Spiritual creatures").contains("faction-dependent"));
 	}
 

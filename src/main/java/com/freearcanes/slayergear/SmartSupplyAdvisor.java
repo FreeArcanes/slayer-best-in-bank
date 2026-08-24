@@ -50,7 +50,9 @@ class SmartSupplyAdvisor
 			null,
 			taskAmount,
 			bankItems,
-			packedItems);
+			packedItems,
+			false,
+			null);
 	}
 
 	List<SupplyRecommendation> recommend(
@@ -68,7 +70,8 @@ class SmartSupplyAdvisor
 			taskAmount,
 			bankItems,
 			packedItems,
-			false);
+			false,
+			null);
 	}
 
 	List<SupplyRecommendation> recommend(
@@ -80,45 +83,60 @@ class SmartSupplyAdvisor
 		Item[] packedItems,
 		boolean allowRadasBlessing)
 	{
+		return recommend(profile, strategy, assignedLocation, taskAmount,
+			bankItems, packedItems, allowRadasBlessing, null);
+	}
+
+	List<SupplyRecommendation> recommend(
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		String assignedLocation,
+		int taskAmount,
+		Item[] bankItems,
+		Item[] packedItems,
+		boolean allowRadasBlessing,
+		GearPriority objective)
+	{
 		List<SupplyRule> rules = buildRules(profile, strategy, assignedLocation);
 		boolean wildernessTask = isWildernessTask(assignedLocation, strategy);
 		int plannedKills = plannedKillCount(taskAmount);
-		Map<Integer, OwnedItem> bank = collect(bankItems);
-		Map<Integer, OwnedItem> packed = collect(packedItems);
+		OwnedItems bank = collectOwnedItems(bankItems);
+		OwnedItems packed = collectOwnedItems(packedItems);
 		// Cannon cosmetics are not interchangeable: regular and ornamented parts
 		// cannot be mixed. Preserve exact item variants separately from the
 		// canonical map used by ordinary supply matching.
-		List<OwnedItem> exactBank = collectExact(bankItems);
-		List<OwnedItem> exactPacked = collectExact(packedItems);
 		List<SupplyRecommendation> recommendations = new ArrayList<>();
 		Set<Integer> usedCanonicalIds = new HashSet<>();
 
 		if (isCannon(strategy))
 		{
-			addCannonSetRecommendations(recommendations, exactBank, exactPacked, usedCanonicalIds);
+			addCannonSetRecommendations(
+				recommendations, bank.exact, packed.exact, usedCanonicalIds);
 		}
 
 		for (SupplyRule rule : rules)
 		{
 			boolean potionEstimateDisabled = !quantityTargetEnabled(config, rule.category);
+			int objectiveQuantity = potionEstimateDisabled ? 0 : applyObjectiveQuantity(
+				rule.category, recommendedQuantity(rule.category, plannedKills), objective);
 			int automaticQuantity = potionEstimateDisabled ? 0 : applySupplyLevel(
-				rule.category, recommendedQuantity(rule.category, plannedKills));
+				rule.category, objectiveQuantity);
 			int recommendedQuantity = potionEstimateDisabled
 				? 0
 				: quantityOverride(profile, rule.category, automaticQuantity);
 			String quantityUnit = quantityUnit(rule.category);
 			int packedQuantity = matchingQuantity(
-				rule, exactPacked, quantityUnit, wildernessTask, allowRadasBlessing);
+				rule, packed.exact, quantityUnit, wildernessTask, allowRadasBlessing);
 			int bankQuantity = matchingQuantity(
-				rule, exactBank, quantityUnit, wildernessTask, allowRadasBlessing);
+				rule, bank.exact, quantityUnit, wildernessTask, allowRadasBlessing);
 			// Resolve inventory/equipment and bank independently. A consumable that is
 			// already packed can still have more doses/food available in the bank.
 			// Keeping both states prevents the filtered bank row from disappearing after
 			// the first withdrawal.
 			OwnedItem packedMatch = findBest(
-				rule, packed.values(), usedCanonicalIds, wildernessTask, allowRadasBlessing);
+				rule, packed.byCanonical.values(), usedCanonicalIds, wildernessTask, allowRadasBlessing);
 			OwnedItem bankMatch = findBest(
-				rule, bank.values(), usedCanonicalIds, wildernessTask, allowRadasBlessing);
+				rule, bank.byCanonical.values(), usedCanonicalIds, wildernessTask, allowRadasBlessing);
 
 			if (packedMatch != null && bankMatch != null)
 			{
@@ -211,6 +229,18 @@ class SmartSupplyAdvisor
 		boolean venator = strategy != null && isVenator(strategy);
 		boolean wildernessTask = isWildernessTask(assignedLocation, strategy);
 		boolean turaelAyaSpeed = TuraelSpeedProfiles.isSpeedStrategy(strategy);
+		boolean bossPvm = key.contains("boss")
+			|| (profile != null && BossSlayerCatalog.contains(profile.getDisplayName()));
+
+		if (bossPvm && config.useBossThralls())
+		{
+			rules.add(rule("Thrall book",
+				"Required in the inventory or off-hand to cast Arceuus resurrection spells",
+				true, "Book of the dead", "book of the dead"));
+			rules.add(rule("Thrall runes",
+				"Carries the selected Greater Thrall runes; verify the pouch contents before leaving",
+				true, "Rune pouch", "divine rune pouch", "rune pouch"));
+		}
 
 		// These are useful owned trip accelerators across Slayer methods, not only
 		// Ancient AoE and Venator. They remain optional and therefore appear only
@@ -536,24 +566,9 @@ class SmartSupplyAdvisor
 		return result.toString();
 	}
 
-	private List<OwnedItem> collectExact(Item[] items)
+	private OwnedItems collectOwnedItems(Item[] items)
 	{
-		List<OwnedItem> result = new ArrayList<>();
-		if (items == null) return result;
-		for (Item item : items)
-		{
-			if (item == null || item.getId() <= 0 || item.getQuantity() <= 0) continue;
-			ItemComposition composition = itemManager.getItemComposition(item.getId());
-			if (composition == null || composition.getPlaceholderTemplateId() != -1 || invalidName(composition.getName())) continue;
-			result.add(new OwnedItem(
-				item.getId(), itemManager.canonicalize(item.getId()), composition.getName(), item.getQuantity()));
-		}
-		return result;
-	}
-
-	private Map<Integer, OwnedItem> collect(Item[] items)
-	{
-		Map<Integer, OwnedItem> result = new HashMap<>();
+		OwnedItems result = new OwnedItems();
 		if (items == null) return result;
 		for (Item item : items)
 		{
@@ -562,7 +577,8 @@ class SmartSupplyAdvisor
 			if (composition == null || composition.getPlaceholderTemplateId() != -1 || invalidName(composition.getName())) continue;
 			int canonical = itemManager.canonicalize(item.getId());
 			OwnedItem candidate = new OwnedItem(item.getId(), canonical, composition.getName(), item.getQuantity());
-			OwnedItem existing = result.get(canonical);
+			result.exact.add(candidate);
+			OwnedItem existing = result.byCanonical.get(canonical);
 			if (existing == null || doseScore(candidate.name) > doseScore(existing.name))
 			{
 				if (existing != null)
@@ -570,11 +586,11 @@ class SmartSupplyAdvisor
 					candidate = new OwnedItem(candidate.itemId, candidate.canonicalItemId,
 						candidate.name, candidate.quantity + existing.quantity);
 				}
-				result.put(canonical, candidate);
+				result.byCanonical.put(canonical, candidate);
 			}
 			else
 			{
-				result.put(canonical, new OwnedItem(existing.itemId, existing.canonicalItemId,
+				result.byCanonical.put(canonical, new OwnedItem(existing.itemId, existing.canonicalItemId,
 					existing.name, existing.quantity + candidate.quantity));
 			}
 		}
@@ -990,5 +1006,52 @@ class SmartSupplyAdvisor
 			this.name = name;
 			this.quantity = quantity;
 		}
+	}
+
+	static int applyObjectiveQuantity(String category, int quantity,
+		GearPriority objective)
+	{
+		if (quantity <= 0 || objective == null) return Math.max(0, quantity);
+		double multiplier = 1.0;
+		int unit = "Food".equals(category) ? 1 : 4;
+		switch (objective)
+		{
+			case PRAYER_FIRST:
+				if ("Prayer".equals(category) || "Prayer regen".equals(category))
+				{
+					multiplier = 1.5;
+				}
+				break;
+			case DEFENCE_FIRST:
+				if ("Food".equals(category)) multiplier = 1.5;
+				break;
+			case VALUE:
+				if ("Combat boost".equals(category)
+					|| "Ranged boost".equals(category)
+					|| "Prayer regen".equals(category)
+					|| "Goading".equals(category))
+				{
+					multiplier = 0.5;
+				}
+				break;
+			case BALANCED:
+			default:
+				if ("Combat boost".equals(category)
+					|| "Ranged boost".equals(category)
+					|| "Goading".equals(category))
+				{
+					multiplier = 1.5;
+				}
+				break;
+		}
+		if (multiplier == 1.0) return quantity;
+		int scaled = (int) Math.ceil(quantity * multiplier);
+		return Math.max(unit, ((scaled + unit - 1) / unit) * unit);
+	}
+
+	private static final class OwnedItems
+	{
+		private final List<OwnedItem> exact = new ArrayList<>();
+		private final Map<Integer, OwnedItem> byCanonical = new HashMap<>();
 	}
 }

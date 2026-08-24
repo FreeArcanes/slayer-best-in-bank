@@ -25,10 +25,13 @@ final class GearRecommendations
 	private final List<GearStrategy> alternativeStrategies;
 	private final Map<EquipmentInventorySlot, List<GearRecommendation>> bySlot;
 	private final List<LoadoutTier> loadoutTiers;
+	private final List<GearRecommendation> weaponSwitches;
 	private final List<SupplyRecommendation> supplies;
 	private final ReadinessReport readiness;
 	private final int bankItemsChecked;
 	private final List<String> assignableMasters;
+	private final GearPriority objective;
+	private final List<ObjectiveLoadoutComparison> objectiveComparisons;
 	private final InventoryCapacityPlan inventoryPlan;
 	private final boolean bankPlanLocked;
 	private final boolean bankRefreshPending;
@@ -42,10 +45,13 @@ final class GearRecommendations
 		List<GearStrategy> alternativeStrategies,
 		Map<EquipmentInventorySlot, List<GearRecommendation>> bySlot,
 		List<LoadoutTier> loadoutTiers,
+		List<GearRecommendation> weaponSwitches,
 		List<SupplyRecommendation> supplies,
 		ReadinessReport readiness,
 		int bankItemsChecked,
 		List<String> assignableMasters,
+		GearPriority objective,
+		List<ObjectiveLoadoutComparison> objectiveComparisons,
 		InventoryCapacityPlan inventoryPlan,
 		boolean bankPlanLocked,
 		boolean bankRefreshPending)
@@ -66,10 +72,13 @@ final class GearRecommendations
 		}
 		this.bySlot = Collections.unmodifiableMap(copy);
 		this.loadoutTiers = immutable(loadoutTiers);
+		this.weaponSwitches = immutable(weaponSwitches);
 		this.supplies = immutable(supplies);
 		this.readiness = readiness == null ? ReadinessReport.empty() : readiness;
 		this.bankItemsChecked = bankItemsChecked;
 		this.assignableMasters = immutable(assignableMasters);
+		this.objective = objective == null ? GearPriority.BALANCED : objective;
+		this.objectiveComparisons = immutable(objectiveComparisons);
 		this.inventoryPlan = inventoryPlan == null
 			? InventoryCapacityPlan.unavailable() : inventoryPlan;
 		this.bankPlanLocked = bankPlanLocked;
@@ -85,23 +94,75 @@ final class GearRecommendations
 	{
 		return new GearRecommendations(State.NO_TASK, "", 0, null, null,
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
-			Collections.emptyList(), ReadinessReport.empty(), 0, Collections.emptyList(),
-			InventoryCapacityPlan.unavailable(), false, false);
+			Collections.emptyList(), Collections.emptyList(), ReadinessReport.empty(), 0, Collections.emptyList(),
+			GearPriority.BALANCED, Collections.emptyList(), InventoryCapacityPlan.unavailable(), false, false);
 	}
 
 	static GearRecommendations unsupported(String taskName, int taskAmount)
 	{
 		return new GearRecommendations(State.UNSUPPORTED_TASK, taskName, taskAmount, null, null,
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
-			Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName),
-			InventoryCapacityPlan.unavailable(), false, false);
+			Collections.emptyList(), Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName),
+			GearPriority.BALANCED, Collections.emptyList(), InventoryCapacityPlan.unavailable(), false, false);
 	}
 
 	static GearRecommendations openBank(String taskName, int taskAmount, SlayerTaskProfile profile)
 	{
 		return new GearRecommendations(State.OPEN_BANK, taskName, taskAmount, profile, null,
 			Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(),
-			Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName),
+			Collections.emptyList(), Collections.emptyList(), ReadinessReport.empty(), 0, SlayerMasterCatalog.mastersFor(taskName),
+			GearPriority.BALANCED, Collections.emptyList(), InventoryCapacityPlan.unavailable(), false, false);
+	}
+
+	static GearRecommendations ready(
+		String taskName,
+		int taskAmount,
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		List<GearStrategy> alternativeStrategies,
+		Map<EquipmentInventorySlot, List<GearRecommendation>> bySlot,
+		List<LoadoutTier> loadoutTiers,
+		List<GearRecommendation> weaponSwitches,
+		List<SupplyRecommendation> supplies,
+		ReadinessReport readiness,
+		int bankItemsChecked)
+	{
+		return ready(taskName, taskAmount, profile, strategy, alternativeStrategies,
+			bySlot, loadoutTiers, weaponSwitches, supplies, readiness,
+			bankItemsChecked, GearPriority.BALANCED);
+	}
+
+	static GearRecommendations ready(
+		String taskName,
+		int taskAmount,
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		List<GearStrategy> alternativeStrategies,
+		Map<EquipmentInventorySlot, List<GearRecommendation>> bySlot,
+		List<LoadoutTier> loadoutTiers,
+		List<GearRecommendation> weaponSwitches,
+		List<SupplyRecommendation> supplies,
+		ReadinessReport readiness,
+		int bankItemsChecked,
+		GearPriority objective)
+	{
+		return ready(taskName, taskAmount, profile, strategy, alternativeStrategies,
+			bySlot, loadoutTiers, weaponSwitches, supplies, readiness, bankItemsChecked,
+			objective, Collections.emptyList());
+	}
+
+	static GearRecommendations ready(
+		String taskName, int taskAmount, SlayerTaskProfile profile, GearStrategy strategy,
+		List<GearStrategy> alternativeStrategies,
+		Map<EquipmentInventorySlot, List<GearRecommendation>> bySlot,
+		List<LoadoutTier> loadoutTiers, List<GearRecommendation> weaponSwitches,
+		List<SupplyRecommendation> supplies, ReadinessReport readiness,
+		int bankItemsChecked, GearPriority objective,
+		List<ObjectiveLoadoutComparison> objectiveComparisons)
+	{
+		return new GearRecommendations(State.READY, taskName, taskAmount, profile, strategy,
+			alternativeStrategies, bySlot, loadoutTiers, weaponSwitches, supplies, readiness, bankItemsChecked,
+			SlayerMasterCatalog.mastersFor(taskName), objective, objectiveComparisons,
 			InventoryCapacityPlan.unavailable(), false, false);
 	}
 
@@ -117,9 +178,8 @@ final class GearRecommendations
 		ReadinessReport readiness,
 		int bankItemsChecked)
 	{
-		return new GearRecommendations(State.READY, taskName, taskAmount, profile, strategy,
-			alternativeStrategies, bySlot, loadoutTiers, supplies, readiness, bankItemsChecked,
-			SlayerMasterCatalog.mastersFor(taskName), InventoryCapacityPlan.unavailable(), false, false);
+		return ready(taskName, taskAmount, profile, strategy, alternativeStrategies,
+			bySlot, loadoutTiers, Collections.emptyList(), supplies, readiness, bankItemsChecked);
 	}
 
 	State getState() { return state; }
@@ -130,10 +190,13 @@ final class GearRecommendations
 	List<GearStrategy> getAlternativeStrategies() { return alternativeStrategies; }
 	Map<EquipmentInventorySlot, List<GearRecommendation>> getBySlot() { return bySlot; }
 	List<LoadoutTier> getLoadoutTiers() { return loadoutTiers; }
+	List<GearRecommendation> getWeaponSwitches() { return weaponSwitches; }
 	List<SupplyRecommendation> getSupplies() { return supplies; }
 	ReadinessReport getReadiness() { return readiness; }
 	int getBankItemsChecked() { return bankItemsChecked; }
 	List<String> getAssignableMasters() { return assignableMasters; }
+	GearPriority getObjective() { return objective; }
+	List<ObjectiveLoadoutComparison> getObjectiveComparisons() { return objectiveComparisons; }
 	InventoryCapacityPlan getInventoryPlan() { return inventoryPlan; }
 	boolean isBankPlanLocked() { return bankPlanLocked; }
 	boolean isBankRefreshPending() { return bankRefreshPending; }
@@ -155,10 +218,13 @@ final class GearRecommendations
 			alternativeStrategies,
 			bySlot,
 			loadoutTiers,
+			weaponSwitches,
 			effectiveSupplies,
 			readiness.withSupplyProgress(effectiveSupplies),
 			bankItemsChecked,
 			assignableMasters,
+			objective,
+			objectiveComparisons,
 			plan,
 			locked,
 			refreshPending);
@@ -175,13 +241,25 @@ final class GearRecommendations
 			alternativeStrategies,
 			bySlot,
 			loadoutTiers,
+			weaponSwitches,
 			supplies,
 			readiness,
 			bankItemsChecked,
 			assignableMasters,
+			objective,
+			objectiveComparisons,
 			inventoryPlan,
 			locked,
 			refreshPending);
+	}
+
+	GearRecommendations withoutWeaponSwitches()
+	{
+		return new GearRecommendations(
+			state, taskName, taskAmount, profile, strategy, alternativeStrategies,
+			bySlot, loadoutTiers, Collections.emptyList(), supplies, readiness,
+			bankItemsChecked, assignableMasters, objective, objectiveComparisons, inventoryPlan,
+			bankPlanLocked, bankRefreshPending);
 	}
 
 	List<GearRecommendation> get(EquipmentInventorySlot slot)
@@ -192,13 +270,18 @@ final class GearRecommendations
 	boolean isRecommended(int canonicalItemId)
 	{
 		return bySlot.values().stream().flatMap(List::stream)
-			.anyMatch(recommendation -> recommendation.getCanonicalItemId() == canonicalItemId);
+			.anyMatch(recommendation -> recommendation.getCanonicalItemId() == canonicalItemId)
+			|| weaponSwitches.stream().anyMatch(item -> item.getCanonicalItemId() == canonicalItemId);
 	}
 
 	GearRecommendation find(int canonicalItemId)
 	{
-		return bySlot.values().stream().flatMap(List::stream)
+		GearRecommendation equipped = bySlot.values().stream().flatMap(List::stream)
 			.filter(recommendation -> recommendation.getCanonicalItemId() == canonicalItemId)
+			.findFirst().orElse(null);
+		if (equipped != null) return equipped;
+		return weaponSwitches.stream()
+			.filter(item -> item.getCanonicalItemId() == canonicalItemId)
 			.findFirst().orElse(null);
 	}
 

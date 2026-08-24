@@ -34,6 +34,8 @@ public class WikiStrategyAlignmentTest
 		assertMainMeleeType("Skotizo", AttackType.SLASH);
 		assertMainMeleeType("Vet'ion", AttackType.CRUSH);
 		assertMainMeleeType("Gryphons", AttackType.STAB);
+		assertMainMeleeType("Shellbane Gryphon", AttackType.BALANCED);
+		assertMainMeleeType("Crocodiles", AttackType.SLASH);
 		assertMainMeleeType("Kalphites", AttackType.CRUSH);
 		assertMainMeleeType("Waterfiends", AttackType.CRUSH);
 		assertMainMeleeType("Wyrms", AttackType.BALANCED);

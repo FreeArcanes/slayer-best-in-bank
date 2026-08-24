@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import net.runelite.api.Client;
 import net.runelite.client.callback.ClientThread;
+import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
@@ -54,6 +55,7 @@ public class PluginDependencySmokeTest
 			binder.bind(Client.class).toInstance(mock(Client.class));
 			binder.bind(ClientThread.class).toInstance(mock(ClientThread.class));
 			binder.bind(ConfigManager.class).toInstance(configManager);
+			binder.bind(ChatMessageManager.class).toInstance(mock(ChatMessageManager.class));
 			binder.bind(ItemManager.class).toInstance(mock(ItemManager.class));
 			binder.bind(SpriteManager.class).toInstance(mock(SpriteManager.class));
 			binder.bind(ChatboxPanelManager.class)

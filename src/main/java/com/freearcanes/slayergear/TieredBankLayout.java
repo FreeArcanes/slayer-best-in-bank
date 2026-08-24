@@ -134,6 +134,19 @@ class TieredBankLayout
 			}
 		}
 
+		List<TierWidget> bossSwitches = new ArrayList<>();
+		for (GearRecommendation recommendation : recommendations.getWeaponSwitches())
+		{
+			Widget widget = selectExactOrCanonical(
+				widgetsByExactItemId,
+				widgetsByCanonicalItemId,
+				recommendation.getItemId(),
+				recommendation.getCanonicalItemId());
+			if (widget != null && !representedGear.add(widget)) widget = null;
+			// Reserve packed switches too, matching the stable Tier 1 equipment path.
+			bossSwitches.add(new TierWidget(widget, recommendation));
+		}
+
 		List<SupplyWidget> supplies = new ArrayList<>();
 		Set<Integer> representedSupplies = new HashSet<>();
 		int supplyPathSize = 0;
@@ -186,6 +199,27 @@ class TieredBankLayout
 				headingsByWidget.put(firstWidget, "Tier 1 - Equip path (follow the zigzag)");
 			}
 			int rows = rowsFor(tierOne.size(), EQUIP_PATH_ITEMS_PER_ROW);
+			cursorY = itemStartY + rows * (ITEM_HEIGHT + ITEM_Y_PADDING) + SECTION_PADDING;
+		}
+
+		if (!bossSwitches.isEmpty())
+		{
+			int itemStartY = cursorY + HEADER_HEIGHT;
+			Widget firstWidget = null;
+			for (int index = 0; index < bossSwitches.size(); index++)
+			{
+				Widget widget = bossSwitches.get(index).widget;
+				if (widget == null) continue;
+				if (firstWidget == null) firstWidget = widget;
+				positionPathWidget(widget, index, itemStartY);
+				tiersByWidget.put(widget, 1);
+				gearPlaced++;
+			}
+			if (firstWidget != null)
+			{
+				headingsByWidget.put(firstWidget, "Boss switches - specs and phase weapons");
+			}
+			int rows = rowsFor(bossSwitches.size(), EQUIP_PATH_ITEMS_PER_ROW);
 			cursorY = itemStartY + rows * (ITEM_HEIGHT + ITEM_Y_PADDING) + SECTION_PADDING;
 		}
 
