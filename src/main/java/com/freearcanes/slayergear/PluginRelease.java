@@ -13,12 +13,12 @@ final class PluginRelease
 
 	// Keep DEVELOPMENT locally. Change to PUBLIC only as part of publishing.
 	static final Channel CHANNEL = Channel.DEVELOPMENT;
-	static final String DEV_VERSION = "V.22";
+	static final String DEV_VERSION = "V.23";
 	static final String PUBLIC_VERSION = "V1.8";
 
 	static final List<String> CHANGE_LINES = List.of(
-		"- Added a Why? view for primary and backup recommendation explanations.",
-		"- Gear Priority is now labeled Objective without resetting saved settings.");
+		"- Objectives now include Max DPS, Prayer Sustain, and Defence First.",
+		"- Sustain objectives preserve valid weapons and mandatory Slayer protection.");
 
 	private PluginRelease() {}
 

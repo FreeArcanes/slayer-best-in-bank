@@ -2,8 +2,9 @@ package com.freearcanes.slayergear;
 
 public enum GearPriority
 {
-	BALANCED("Balanced"),
-	PRAYER_FIRST("Prayer First");
+	BALANCED("Max DPS"),
+	PRAYER_FIRST("Prayer Sustain"),
+	DEFENCE_FIRST("Defence First");
 
 	private final String displayName;
 

@@ -1969,6 +1969,7 @@ class GearScorer
 		double accuracy;
 		String normalizedItemName = NameMatcher.normalize(itemName);
 		boolean prayerFirst = gearPriority == GearPriority.PRAYER_FIRST;
+		boolean defenceFirst = gearPriority == GearPriority.DEFENCE_FIRST;
 
 		// Prayer First changes sustain gear, not the combat-optimal weapon.
 		double prayerWeight = prayerFirst && slot != EquipmentInventorySlot.WEAPON
@@ -1978,8 +1979,9 @@ class GearScorer
 		double utility = stats.getPrayer() * prayerWeight;
 		if (slot != EquipmentInventorySlot.WEAPON)
 		{
+			double defenceWeight = defenceFirst ? 5.0 : BASE_DEFENCE_WEIGHT;
 			utility += (stats.getDstab() + stats.getDslash() + stats.getDcrush()
-				+ stats.getDrange() + stats.getDmagic()) * BASE_DEFENCE_WEIGHT;
+				+ stats.getDrange() + stats.getDmagic()) * defenceWeight;
 			utility += stats.getDmagic() * strategy.getMagicDefenceWeight();
 		}
 
@@ -2032,9 +2034,9 @@ class GearScorer
 				accuracy *= speedScale;
 			}
 		}
-		else if (prayerFirst)
+		else if (prayerFirst || defenceFirst)
 		{
-			// Prayer dominates non-weapon sustain gear; offence remains a tie-breaker.
+			// Sustain objectives dominate non-weapon gear; offence remains a tie-breaker.
 			damage *= 0.25;
 			accuracy *= 0.10;
 		}
