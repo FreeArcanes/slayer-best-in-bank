@@ -73,6 +73,8 @@ final class LoadoutOffenseEstimator
 			headgearName, strategy.getCombatStyle());
 		double taskDamageMultiplier = SlayerTaskHeadgear.damageMultiplier(
 			headgearName, strategy.getCombatStyle());
+		LoadoutCombatEffects loadoutEffects = LoadoutCombatEffects.resolve(
+			loadout, strategy, weaponName);
 
 		int accuracyLevel;
 		double averageHit;
@@ -99,21 +101,27 @@ final class LoadoutOffenseEstimator
 				break;
 			case RANGED:
 				accuracyLevel = levels.getRangedAttack();
-				maximumHit = maxHit(eclipseAtlatl ? levels.getAtlatlStrength() : levels.getRangedStrength(),
+				maximumHit = maxHit((int) Math.floor((eclipseAtlatl
+					? levels.getAtlatlStrength() : levels.getRangedStrength())
+					* loadoutEffects.getEffectiveStrength()),
 					strengthBonus);
 				averageHit = maximumHit / 2.0;
 				break;
 			default:
 				accuracyLevel = levels.getAttack();
-				maximumHit = maxHit(levels.getStrength(), strengthBonus);
+				maximumHit = maxHit((int) Math.floor(levels.getStrength()
+					* loadoutEffects.getEffectiveStrength()), strengthBonus);
 				averageHit = maximumHit / 2.0;
 				break;
 		}
 		maximumHit = (int) Math.floor(maximumHit * taskDamageMultiplier);
+		maximumHit = (int) Math.floor(maximumHit * loadoutEffects.getFinalDamage());
 		averageHit = maximumHit / 2.0;
 
-		double attackRoll = accuracyLevel * (accuracyBonus + 64.0);
+		double attackRoll = Math.floor(accuracyLevel
+			* loadoutEffects.getEffectiveAccuracy()) * (accuracyBonus + 64.0);
 		attackRoll = Math.floor(attackRoll * taskAccuracyMultiplier);
+		attackRoll = Math.floor(attackRoll * loadoutEffects.getFinalAccuracy());
 		// Target-specific accuracy effects modify the attack roll before the
 		// piecewise hit-chance comparison; they do not multiply hit chance.
 		attackRoll = Math.floor(attackRoll

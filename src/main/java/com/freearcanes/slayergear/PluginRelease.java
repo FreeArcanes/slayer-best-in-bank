@@ -13,12 +13,12 @@ final class PluginRelease
 
 	// Keep DEVELOPMENT locally. Change to PUBLIC only as part of publishing.
 	static final Channel CHANNEL = Channel.DEVELOPMENT;
-	static final String DEV_VERSION = "V.19";
+	static final String DEV_VERSION = "V.20";
 	static final String PUBLIC_VERSION = "V1.8";
 
 	static final List<String> CHANGE_LINES = List.of(
-		"- Audited DPS now matches the calculator's stance-neutral Magic baseline.",
-		"- Update notices correctly follow RuneLite profile changes.");
+		"- DPS now models complete regular and Elite Void effects.",
+		"- Crystal-bow armour and Crush-only Inquisitor bonuses are included.");
 
 	private PluginRelease() {}
 
