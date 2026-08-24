@@ -85,9 +85,9 @@ public class LoadoutOffenseEstimatorTest
 		TargetDefence target = new TargetDefence("Test", 100, 1, 0, 0, 0, 0, 0, 0, 0);
 
 		double highStrength = LoadoutOffenseEstimator.estimate(loadout, equipment, ranged,
-			target, 80, 99, 1, 80);
+			target, CombatLevelContext.unboosted(80, 99, 1, 80));
 		double lowStrength = LoadoutOffenseEstimator.estimate(loadout, equipment, ranged,
-			target, 80, 50, 1, 80);
+			target, CombatLevelContext.unboosted(80, 50, 1, 80));
 		assertTrue(highStrength > lowStrength);
 	}
 
@@ -110,7 +110,8 @@ public class LoadoutOffenseEstimatorTest
 		TargetDefence target = new TargetDefence(
 			"Test target", 100, 100, 0, 0, 0, 0, 0, 0, 0);
 		return LoadoutOffenseEstimator.estimate(loadout, Map.of(1, equipment), strategy, target,
-			accuracyLevel, strengthLevel, accuracyLevel, accuracyLevel);
+			CombatLevelContext.unboosted(
+				accuracyLevel, strengthLevel, accuracyLevel, accuracyLevel));
 	}
 
 	private static GearRecommendation recommendation(

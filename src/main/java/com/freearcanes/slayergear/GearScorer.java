@@ -179,6 +179,26 @@ class GearScorer
 		int attackLevel,
 		int strengthLevel)
 	{
+		return score(taskName, taskAmount, assignedLocation, profile, gearPool,
+			bankItems, packedGearItems, packedSupplyItems, alternativesPerSlot,
+			magicLevel, rangedLevel, kourendEliteComplete, ancientSpellbookActive,
+			preferredStrategy, gearPriority, pinnedItems, excludedItems, lowRiskMode,
+			riskCapGp, loadedDizanasQuiver, arceuusSpellbookActive, attackLevel,
+			strengthLevel, CombatLevelContext.unboosted(
+				attackLevel, strengthLevel, magicLevel, rangedLevel));
+	}
+
+	GearRecommendations score(
+		String taskName, int taskAmount, String assignedLocation,
+		SlayerTaskProfile profile, Item[] gearPool, Item[] bankItems,
+		Item[] packedGearItems, Item[] packedSupplyItems, int alternativesPerSlot,
+		int magicLevel, int rangedLevel, boolean kourendEliteComplete,
+		boolean ancientSpellbookActive, String preferredStrategy,
+		GearPriority gearPriority, String pinnedItems, String excludedItems,
+		boolean lowRiskMode, int riskCapGp, boolean loadedDizanasQuiver,
+		boolean arceuusSpellbookActive, int attackLevel, int strengthLevel,
+		CombatLevelContext combatLevels)
+	{
 		Map<Integer, Integer> canonicalByItemId = new HashMap<>();
 		Set<Integer> bankCanonical = canonicalIds(bankItems, canonicalByItemId);
 		Set<Integer> packedCanonical = canonicalIds(packedGearItems, canonicalByItemId);
@@ -230,8 +250,7 @@ class GearScorer
 			for (TargetDefence offenseTarget : offenseTargets)
 			{
 				double targetOffense = LoadoutOffenseEstimator.estimate(loadout,
-					equipmentByCanonicalId, selected, offenseTarget, attackLevel, strengthLevel,
-					magicLevel, rangedLevel);
+					equipmentByCanonicalId, selected, offenseTarget, combatLevels);
 				if (targetOffense > 0)
 				{
 					minimumOffense = Math.min(minimumOffense, targetOffense);

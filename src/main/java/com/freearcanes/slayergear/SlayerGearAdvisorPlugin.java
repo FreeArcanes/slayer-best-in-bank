@@ -13,6 +13,7 @@ import net.runelite.api.Client;
 import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
+import net.runelite.api.Prayer;
 import net.runelite.api.GameState;
 import net.runelite.api.ScriptID;
 import net.runelite.api.Skill;
@@ -924,7 +925,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			loadedQuiverAmmo.length > 0,
 			client.getVarbitValue(VarbitID.SPELLBOOK) == 3,
 			client.getRealSkillLevel(Skill.ATTACK),
-			client.getRealSkillLevel(Skill.STRENGTH));
+			client.getRealSkillLevel(Skill.STRENGTH),
+			combatLevelContext());
 		if (!config.bossWeaponSwitches()) scored = scored.withoutWeaponSwitches();
 		if (bankFlow.isBankOpen())
 		{
@@ -940,6 +942,61 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		{
 			queueBankViewRefresh();
 		}
+	}
+
+	private CombatLevelContext combatLevelContext()
+	{
+		return CombatLevelContext.effective(
+			client.getBoostedSkillLevel(Skill.ATTACK), meleeAttackPrayerMultiplier(),
+			client.getBoostedSkillLevel(Skill.STRENGTH), meleeStrengthPrayerMultiplier(),
+			client.getBoostedSkillLevel(Skill.RANGED), rangedAttackPrayerMultiplier(),
+			rangedStrengthPrayerMultiplier(), client.getBoostedSkillLevel(Skill.MAGIC),
+			magicAttackPrayerMultiplier());
+	}
+
+	private double meleeAttackPrayerMultiplier()
+	{
+		if (active(Prayer.PIETY)) return 1.20;
+		if (active(Prayer.CHIVALRY) || active(Prayer.INCREDIBLE_REFLEXES)) return 1.15;
+		if (active(Prayer.IMPROVED_REFLEXES)) return 1.10;
+		return active(Prayer.CLARITY_OF_THOUGHT) ? 1.05 : 1.0;
+	}
+
+	private double meleeStrengthPrayerMultiplier()
+	{
+		if (active(Prayer.PIETY)) return 1.23;
+		if (active(Prayer.CHIVALRY)) return 1.18;
+		if (active(Prayer.ULTIMATE_STRENGTH)) return 1.15;
+		if (active(Prayer.SUPERHUMAN_STRENGTH)) return 1.10;
+		return active(Prayer.BURST_OF_STRENGTH) ? 1.05 : 1.0;
+	}
+
+	private double rangedAttackPrayerMultiplier()
+	{
+		if (active(Prayer.RIGOUR)) return 1.20;
+		if (active(Prayer.DEADEYE)) return 1.18;
+		if (active(Prayer.EAGLE_EYE)) return 1.15;
+		if (active(Prayer.HAWK_EYE)) return 1.10;
+		return active(Prayer.SHARP_EYE) ? 1.05 : 1.0;
+	}
+
+	private double rangedStrengthPrayerMultiplier()
+	{
+		return active(Prayer.RIGOUR) ? 1.23 : rangedAttackPrayerMultiplier();
+	}
+
+	private double magicAttackPrayerMultiplier()
+	{
+		if (active(Prayer.AUGURY)) return 1.25;
+		if (active(Prayer.MYSTIC_VIGOUR)) return 1.18;
+		if (active(Prayer.MYSTIC_MIGHT)) return 1.15;
+		if (active(Prayer.MYSTIC_LORE)) return 1.10;
+		return active(Prayer.MYSTIC_WILL) ? 1.05 : 1.0;
+	}
+
+	private boolean active(Prayer prayer)
+	{
+		return client.getVarbitValue(prayer.getVarbit()) == 1;
 	}
 
 	private void selectBoss(String boss)

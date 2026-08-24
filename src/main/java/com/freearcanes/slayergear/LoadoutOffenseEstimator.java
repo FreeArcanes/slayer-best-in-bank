@@ -17,13 +17,10 @@ final class LoadoutOffenseEstimator
 		Map<Integer, GearScorer.BankEquipment> equipmentByCanonicalId,
 		GearStrategy strategy,
 		TargetDefence target,
-		int attackLevel,
-		int strengthLevel,
-		int magicLevel,
-		int rangedLevel)
+		CombatLevelContext levels)
 	{
 		if (loadout == null || loadout.isEmpty() || strategy == null || target == null
-			|| strategy.getCombatStyle() == CombatStyle.MAGIC) return 0;
+			|| levels == null || strategy.getCombatStyle() == CombatStyle.MAGIC) return 0;
 
 		GearScorer.BankEquipment weapon = equipmentFor(
 			loadout.get(EquipmentInventorySlot.WEAPON), equipmentByCanonicalId);
@@ -71,17 +68,17 @@ final class LoadoutOffenseEstimator
 		{
 			case MAGIC: return 0;
 			case RANGED:
-				accuracyLevel = Math.max(1, rangedLevel);
-				averageHit = maxHit(eclipseAtlatl ? strengthLevel : rangedLevel,
+				accuracyLevel = levels.getRangedAttack();
+				averageHit = maxHit(eclipseAtlatl ? levels.getAtlatlStrength() : levels.getRangedStrength(),
 					strengthBonus) / 2.0;
 				break;
 			default:
-				accuracyLevel = Math.max(1, attackLevel);
-				averageHit = maxHit(strengthLevel, strengthBonus) / 2.0;
+				accuracyLevel = levels.getAttack();
+				averageHit = maxHit(levels.getStrength(), strengthBonus) / 2.0;
 				break;
 		}
 
-		double attackRoll = (accuracyLevel + 8.0) * (accuracyBonus + 64.0);
+		double attackRoll = accuracyLevel * (accuracyBonus + 64.0);
 		// Target-specific accuracy effects modify the attack roll before the
 		// piecewise hit-chance comparison; they do not multiply hit chance.
 		attackRoll = Math.floor(attackRoll
@@ -117,9 +114,9 @@ final class LoadoutOffenseEstimator
 		return attackRoll / (2.0 * (defenceRoll + 1.0));
 	}
 
-	private static int maxHit(int level, int strengthBonus)
+	private static int maxHit(int effectiveLevel, int strengthBonus)
 	{
 		return Math.max(0, (int) Math.floor(
-			0.5 + (Math.max(1, level) + 8.0) * (strengthBonus + 64.0) / 640.0));
+			0.5 + Math.max(1, effectiveLevel) * (strengthBonus + 64.0) / 640.0));
 	}
 }
