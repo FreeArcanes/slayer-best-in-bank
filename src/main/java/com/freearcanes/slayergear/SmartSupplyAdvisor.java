@@ -50,7 +50,9 @@ class SmartSupplyAdvisor
 			null,
 			taskAmount,
 			bankItems,
-			packedItems);
+			packedItems,
+			false,
+			GearPriority.BALANCED);
 	}
 
 	List<SupplyRecommendation> recommend(
@@ -68,7 +70,8 @@ class SmartSupplyAdvisor
 			taskAmount,
 			bankItems,
 			packedItems,
-			false);
+			false,
+			GearPriority.BALANCED);
 	}
 
 	List<SupplyRecommendation> recommend(
@@ -79,6 +82,20 @@ class SmartSupplyAdvisor
 		Item[] bankItems,
 		Item[] packedItems,
 		boolean allowRadasBlessing)
+	{
+		return recommend(profile, strategy, assignedLocation, taskAmount,
+			bankItems, packedItems, allowRadasBlessing, GearPriority.BALANCED);
+	}
+
+	List<SupplyRecommendation> recommend(
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		String assignedLocation,
+		int taskAmount,
+		Item[] bankItems,
+		Item[] packedItems,
+		boolean allowRadasBlessing,
+		GearPriority objective)
 	{
 		List<SupplyRule> rules = buildRules(profile, strategy, assignedLocation);
 		boolean wildernessTask = isWildernessTask(assignedLocation, strategy);
@@ -100,8 +117,10 @@ class SmartSupplyAdvisor
 		for (SupplyRule rule : rules)
 		{
 			boolean potionEstimateDisabled = !quantityTargetEnabled(config, rule.category);
+			int objectiveQuantity = potionEstimateDisabled ? 0 : applyObjectiveQuantity(
+				rule.category, recommendedQuantity(rule.category, plannedKills), objective);
 			int automaticQuantity = potionEstimateDisabled ? 0 : applySupplyLevel(
-				rule.category, recommendedQuantity(rule.category, plannedKills));
+				rule.category, objectiveQuantity);
 			int recommendedQuantity = potionEstimateDisabled
 				? 0
 				: quantityOverride(profile, rule.category, automaticQuantity);
@@ -987,6 +1006,37 @@ class SmartSupplyAdvisor
 			this.name = name;
 			this.quantity = quantity;
 		}
+	}
+
+	static int applyObjectiveQuantity(String category, int quantity,
+		GearPriority objective)
+	{
+		if (quantity <= 0 || objective == null) return Math.max(0, quantity);
+		double multiplier = 1.0;
+		int unit = "Food".equals(category) ? 1 : 4;
+		switch (objective)
+		{
+			case PRAYER_FIRST:
+				if ("Prayer".equals(category) || "Prayer regen".equals(category))
+				{
+					multiplier = 1.5;
+				}
+				break;
+			case DEFENCE_FIRST:
+				if ("Food".equals(category)) multiplier = 1.5;
+				break;
+			case BALANCED:
+			default:
+				if ("Combat boost".equals(category)
+					|| "Ranged boost".equals(category)
+					|| "Goading".equals(category))
+				{
+					multiplier = 1.5;
+				}
+				break;
+		}
+		int scaled = (int) Math.ceil(quantity * multiplier);
+		return Math.max(unit, ((scaled + unit - 1) / unit) * unit);
 	}
 
 	private static final class OwnedItems

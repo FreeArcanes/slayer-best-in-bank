@@ -319,7 +319,8 @@ class GearScorer
 			taskAmount,
 			bankItems,
 			packedSupplyItems,
-			bestUsesLoadedDizanasQuiver);
+			bestUsesLoadedDizanasQuiver,
+			gearPriority);
 		// A protective off-hand already satisfies dragonfire protection. Do not
 		// simultaneously tell the player that antifire is still required.
 		if (hasDragonfireProtection(best))

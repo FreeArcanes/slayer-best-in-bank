@@ -13,12 +13,12 @@ final class PluginRelease
 
 	// Keep DEVELOPMENT locally. Change to PUBLIC only as part of publishing.
 	static final Channel CHANNEL = Channel.DEVELOPMENT;
-	static final String DEV_VERSION = "V.23";
+	static final String DEV_VERSION = "V.24";
 	static final String PUBLIC_VERSION = "V1.8";
 
 	static final List<String> CHANGE_LINES = List.of(
-		"- Objectives now include Max DPS, Prayer Sustain, and Defence First.",
-		"- Sustain objectives preserve valid weapons and mandatory Slayer protection.");
+		"- Trip quantities now adapt to Max DPS, Prayer Sustain, or Defence First.",
+		"- Safety settings and per-task overrides remain authoritative.");
 
 	private PluginRelease() {}
 
