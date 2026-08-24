@@ -13,12 +13,12 @@ final class PluginRelease
 
 	// Keep DEVELOPMENT locally. Change to PUBLIC only as part of publishing.
 	static final Channel CHANNEL = Channel.DEVELOPMENT;
-	static final String DEV_VERSION = "V.18";
+	static final String DEV_VERSION = "V.19";
 	static final String PUBLIC_VERSION = "V1.8";
 
 	static final List<String> CHANGE_LINES = List.of(
-		"- Target-aware DPS now includes Slayer helmet and Black mask bonuses.",
-		"- Imbued, recoloured, charged, and shortened-name variants are recognized.");
+		"- Audited DPS now matches the calculator's stance-neutral Magic baseline.",
+		"- Update notices correctly follow RuneLite profile changes.");
 
 	private PluginRelease() {}
 

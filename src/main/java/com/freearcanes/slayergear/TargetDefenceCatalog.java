@@ -88,6 +88,7 @@ final class TargetDefenceCatalog
 				String line;
 				while ((line = reader.readLine()) != null)
 				{
+					if (!line.isEmpty() && line.charAt(0) == '\uFEFF') line = line.substring(1);
 					if (line.isEmpty() || line.charAt(0) == '#' || line.startsWith("name\t")) continue;
 					String[] field = line.split("\t", -1);
 					if (field.length != 11) continue;

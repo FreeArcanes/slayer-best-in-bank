@@ -17,7 +17,7 @@ public class CombatLevelContextTest
 		assertEquals(142, context.getRangedAttack());
 		assertEquals(145, context.getRangedStrength());
 		assertEquals(153, context.getAtlatlStrength());
-		assertEquals(144, context.getMagicAttack());
+		assertEquals(143, context.getMagicAttack());
 		assertEquals(108, context.getBoostedMagic());
 		assertEquals(4, context.getMagicDamagePrayerPercent());
 	}

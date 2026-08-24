@@ -1,7 +1,7 @@
 ﻿# OSRS Wiki DPS calculator monster data; CC BY-NC-SA 3.0
 # Source: https://github.com/weirdgloop/osrs-dps-calc/blob/main/cdn/json/monsters.json
 # Generated: 2026-08-24
-name`tversion`tdefence`tmagic_level`tstab`tslash`tcrush`tmagic`tlight`tstandard`theavy
+name	version	defence	magic_level	stab	slash	crush	magic	light	standard	heavy
 A corpse		90	1	0	0	0	0	0	0	0
 Aberrant spectre		90	105	20	20	20	0	15	-15	15
 Abhorrent spectre		180	300	40	40	40	0	30	-30	30

@@ -567,6 +567,11 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		// cached highlight toggle and every recommendation after a profile switch.
 		clientThread.invokeLater(() ->
 		{
+			// The notice is stored in the active RuneLite profile. Release the
+			// in-memory guard as well so a profile switched while logged in gets
+			// its own once-per-version check.
+			updateNoticeChecked = false;
+			maybeShowUpdateNotice();
 			highlightsActive = config.highlightsEnabled();
 			panel.setTheme(config.panelTheme());
 			panel.setAdvisorEnabled(config.advisorEnabled());

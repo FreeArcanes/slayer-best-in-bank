@@ -1,5 +1,9 @@
 package com.freearcanes.slayergear;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
@@ -10,6 +14,36 @@ import static org.junit.Assert.assertTrue;
 
 public class TargetDefenceCatalogTest
 {
+	@Test
+	public void bundledDatasetHasAValidHeaderAndEveryRowHasElevenColumns() throws Exception
+	{
+		String resource = "/com/freearcanes/slayergear/slayer-targets.tsv";
+		try (InputStream stream = TargetDefenceCatalogTest.class.getResourceAsStream(resource))
+		{
+			assertTrue(stream != null);
+			try (BufferedReader reader = new BufferedReader(
+				new InputStreamReader(stream, StandardCharsets.UTF_8)))
+			{
+				String line;
+				boolean foundHeader = false;
+				while ((line = reader.readLine()) != null)
+				{
+					if (!line.isEmpty() && line.charAt(0) == '\uFEFF') line = line.substring(1);
+					if (line.isEmpty() || line.startsWith("#")) continue;
+					String[] fields = line.split("\t", -1);
+					assertEquals("Malformed dataset row: " + line, 11, fields.length);
+					if (!foundHeader)
+					{
+						assertEquals("name", fields[0]);
+						assertEquals("version", fields[1]);
+						foundHeader = true;
+					}
+				}
+				assertTrue("Dataset header missing", foundHeader);
+			}
+		}
+	}
+
 	@Test
 	public void resolvesPluralTaskAndDeduplicatesIdenticalLocationVariants()
 	{

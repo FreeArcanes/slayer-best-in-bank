@@ -48,7 +48,9 @@ final class CombatLevelContext
 
 	private static int effectiveMagicLevel(int boostedLevel, double prayerMultiplier)
 	{
-		return (int) Math.floor(Math.max(1, boostedLevel) * Math.max(1, prayerMultiplier)) + 9;
+		// Match the Wiki DPS calculator's player accuracy roll. Combat stance is
+		// deliberately excluded, so only the universal +8 is applied here.
+		return (int) Math.floor(Math.max(1, boostedLevel) * Math.max(1, prayerMultiplier)) + 8;
 	}
 
 	private static int effectiveLevel(int boostedLevel, double prayerMultiplier)
