@@ -21,8 +21,8 @@ public interface SlayerGearAdvisorConfig extends Config
 	String recommendationSection = "recommendations";
 
 	@ConfigSection(
-		name = "Gear preferences",
-		description = "Optional personal overrides for the loadout solver.",
+		name = "Objectives & preferences",
+		description = "Choose the loadout objective and optional personal overrides.",
 		position = 1
 	)
 	String preferenceSection = "gearPreferences";
@@ -77,8 +77,8 @@ public interface SlayerGearAdvisorConfig extends Config
 
 	@ConfigItem(
 		keyName = "gearPriority",
-		name = "Gear priority",
-		description = "Balanced keeps normal DPS-oriented scoring. Prayer First strongly favors owned Prayer-bonus gear while preserving mandatory Slayer mechanics and target-specific weapons.",
+		name = "Objective",
+		description = "Balanced maximizes practical DPS. Prayer First prioritizes Prayer sustain while preserving mandatory Slayer mechanics and target-specific weapons. Existing settings are retained.",
 		position = 1,
 		section = preferenceSection
 	)

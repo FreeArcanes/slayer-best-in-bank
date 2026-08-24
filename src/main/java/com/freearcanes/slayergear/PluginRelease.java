@@ -13,12 +13,12 @@ final class PluginRelease
 
 	// Keep DEVELOPMENT locally. Change to PUBLIC only as part of publishing.
 	static final Channel CHANNEL = Channel.DEVELOPMENT;
-	static final String DEV_VERSION = "V.21";
+	static final String DEV_VERSION = "V.22";
 	static final String PUBLIC_VERSION = "V1.8";
 
 	static final List<String> CHANGE_LINES = List.of(
-		"- DPS adds enchanted bolts, Twisted bow, Shadow, and Eclipse effects.",
-		"- Multi-target DPS, estimated TTK, kills/hr, and DPS ordering added.");
+		"- Added a Why? view for primary and backup recommendation explanations.",
+		"- Gear Priority is now labeled Objective without resetting saved settings.");
 
 	private PluginRelease() {}
 

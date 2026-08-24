@@ -114,6 +114,7 @@ class SlayerGearPanel extends PluginPanel
 	private boolean turaelAyaSpeedMode;
 	private boolean showAlternatives;
 	private boolean showDpsDetails;
+	private boolean showRecommendationExplanations;
 	private boolean showTaskDetails;
 	private PrepFocusMode prepFocusMode = PrepFocusMode.ALL;
 	private GearRecommendations lastRecommendations;
@@ -797,6 +798,18 @@ class SlayerGearPanel extends PluginPanel
 			});
 			headingActions.add(dps);
 		}
+		RoundedButton explanations = new RoundedButton();
+		explanations.setText(showRecommendationExplanations ? "Hide why" : "Why?");
+		explanations.setForeground(showRecommendationExplanations ? TEAL : MUTED_TEXT);
+		explanations.setToolTipText(showRecommendationExplanations
+			? "Hide recommendation explanations"
+			: "Explain why each item and backup was selected");
+		explanations.addActionListener(event ->
+		{
+			showRecommendationExplanations = !showRecommendationExplanations;
+			refreshLastRecommendations();
+		});
+		headingActions.add(explanations);
 		RoundedButton alternatives = new RoundedButton();
 		alternatives.setText(showAlternatives ? "Hide" : "Backups");
 		alternatives.setForeground(showAlternatives ? TEAL : MUTED_TEXT);
@@ -1022,15 +1035,20 @@ class SlayerGearPanel extends PluginPanel
 				fallback.setForeground(choice.getRank() == 2 ? TEAL : MUTED_TEXT);
 				fallback.setToolTipText(choice.getItemName() + " — " + choice.getReason());
 				backups.add(fallback);
+				if (showRecommendationExplanations)
+				{
+					backups.add(wrappedLabel(recommendationExplanation(choice),
+						FAINT_TEXT, 128));
+				}
 			}
 			center.add(backups);
 		}
 
 		JPanel detail = transparentPanel();
 		detail.setLayout(new BoxLayout(detail, BoxLayout.Y_AXIS));
-		detail.setVisible(false);
+		detail.setVisible(showRecommendationExplanations);
 		detail.add(Box.createVerticalStrut(4));
-		detail.add(wrappedLabel(best.getReason(), MUTED_TEXT, 128));
+		detail.add(wrappedLabel(recommendationExplanation(best), MUTED_TEXT, 128));
 		center.add(detail);
 		card.add(center, BorderLayout.CENTER);
 
@@ -1040,7 +1058,7 @@ class SlayerGearPanel extends PluginPanel
 		status.setAlignmentX(Component.RIGHT_ALIGNMENT);
 		right.add(status);
 		right.add(Box.createVerticalGlue());
-		JLabel chevron = new JLabel("›");
+		JLabel chevron = new JLabel(showRecommendationExplanations ? "⌄" : "›");
 		chevron.setFont(FontManager.getRunescapeBoldFont().deriveFont(16f));
 		chevron.setForeground(FAINT_TEXT);
 		chevron.setAlignmentX(Component.RIGHT_ALIGNMENT);
@@ -1071,6 +1089,16 @@ class SlayerGearPanel extends PluginPanel
 			}
 		});
 		return card;
+	}
+
+	static String recommendationExplanation(GearRecommendation recommendation)
+	{
+		if (recommendation == null || recommendation.getReason() == null
+			|| recommendation.getReason().trim().isEmpty())
+		{
+			return "Selected as the strongest valid owned option for this objective.";
+		}
+		return recommendation.getReason().trim();
 	}
 
 	private StatusPill gearStatus(GearRecommendation recommendation)

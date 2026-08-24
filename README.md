@@ -156,7 +156,7 @@ The plugin is designed to adapt to different accounts, budgets, and trip styles.
 | Setting | What it controls |
 |---|---|
 | **Loadout tiers** | Build one, two, or three coherent owned setups. |
-| **Gear priority** | Choose Balanced or Prayer First scoring. |
+| **Objective** | Choose Balanced DPS or Prayer First sustain scoring. |
 | **Always prefer** | Strongly favor valid item-name matches. |
 | **Never recommend** | Exclude item-name matches from the solver. |
 | **Low-risk mode** | Cap the estimated combined value of the complete Tier 1 equipment setup. |
