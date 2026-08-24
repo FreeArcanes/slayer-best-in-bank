@@ -11,8 +11,8 @@ public class PluginUpdateNoticeTest
 	@Test
 	public void noticeIsBriefAndOnlyNewForDifferentStoredId()
 	{
-		assertEquals("sbib-dev-V.20", PluginUpdateNotice.ID);
-		assertEquals("<col=ff981f>Dev Update V.20</col>",
+		assertEquals("sbib-dev-V.21", PluginUpdateNotice.ID);
+		assertEquals("<col=ff981f>Dev Update V.21</col>",
 			PluginUpdateNotice.LINES.get(0));
 		assertEquals("<col=ff981f>Slayer Best in Bank - SBIB V1.8"
 			+ " - Report bugs in the Discord</col>",

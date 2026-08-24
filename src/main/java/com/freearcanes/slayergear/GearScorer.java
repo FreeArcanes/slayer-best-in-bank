@@ -240,13 +240,27 @@ class GearScorer
 		double bestOffenseEstimate = 0;
 		List<TargetDefence> offenseTargets = TargetDefenceCatalog.find(
 			taskName, profile.getKey(), selected);
+		if (gearPriority == GearPriority.BALANCED && !offenseTargets.isEmpty())
+		{
+			coherentLoadouts.sort(Comparator.comparingDouble(
+				(Map<EquipmentInventorySlot, GearRecommendation> loadout) -> averageOffense(
+					loadout, equipmentByCanonicalId, selected, offenseTargets, combatLevels))
+				.reversed());
+		}
 		for (int index = 0; index < coherentLoadouts.size(); index++)
 		{
 			int rank = index + 1;
-			Map<EquipmentInventorySlot, GearRecommendation> loadout = coherentLoadouts.get(index);
+			Map<EquipmentInventorySlot, GearRecommendation> loadout = new EnumMap<>(EquipmentInventorySlot.class);
+			for (Map.Entry<EquipmentInventorySlot, GearRecommendation> entry
+				: coherentLoadouts.get(index).entrySet())
+			{
+				loadout.put(entry.getKey(), entry.getValue().withRank(rank));
+			}
 			int loadoutRisk = lowRiskMode ? totalRecommendationGuidePrice(loadout) : 0;
 			double minimumOffense = Double.POSITIVE_INFINITY;
 			double maximumOffense = 0;
+			double minimumSecondsPerKill = Double.POSITIVE_INFINITY;
+			double maximumSecondsPerKill = 0;
 			for (TargetDefence offenseTarget : offenseTargets)
 			{
 				double targetOffense = LoadoutOffenseEstimator.estimate(loadout,
@@ -255,6 +269,12 @@ class GearScorer
 				{
 					minimumOffense = Math.min(minimumOffense, targetOffense);
 					maximumOffense = Math.max(maximumOffense, targetOffense);
+					if (offenseTarget.getHitpoints() > 0)
+					{
+						double secondsPerKill = offenseTarget.getHitpoints() / targetOffense;
+						minimumSecondsPerKill = Math.min(minimumSecondsPerKill, secondsPerKill);
+						maximumSecondsPerKill = Math.max(maximumSecondsPerKill, secondsPerKill);
+					}
 				}
 			}
 			double offense = maximumOffense > 0 ? (minimumOffense + maximumOffense) / 2.0 : 0;
@@ -269,7 +289,9 @@ class GearScorer
 					? LoadoutOffenseEstimate.range(minimumOffense, maximumOffense,
 						relativePercent, offenseTargets.size() == 1
 							? offenseTargets.get(0).getName()
-							: offenseTargets.size() + " target variants", offenseMethod)
+							: offenseTargets.size() + " target variants", offenseMethod,
+						minimumSecondsPerKill == Double.POSITIVE_INFINITY ? 0 : minimumSecondsPerKill,
+						maximumSecondsPerKill)
 					: LoadoutOffenseEstimate.unavailable()));
 			for (Map.Entry<EquipmentInventorySlot, GearRecommendation> entry : loadout.entrySet())
 			{
@@ -315,19 +337,64 @@ class GearScorer
 			bySlot, loadoutTiers, weaponSwitches, supplies, readiness, equipment.size());
 	}
 
+	private static double averageOffense(
+		Map<EquipmentInventorySlot, GearRecommendation> loadout,
+		Map<Integer, BankEquipment> equipmentByCanonicalId,
+		GearStrategy strategy,
+		List<TargetDefence> targets,
+		CombatLevelContext levels)
+	{
+		double minimum = Double.POSITIVE_INFINITY;
+		double maximum = 0;
+		for (TargetDefence target : targets)
+		{
+			double estimate = LoadoutOffenseEstimator.estimate(
+				loadout, equipmentByCanonicalId, strategy, target, levels);
+			if (estimate > 0)
+			{
+				minimum = Math.min(minimum, estimate);
+				maximum = Math.max(maximum, estimate);
+			}
+		}
+		return maximum > 0 ? (minimum + maximum) / 2.0 : 0;
+	}
+
 	private static String offenseMethodName(
 		Map<EquipmentInventorySlot, GearRecommendation> loadout,
 		Map<Integer, BankEquipment> equipmentByCanonicalId,
 		GearStrategy strategy,
 		CombatLevelContext levels)
 	{
+		if (strategy.getCombatStyle() == CombatStyle.RANGED)
+		{
+			GearRecommendation rangedWeapon = loadout.get(EquipmentInventorySlot.WEAPON);
+			BankEquipment rangedEquipment = rangedWeapon == null ? null
+				: equipmentByCanonicalId.get(rangedWeapon.getCanonicalItemId());
+			if (rangedEquipment != null
+				&& NameMatcher.normalize(rangedEquipment.name).contains("twisted bow"))
+			{
+				return "Twisted bow target-Magic scaling";
+			}
+			if (rangedEquipment != null
+				&& NameMatcher.normalize(rangedEquipment.name).contains("venator bow"))
+			{
+				return "Venator ricochet · 3 hits";
+			}
+			if (rangedEquipment != null
+				&& NameMatcher.normalize(rangedEquipment.name).contains("eclipse atlatl"))
+			{
+				return "Eclipse atlatl · burn EV when full set";
+			}
+			return LoadoutOffenseEstimator.rangedEffectName(loadout, equipmentByCanonicalId);
+		}
 		if (strategy.getCombatStyle() != CombatStyle.MAGIC) return "";
 		GearRecommendation weapon = loadout.get(EquipmentInventorySlot.WEAPON);
 		BankEquipment equipment = weapon == null ? null
 			: equipmentByCanonicalId.get(weapon.getCanonicalItemId());
 		MagicCombatMethod method = MagicCombatMethod.resolve(strategy,
 			equipment == null ? "" : equipment.name, levels.getBoostedMagic());
-		return method == null ? "" : method.getName();
+		return method == null ? "" : method.getName()
+			+ (strategy.isAncientAoe() ? " · 9 targets" : "");
 	}
 
 	List<GearRecommendation> bossWeaponSwitches(

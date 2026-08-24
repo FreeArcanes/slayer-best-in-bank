@@ -91,10 +91,11 @@ final class TargetDefenceCatalog
 					if (!line.isEmpty() && line.charAt(0) == '\uFEFF') line = line.substring(1);
 					if (line.isEmpty() || line.charAt(0) == '#' || line.startsWith("name\t")) continue;
 					String[] field = line.split("\t", -1);
-					if (field.length != 11) continue;
+					if (field.length != 16) continue;
 					TargetDefence target = new TargetDefence(field[0], integer(field[2]), integer(field[3]),
 						integer(field[4]), integer(field[5]), integer(field[6]), integer(field[7]),
-						integer(field[8]), integer(field[9]), integer(field[10]));
+						integer(field[8]), integer(field[9]), integer(field[10]), integer(field[11]),
+						integer(field[12]), integer(field[13]), field[14], field[15]);
 					result.computeIfAbsent(normalize(field[0]), ignored -> new ArrayList<>()).add(target);
 				}
 			}

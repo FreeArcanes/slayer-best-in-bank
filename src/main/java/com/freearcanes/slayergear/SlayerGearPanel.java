@@ -902,11 +902,33 @@ class SlayerGearPanel extends PluginPanel
 				+ formatDps(estimate) + "  ·  " + comparison,
 				tier.getRank() == 1 ? SUCCESS : MUTED_TEXT, WRAP_WIDTH));
 		}
+		if (top.hasKillRate())
+		{
+			panel.add(Box.createVerticalStrut(5));
+			panel.add(wrappedLabel(killRateText(top), TEAL, WRAP_WIDTH));
+		}
 		panel.add(Box.createVerticalStrut(5));
 		panel.add(wrappedLabel(
 			"Uses current visible boosts and active prayers. Combat-stance bonuses and unsupported special effects are excluded.",
 			FAINT_TEXT, WRAP_WIDTH));
 		return panel;
+	}
+
+	static String killRateText(LoadoutOffenseEstimate estimate)
+	{
+		if (estimate == null || !estimate.hasKillRate()) return "Kill rate unavailable";
+		String seconds = estimate.getMaximumSecondsPerKill()
+			> estimate.getMinimumSecondsPerKill() + 0.05
+			? String.format(Locale.ENGLISH, "%.1f–%.1f sec equivalent kill interval",
+				estimate.getMinimumSecondsPerKill(), estimate.getMaximumSecondsPerKill())
+			: String.format(Locale.ENGLISH, "%.1f sec estimated TTK",
+				estimate.getMinimumSecondsPerKill());
+		String kills = estimate.getMaximumKillsPerHour()
+			> estimate.getMinimumKillsPerHour() + 0.05
+			? String.format(Locale.ENGLISH, "%.0f–%.0f kills/hr",
+				estimate.getMinimumKillsPerHour(), estimate.getMaximumKillsPerHour())
+			: String.format(Locale.ENGLISH, "%.0f kills/hr", estimate.getMinimumKillsPerHour());
+		return seconds + " · " + kills;
 	}
 
 	static String formatDps(LoadoutOffenseEstimate estimate)

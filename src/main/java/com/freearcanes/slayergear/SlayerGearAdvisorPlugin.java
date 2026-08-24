@@ -996,7 +996,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			client.getBoostedSkillLevel(Skill.STRENGTH), meleeStrengthPrayerMultiplier(),
 			client.getBoostedSkillLevel(Skill.RANGED), rangedAttackPrayerMultiplier(),
 			rangedStrengthPrayerMultiplier(), client.getBoostedSkillLevel(Skill.MAGIC),
-			magicAttackPrayerMultiplier(), magicDamagePrayerPercent());
+			magicAttackPrayerMultiplier(), magicDamagePrayerPercent())
+			.withKandarinHardDiary(client.getVarbitValue(
+				VarbitID.KANDARIN_DIARY_HARD_COMPLETE) == 1);
 	}
 
 	private double meleeAttackPrayerMultiplier()

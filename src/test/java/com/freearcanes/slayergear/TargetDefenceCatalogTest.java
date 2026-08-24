@@ -15,7 +15,7 @@ import static org.junit.Assert.assertTrue;
 public class TargetDefenceCatalogTest
 {
 	@Test
-	public void bundledDatasetHasAValidHeaderAndEveryRowHasElevenColumns() throws Exception
+	public void bundledDatasetHasAValidHeaderAndEveryRowHasSixteenColumns() throws Exception
 	{
 		String resource = "/com/freearcanes/slayergear/slayer-targets.tsv";
 		try (InputStream stream = TargetDefenceCatalogTest.class.getResourceAsStream(resource))
@@ -31,7 +31,7 @@ public class TargetDefenceCatalogTest
 					if (!line.isEmpty() && line.charAt(0) == '\uFEFF') line = line.substring(1);
 					if (line.isEmpty() || line.startsWith("#")) continue;
 					String[] fields = line.split("\t", -1);
-					assertEquals("Malformed dataset row: " + line, 11, fields.length);
+					assertEquals("Malformed dataset row: " + line, 16, fields.length);
 					if (!foundHeader)
 					{
 						assertEquals("name", fields[0]);
@@ -58,6 +58,16 @@ public class TargetDefenceCatalogTest
 		List<TargetDefence> targets = TargetDefenceCatalog.find(
 			"Fossil Island wyverns", "fossil-island-wyverns");
 		assertTrue(targets.size() >= 3);
+	}
+
+	@Test
+	public void targetDatasetProvidesCombatIntelligenceFields()
+	{
+		TargetDefence abyssal = TargetDefenceCatalog.find(
+			"Abyssal demons", "abyssal-demons").get(0);
+		assertEquals(150, abyssal.getHitpoints());
+		assertTrue(abyssal.hasAttribute("demon"));
+		assertTrue(abyssal.getSize() >= 1);
 	}
 
 	@Test

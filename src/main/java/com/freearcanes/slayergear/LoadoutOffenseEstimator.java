@@ -25,8 +25,12 @@ final class LoadoutOffenseEstimator
 		GearScorer.BankEquipment weapon = equipmentFor(
 			loadout.get(EquipmentInventorySlot.WEAPON), equipmentByCanonicalId);
 		String weaponName = weapon == null ? "" : weapon.name;
+		GearScorer.BankEquipment ammunition = equipmentFor(
+			loadout.get(EquipmentInventorySlot.AMMO), equipmentByCanonicalId);
+		String ammunitionName = ammunition == null ? "" : ammunition.name;
 		String normalizedWeaponName = NameMatcher.normalize(weaponName);
 		boolean eclipseAtlatl = normalizedWeaponName.contains("eclipse atlatl");
+		boolean twistedBow = normalizedWeaponName.contains("twisted bow");
 
 		int accuracyBonus = 0;
 		int strengthBonus = 0;
@@ -91,8 +95,10 @@ final class LoadoutOffenseEstimator
 				if (normalizedWeaponName.contains("tumeken")
 					&& normalizedWeaponName.contains("shadow"))
 				{
-					accuracyBonus *= 3;
-					magicDamagePercent = Math.min(100, magicDamagePercent * 3);
+					int shadowMultiplier = shadowMultiplier(strategy);
+					accuracyBonus *= shadowMultiplier;
+					magicDamagePercent = Math.min(100,
+						magicDamagePercent * shadowMultiplier);
 				}
 				maximumHit = magicMaxHit(magicMethod.getBaseMaxHit(), magicDamagePercent,
 					levels.getMagicDamagePrayerPercent(), elementalWeaknessApplies
@@ -116,12 +122,22 @@ final class LoadoutOffenseEstimator
 		}
 		maximumHit = (int) Math.floor(maximumHit * taskDamageMultiplier);
 		maximumHit = (int) Math.floor(maximumHit * loadoutEffects.getFinalDamage());
+		if (twistedBow)
+		{
+			maximumHit = (int) Math.floor(maximumHit
+				* TwistedBowEffect.damageMultiplier(target));
+		}
 		averageHit = maximumHit / 2.0;
 
 		double attackRoll = Math.floor(accuracyLevel
 			* loadoutEffects.getEffectiveAccuracy()) * (accuracyBonus + 64.0);
 		attackRoll = Math.floor(attackRoll * taskAccuracyMultiplier);
 		attackRoll = Math.floor(attackRoll * loadoutEffects.getFinalAccuracy());
+		if (twistedBow)
+		{
+			attackRoll = Math.floor(attackRoll
+				* TwistedBowEffect.accuracyMultiplier(target));
+		}
 		// Target-specific accuracy effects modify the attack roll before the
 		// piecewise hit-chance comparison; they do not multiply hit chance.
 		attackRoll = Math.floor(attackRoll
@@ -141,7 +157,87 @@ final class LoadoutOffenseEstimator
 			// Successful zero-damage rolls are converted to one damage in OSRS.
 			averageHit += 1.0 / (maximumHit + 1.0);
 		}
-		return accuracy * averageHit * damageMultiplier / (Math.max(1, speed) * 0.6);
+		double damagePerAttack = accuracy * averageHit * damageMultiplier;
+		if (strategy.getCombatStyle() == CombatStyle.RANGED)
+		{
+			int effectMaxHit = (int) Math.floor(maximumHit * damageMultiplier);
+			damagePerAttack = EnchantedBoltEffects.apply(ammunitionName, weaponName,
+				damagePerAttack, accuracy, effectMaxHit, target, levels).getDamage();
+			if (eclipseAtlatl && wearsFullEclipse(loadout)
+				&& !isImmuneToNormalBurn(target))
+			{
+				// A successful atlatl hit has a 20% chance to apply a ten-damage
+				// burn: two expected burn damage per successful hit. Short kills
+				// can lose some delayed damage, so this remains an advisory ceiling.
+				damagePerAttack += accuracy * 2.0;
+			}
+			if (normalizedWeaponName.contains("venator bow"))
+			{
+				// Initial hit plus two independently accurate bounces whose max hit
+				// is individually floored to two-thirds of the original.
+				int bounceMax = (int) Math.floor(maximumHit * damageMultiplier * 2.0 / 3.0);
+				double bounceAverage = bounceMax / 2.0
+					+ (bounceMax > 0 ? 1.0 / (bounceMax + 1.0) : 0);
+				damagePerAttack = venatorAggregateDamage(damagePerAttack,
+					accuracy, bounceAverage);
+			}
+		}
+		else if (strategy.isAncientAoe())
+		{
+			// Curated Ancient strategies are explicitly multi-target stack
+			// methods. Report their nine-target aggregate throughput.
+			damagePerAttack = ancientAggregateDamage(damagePerAttack);
+		}
+		return damagePerAttack / (Math.max(1, speed) * 0.6);
+	}
+
+	private static boolean wearsFullEclipse(
+		Map<EquipmentInventorySlot, GearRecommendation> loadout)
+	{
+		return named(loadout, EquipmentInventorySlot.HEAD, "eclipse moon helm")
+			&& named(loadout, EquipmentInventorySlot.BODY, "eclipse moon chestplate")
+			&& named(loadout, EquipmentInventorySlot.LEGS, "eclipse moon tassets");
+	}
+
+	private static boolean named(Map<EquipmentInventorySlot, GearRecommendation> loadout,
+		EquipmentInventorySlot slot, String token)
+	{
+		GearRecommendation item = loadout.get(slot);
+		return item != null && NameMatcher.normalize(item.getItemName()).contains(token);
+	}
+
+	static boolean isImmuneToNormalBurn(TargetDefence target)
+	{
+		String response = NameMatcher.normalize(target.getBurnResponse());
+		return response.equals("normal") || response.equals("strong");
+	}
+
+	static int shadowMultiplier(GearStrategy strategy)
+	{
+		String context = NameMatcher.normalize(strategy.getName() + " " + strategy.getLocation());
+		return context.contains("tombs of amascut") || context.contains("toa") ? 4 : 3;
+	}
+
+	static double venatorAggregateDamage(double initialDamage, double accuracy,
+		double bounceAverage)
+	{
+		return initialDamage + 2.0 * accuracy * bounceAverage;
+	}
+
+	static double ancientAggregateDamage(double singleTargetDamage)
+	{
+		return singleTargetDamage * 9.0;
+	}
+
+	static String rangedEffectName(
+		Map<EquipmentInventorySlot, GearRecommendation> loadout,
+		Map<Integer, GearScorer.BankEquipment> equipmentByCanonicalId)
+	{
+		GearScorer.BankEquipment ammunition = equipmentFor(
+			loadout.get(EquipmentInventorySlot.AMMO), equipmentByCanonicalId);
+		if (ammunition == null) return "";
+		String effect = EnchantedBoltEffects.effectName(ammunition.name);
+		return effect.isEmpty() ? "" : ammunition.name + " · " + effect;
 	}
 
 	static int magicMaxHit(int baseMaxHit, double equipmentDamagePercent,

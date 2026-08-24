@@ -10,11 +10,14 @@ final class CombatLevelContext
 	private final int atlatlStrength;
 	private final int magicAttack;
 	private final int boostedMagic;
+	private final int boostedRanged;
 	private final int magicDamagePrayerPercent;
+	private final boolean kandarinHardDiary;
 
 	private CombatLevelContext(int attack, int strength, int rangedAttack,
 		int rangedStrength, int atlatlStrength, int magicAttack,
-		int boostedMagic, int magicDamagePrayerPercent)
+		int boostedMagic, int boostedRanged, int magicDamagePrayerPercent,
+		boolean kandarinHardDiary)
 	{
 		this.attack = positive(attack);
 		this.strength = positive(strength);
@@ -23,7 +26,9 @@ final class CombatLevelContext
 		this.atlatlStrength = positive(atlatlStrength);
 		this.magicAttack = positive(magicAttack);
 		this.boostedMagic = positive(boostedMagic);
+		this.boostedRanged = positive(boostedRanged);
 		this.magicDamagePrayerPercent = Math.max(0, magicDamagePrayerPercent);
+		this.kandarinHardDiary = kandarinHardDiary;
 	}
 
 	static CombatLevelContext effective(int boostedAttack, double attackPrayer,
@@ -38,7 +43,14 @@ final class CombatLevelContext
 			effectiveLevel(boostedRanged, rangedStrengthPrayer),
 			effectiveLevel(boostedStrength, rangedStrengthPrayer),
 			effectiveMagicLevel(boostedMagic, magicPrayer), boostedMagic,
-			magicDamagePrayerPercent);
+			boostedRanged, magicDamagePrayerPercent, false);
+	}
+
+	CombatLevelContext withKandarinHardDiary(boolean complete)
+	{
+		return new CombatLevelContext(attack, strength, rangedAttack, rangedStrength,
+			atlatlStrength, magicAttack, boostedMagic, boostedRanged,
+			magicDamagePrayerPercent, complete);
 	}
 
 	static CombatLevelContext unboosted(int attack, int strength, int magic, int ranged)
@@ -66,5 +78,7 @@ final class CombatLevelContext
 	int getAtlatlStrength() { return atlatlStrength; }
 	int getMagicAttack() { return magicAttack; }
 	int getBoostedMagic() { return boostedMagic; }
+	int getBoostedRanged() { return boostedRanged; }
 	int getMagicDamagePrayerPercent() { return magicDamagePrayerPercent; }
+	boolean hasKandarinHardDiary() { return kandarinHardDiary; }
 }
