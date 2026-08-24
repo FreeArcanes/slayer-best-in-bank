@@ -271,10 +271,12 @@ public class WeaponScoringRegressionTest
 	}
 
 	@Test
-	public void sunlightCrossbowOnlyAcceptsAntlerBolts()
+	public void everyLoadedBlowpipeCountsItsMaximumCompatibleDartStrength()
 	{
-		assertEquals("antler bolt", GearScorer.ammoToken("hunter's sunlight crossbow"));
-		assertEquals("bolt", GearScorer.ammoToken("rune crossbow"));
+		assertEquals(9, WeaponCombatRules.intrinsicRangedStrength("Camphor blowpipe"));
+		assertEquals(17, WeaponCombatRules.intrinsicRangedStrength("Ironwood blowpipe"));
+		assertEquals(17, WeaponCombatRules.intrinsicRangedStrength("Rosewood blowpipe"));
+		assertEquals(35, WeaponCombatRules.intrinsicRangedStrength("Toxic blowpipe"));
 	}
 
 	@Test
@@ -288,6 +290,19 @@ public class WeaponScoringRegressionTest
 
 		assertTrue(GearScorer.allowed(weapon("Venator bow", ranged(90, 25, 5)), venator));
 		assertTrue(!GearScorer.allowed(weapon("Hunter's sunlight crossbow", ranged(79, 0, 4)), venator));
+	}
+
+	@Test
+	public void rangedStrategiesRejectVisibleUnusableChargeStates()
+	{
+		GearStrategy rangedStrategy = GearStrategy.builder()
+			.name("Ranged")
+			.combatStyle(CombatStyle.RANGED)
+			.build();
+
+		assertTrue(!GearScorer.allowed(weapon("Toxic blowpipe (empty)", ranged(30, 20, 3)), rangedStrategy));
+		assertTrue(!GearScorer.allowed(weapon("Webweaver bow (u)", ranged(85, 0, 4)), rangedStrategy));
+		assertTrue(GearScorer.allowed(weapon("Webweaver bow", ranged(85, 0, 4)), rangedStrategy));
 	}
 
 	@Test

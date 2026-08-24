@@ -769,14 +769,15 @@ class SlayerGearPanel extends PluginPanel
 			}
 		}
 
-		String loadoutSubtitle = "T2/T3 show swaps only";
+		String loadoutSubtitle = offenseComparisonSubtitle(recommendations.getLoadoutTiers());
 		if (!recommendations.getLoadoutTiers().isEmpty())
 		{
 			LoadoutTier tierOne = recommendations.getLoadoutTiers().get(0);
 			if (tierOne.getRiskCapGp() > 0)
 			{
 				loadoutSubtitle = "Low risk  ~" + compactGp(tierOne.getGuidePrice())
-					+ " / " + compactGp(tierOne.getRiskCapGp());
+					+ " / " + compactGp(tierOne.getRiskCapGp())
+					+ "  ·  " + offenseComparisonSubtitle(recommendations.getLoadoutTiers());
 			}
 		}
 		JPanel heading = sectionHeading("LOADOUT", loadoutSubtitle);
@@ -846,6 +847,39 @@ class SlayerGearPanel extends PluginPanel
 			}
 		}
 		content.add(Box.createVerticalStrut(5));
+	}
+
+	static String offenseComparisonSubtitle(List<LoadoutTier> tiers)
+	{
+		if (tiers == null || tiers.isEmpty()
+			|| !tiers.get(0).getOffenseEstimate().isAvailable())
+		{
+			return "T2/T3 show swaps only";
+		}
+		LoadoutOffenseEstimate topEstimate = tiers.get(0).getOffenseEstimate();
+		StringBuilder result = new StringBuilder("Est. ")
+			.append(String.format(Locale.ENGLISH, "%.2f", topEstimate.getDamagePerSecond()));
+		if (topEstimate.isRange())
+		{
+			result.append("–").append(String.format(Locale.ENGLISH, "%.2f",
+				topEstimate.getMaximumDamagePerSecond()));
+		}
+		result.append(" DPS");
+		String targetName = topEstimate.getTargetName();
+		if (!targetName.isEmpty())
+		{
+			result.append(" vs ").append(targetName);
+		}
+		for (int index = 1; index < tiers.size(); index++)
+		{
+			LoadoutOffenseEstimate estimate = tiers.get(index).getOffenseEstimate();
+			if (estimate.isAvailable())
+			{
+				result.append(" · T").append(tiers.get(index).getRank()).append(' ')
+					.append(String.format(Locale.ENGLISH, "%+.1f%%", estimate.getRelativePercent()));
+			}
+		}
+		return result.toString();
 	}
 
 	static boolean hasTierOneChoice(List<GearRecommendation> choices)

@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
@@ -268,7 +269,7 @@ public class GearScorerTest
 		candidates.put(EquipmentInventorySlot.WEAPON, Arrays.asList(
 			riskItem(35, "Bow of faerdhinen (c)", EquipmentInventorySlot.WEAPON,
 				0, 300, false, true),
-			riskItem(36, "Generic strong bow", EquipmentInventorySlot.WEAPON,
+			riskItem(36, "Twisted bow", EquipmentInventorySlot.WEAPON,
 				0, 310, false, true)));
 		candidates.put(EquipmentInventorySlot.BODY, Arrays.asList(
 			riskItem(37, "Masori body (f)", EquipmentInventorySlot.BODY,
@@ -293,7 +294,7 @@ public class GearScorerTest
 		assertEquals("Crystal body",
 			tiers.get(0).get(EquipmentInventorySlot.BODY).getItemName());
 		Map<EquipmentInventorySlot, GearRecommendation> genericTier = tiers.stream()
-			.filter(tier -> "Generic strong bow".equals(
+			.filter(tier -> "Twisted bow".equals(
 				tier.get(EquipmentInventorySlot.WEAPON).getItemName()))
 			.findFirst()
 			.orElseThrow();
@@ -636,6 +637,42 @@ public class GearScorerTest
 	}
 
 	@Test
+	public void everyMappedDizanasQuiverAndMaxCapeVariationReadsLoadedAmmo()
+	{
+		Set<Integer> ids = SlayerGearAdvisorPlugin.dizanasQuiverIds();
+		int[] currentVariants = {
+			ItemID.DIZANAS_QUIVER_UNCHARGED,
+			ItemID.DIZANAS_QUIVER_UNCHARGED_TROUVER,
+			ItemID.DIZANAS_QUIVER_CHARGED,
+			ItemID.DIZANAS_QUIVER_CHARGED_TROUVER,
+			ItemID.DIZANAS_QUIVER_INFINITE,
+			ItemID.DIZANAS_QUIVER_INFINITE_TROUVER,
+			ItemID.SKILLCAPE_MAX_DIZANAS,
+			ItemID.SKILLCAPE_MAX_DIZANAS_TROUVER
+		};
+		for (int itemId : currentVariants)
+		{
+			assertTrue("Missing Dizana variation " + itemId, ids.contains(itemId));
+			Item[] worn = new Item[EquipmentInventorySlot.CAPE.getSlotIdx() + 1];
+			worn[EquipmentInventorySlot.CAPE.getSlotIdx()] = new Item(itemId, 1);
+			assertEquals(1, SlayerGearAdvisorPlugin.loadedQuiverAmmo(
+				worn, ItemID.RUNE_ARROW, 500).length);
+		}
+	}
+
+	@Test
+	public void dizanasQuiverNameRecognitionAllowsMaxCapeSuffixVariants()
+	{
+		assertTrue(GearScorer.isDizanasQuiverCapeName("Dizana's quiver"));
+		assertTrue(GearScorer.isDizanasQuiverCapeName("Blessed Dizana's quiver (l)"));
+		assertTrue(GearScorer.isDizanasQuiverCapeName("Dizana's max cape"));
+		assertTrue(GearScorer.isDizanasQuiverCapeName("Dizana's max cape (l)"));
+		assertTrue(GearScorer.isDizanasQuiverCapeName("Dizana's max cape (i)"));
+		assertTrue(GearScorer.isDizanasQuiverCapeName("Dizana's quiver max cape (i)"));
+		assertFalse(GearScorer.isDizanasQuiverCapeName("Max cape"));
+	}
+
+	@Test
 	public void twoHandedWeaponIsComparedAgainstTheWholeOneHandedPackage()
 	{
 		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
@@ -781,7 +818,7 @@ public class GearScorerTest
 			riskItem(41, "Rune crossbow", EquipmentInventorySlot.WEAPON, 0, 90, false, false)));
 		candidates.put(EquipmentInventorySlot.AMMO, Arrays.asList(
 			riskItem(42, "Amethyst arrow", EquipmentInventorySlot.AMMO, 0, 20, false),
-			riskItem(43, "Dragon bolts", EquipmentInventorySlot.AMMO, 0, 19, false)));
+			riskItem(43, "Runite bolts", EquipmentInventorySlot.AMMO, 0, 19, false)));
 		candidates.put(EquipmentInventorySlot.SHIELD, Arrays.asList(
 			riskItem(44, "Odium ward", EquipmentInventorySlot.SHIELD, 0, 15, false)));
 
@@ -803,7 +840,7 @@ public class GearScorerTest
 
 		assertEquals("Rune crossbow",
 			tiers.get(1).get(EquipmentInventorySlot.WEAPON).getItemName());
-		assertEquals("Dragon bolts",
+		assertEquals("Runite bolts",
 			tiers.get(1).get(EquipmentInventorySlot.AMMO).getItemName());
 		assertEquals("Odium ward",
 			tiers.get(1).get(EquipmentInventorySlot.SHIELD).getItemName());
@@ -1153,6 +1190,26 @@ public class GearScorerTest
 		assertTrue(GearScorer.usesNoAmmoSlot("Black chinchompa"));
 		assertTrue(GearScorer.usesNoAmmoSlot("Rune knife"));
 		assertFalse(GearScorer.usesNoAmmoSlot("Rune crossbow"));
+	}
+
+	@Test
+	public void selfAmmoWeaponUsesPrayerBlessingInsteadOfDiscardingAmmoSlot()
+	{
+		Map<EquipmentInventorySlot, List<GearScorer.BankEquipment>> candidates =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		candidates.put(EquipmentInventorySlot.WEAPON, Collections.singletonList(
+			riskItem(400, "Toxic blowpipe", EquipmentInventorySlot.WEAPON, 0, 100, false, true)));
+		candidates.put(EquipmentInventorySlot.AMMO, Arrays.asList(
+			riskItem(401, "Dragon arrow", EquipmentInventorySlot.AMMO, 0, 50, false),
+			riskItem(402, "Rada's blessing 4", EquipmentInventorySlot.AMMO, 4, 10, false)));
+
+		List<Map<EquipmentInventorySlot, GearRecommendation>> tiers =
+			new GearScorer(null, null).buildCoherentLoadouts(
+				1, candidates, GearStrategy.builder().combatStyle(CombatStyle.RANGED).build(),
+				Collections.emptyList(), Collections.emptySet(), false, 0);
+
+		assertEquals("Rada's blessing 4",
+			tiers.get(0).get(EquipmentInventorySlot.AMMO).getItemName());
 	}
 
 	@Test

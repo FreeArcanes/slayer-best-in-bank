@@ -922,7 +922,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			config.lowRiskMode(),
 			config.riskCapThousands() * 1_000,
 			loadedQuiverAmmo.length > 0,
-			client.getVarbitValue(VarbitID.SPELLBOOK) == 3);
+			client.getVarbitValue(VarbitID.SPELLBOOK) == 3,
+			client.getRealSkillLevel(Skill.ATTACK),
+			client.getRealSkillLevel(Skill.STRENGTH));
 		if (!config.bossWeaponSwitches()) scored = scored.withoutWeaponSwitches();
 		if (bankFlow.isBankOpen())
 		{
@@ -1010,7 +1012,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		return new Item[] {new Item(ammoId, ammoCount)};
 	}
 
-	private static Set<Integer> dizanasQuiverIds()
+	static Set<Integer> dizanasQuiverIds()
 	{
 		Set<Integer> ids = new HashSet<>();
 		ids.addAll(ItemVariationMapping.getVariations(

@@ -146,6 +146,39 @@ class GearScorer
 		boolean loadedDizanasQuiver,
 		boolean arceuusSpellbookActive)
 	{
+		return score(taskName, taskAmount, assignedLocation, profile, gearPool,
+			bankItems, packedGearItems, packedSupplyItems, alternativesPerSlot,
+			magicLevel, rangedLevel, kourendEliteComplete, ancientSpellbookActive,
+			preferredStrategy, gearPriority, pinnedItems, excludedItems, lowRiskMode,
+			riskCapGp, loadedDizanasQuiver, arceuusSpellbookActive,
+			magicLevel, magicLevel);
+	}
+
+	GearRecommendations score(
+		String taskName,
+		int taskAmount,
+		String assignedLocation,
+		SlayerTaskProfile profile,
+		Item[] gearPool,
+		Item[] bankItems,
+		Item[] packedGearItems,
+		Item[] packedSupplyItems,
+		int alternativesPerSlot,
+		int magicLevel,
+		int rangedLevel,
+		boolean kourendEliteComplete,
+		boolean ancientSpellbookActive,
+		String preferredStrategy,
+		GearPriority gearPriority,
+		String pinnedItems,
+		String excludedItems,
+		boolean lowRiskMode,
+		int riskCapGp,
+		boolean loadedDizanasQuiver,
+		boolean arceuusSpellbookActive,
+		int attackLevel,
+		int strengthLevel)
+	{
 		Map<Integer, Integer> canonicalByItemId = new HashMap<>();
 		Set<Integer> bankCanonical = canonicalIds(bankItems, canonicalByItemId);
 		Set<Integer> packedCanonical = canonicalIds(packedGearItems, canonicalByItemId);
@@ -179,13 +212,44 @@ class GearScorer
 		{
 			usePrayerBlessings(coherentLoadouts, candidates, selected);
 		}
+		Map<Integer, BankEquipment> equipmentByCanonicalId = new HashMap<>();
+		for (BankEquipment item : equipment)
+		{
+			equipmentByCanonicalId.put(item.canonicalItemId, item);
+		}
+		double bestOffenseEstimate = 0;
+		List<TargetDefence> offenseTargets = TargetDefenceCatalog.find(
+			taskName, profile.getKey(), selected);
 		for (int index = 0; index < coherentLoadouts.size(); index++)
 		{
 			int rank = index + 1;
 			Map<EquipmentInventorySlot, GearRecommendation> loadout = coherentLoadouts.get(index);
 			int loadoutRisk = lowRiskMode ? totalRecommendationGuidePrice(loadout) : 0;
+			double minimumOffense = Double.POSITIVE_INFINITY;
+			double maximumOffense = 0;
+			for (TargetDefence offenseTarget : offenseTargets)
+			{
+				double targetOffense = LoadoutOffenseEstimator.estimate(loadout,
+					equipmentByCanonicalId, selected, offenseTarget, attackLevel, strengthLevel,
+					magicLevel, rangedLevel);
+				if (targetOffense > 0)
+				{
+					minimumOffense = Math.min(minimumOffense, targetOffense);
+					maximumOffense = Math.max(maximumOffense, targetOffense);
+				}
+			}
+			double offense = maximumOffense > 0 ? (minimumOffense + maximumOffense) / 2.0 : 0;
+			if (index == 0) bestOffenseEstimate = offense;
+			double relativePercent = bestOffenseEstimate > 0
+				? (offense / bestOffenseEstimate - 1.0) * 100.0 : 0;
 			loadoutTiers.add(new LoadoutTier(
-				rank, loadout, loadoutRisk, lowRiskMode ? riskCapGp : 0));
+				rank, loadout, loadoutRisk, lowRiskMode ? riskCapGp : 0,
+				offense > 0
+					? LoadoutOffenseEstimate.range(minimumOffense, maximumOffense,
+						relativePercent, offenseTargets.size() == 1
+							? offenseTargets.get(0).getName()
+							: offenseTargets.size() + " target variants")
+					: LoadoutOffenseEstimate.unavailable()));
 			for (Map.Entry<EquipmentInventorySlot, GearRecommendation> entry : loadout.entrySet())
 			{
 				List<GearRecommendation> slotRecommendations = bySlot.computeIfAbsent(entry.getKey(), ignored -> new ArrayList<>());
@@ -471,7 +535,12 @@ class GearScorer
 		{
 			return false;
 		}
-		String name = NameMatcher.normalize(cape.getItemName());
+		return isDizanasQuiverCapeName(cape.getItemName());
+	}
+
+	static boolean isDizanasQuiverCapeName(String itemName)
+	{
+		String name = NameMatcher.normalize(itemName);
 		return name.contains("dizana")
 			&& (name.contains("quiver") || name.contains("max cape"));
 	}
@@ -588,7 +657,13 @@ class GearScorer
 		if (weapon != null && strategy.getCombatStyle() == CombatStyle.RANGED)
 		{
 			String w = NameMatcher.normalize(weapon.getItemName());
-			if (usesNoAmmoSlot(w)) selected.remove(EquipmentInventorySlot.AMMO);
+			if (usesNoAmmoSlot(w))
+			{
+				BankEquipment blessing = nthPrayerBlessing(
+					candidates.getOrDefault(EquipmentInventorySlot.AMMO, Collections.emptyList()), rank);
+				if (blessing == null) selected.remove(EquipmentInventorySlot.AMMO);
+				else selected.put(EquipmentInventorySlot.AMMO, recommendation(blessing, rank, strategy));
+			}
 			else
 			{
 				List<BankEquipment> ammo = candidates.getOrDefault(EquipmentInventorySlot.AMMO, Collections.emptyList());
@@ -1240,7 +1315,10 @@ class GearScorer
 			String weaponName = NameMatcher.normalize(weapon.getItemName());
 			if (usesNoAmmoSlot(weaponName))
 			{
-				selected.remove(EquipmentInventorySlot.AMMO);
+				BankEquipment blessing = nthPrayerBlessing(
+					candidates.getOrDefault(EquipmentInventorySlot.AMMO, Collections.emptyList()), 1);
+				if (blessing == null) selected.remove(EquipmentInventorySlot.AMMO);
+				else selected.put(EquipmentInventorySlot.AMMO, recommendation(blessing, 1, strategy));
 			}
 			else
 			{
@@ -1308,7 +1386,7 @@ class GearScorer
 
 	private static boolean isCompatibleAmmo(String ammoName, String normalizedWeaponName)
 	{
-		return NameMatcher.normalize(ammoName).contains(ammoToken(normalizedWeaponName));
+		return RangedAmmoPolicy.isCompatible(normalizedWeaponName, ammoName);
 	}
 
 	private static int candidateIndex(List<BankEquipment> candidates, int canonicalItemId)
@@ -1577,11 +1655,10 @@ class GearScorer
 
 	private static List<BankEquipment> compatibleAmmo(List<BankEquipment> ammo, String weapon)
 	{
-		String token = ammoToken(weapon);
 		List<BankEquipment> compatible = new ArrayList<>();
 		for (BankEquipment candidate : ammo)
 		{
-			if (NameMatcher.normalize(candidate.name).contains(token)) compatible.add(candidate);
+			if (RangedAmmoPolicy.isCompatible(weapon, candidate.name)) compatible.add(candidate);
 		}
 		return compatible;
 	}
@@ -2019,6 +2096,7 @@ class GearScorer
 		 */
 		if (isVoidSetPiece(n)) return false;
 		if (item.slot != EquipmentInventorySlot.WEAPON) return true;
+		if (strategy.getCombatStyle() == CombatStyle.RANGED && !RangedAmmoPolicy.isUsableWeapon(n)) return false;
 		if (!WeaponCombatRules.usableOnTarget(strategy, n)) return false;
 		if (!matchesCombatStyle(strategy.getCombatStyle(), n, item.stats)) return false;
 
@@ -2064,34 +2142,32 @@ class GearScorer
 	}
 	static boolean usesNoAmmoSlot(String weapon)
 	{
-		String normalized = NameMatcher.normalize(weapon);
-		return has(normalized, "blowpipe", "crystal bow", "bow of faerdhinen", "chinchompa",
-			" dart", "knife", "thrownaxe", "javelin", "toktz-xil-ul", "holy water",
-			"blisterwood stake");
+		return !RangedAmmoPolicy.usesAmmoSlot(weapon);
 	}
 
 	private static BankEquipment nthCompatibleAmmo(List<BankEquipment> ammo, String weapon, int rank)
 	{
-		String token = ammoToken(weapon);
 		List<BankEquipment> compatible = new ArrayList<>();
 		for (BankEquipment candidate : ammo)
 		{
-			if (NameMatcher.normalize(candidate.name).contains(token)) compatible.add(candidate);
+			if (RangedAmmoPolicy.isCompatible(weapon, candidate.name)) compatible.add(candidate);
 		}
 		return rank <= 0 || rank > compatible.size() ? null : compatible.get(rank - 1);
 	}
-	static String ammoToken(String weapon)
+	private static BankEquipment nthPrayerBlessing(List<BankEquipment> ammo, int rank)
 	{
-		return weapon.contains("hunter's sunlight crossbow") || weapon.contains("hunters' sunlight crossbow")
-			? "antler bolt"
-			: weapon.contains("crossbow") ? "bolt"
-			: weapon.contains("atlatl") ? "atlatl dart"
-			: weapon.contains("ballista") ? "javelin"
-			: weapon.contains("salamander") ? "tar"
-			: "arrow";
+		List<BankEquipment> blessings = new ArrayList<>();
+		for (BankEquipment candidate : ammo)
+		{
+			if (NameMatcher.normalize(candidate.name).contains("blessing")) blessings.add(candidate);
+		}
+		blessings.sort(Comparator
+			.comparingInt((BankEquipment item) -> item.stats.getPrayer()).reversed()
+			.thenComparing(Comparator.comparingDouble((BankEquipment item) -> item.score).reversed()));
+		return rank <= 0 || rank > blessings.size() ? null : blessings.get(rank - 1);
 	}
 	private static boolean has(String v,String...t){for(String x:t)if(v.contains(x))return true;return false;}
-	private static int attackBonus(AttackType a,ItemEquipmentStats s){switch(a){case STAB:return s.getAstab();case SLASH:return s.getAslash();case CRUSH:return s.getAcrush();default:return Math.max(s.getAstab(),Math.max(s.getAslash(),s.getAcrush()));}}
+	static int attackBonus(AttackType a,ItemEquipmentStats s){switch(a){case STAB:return s.getAstab();case SLASH:return s.getAslash();case CRUSH:return s.getAcrush();default:return Math.max(s.getAstab(),Math.max(s.getAslash(),s.getAcrush()));}}
 	private static EquipmentInventorySlot slotFor(int i){for(EquipmentInventorySlot s:EquipmentInventorySlot.values())if(s.getSlotIdx()==i)return s;return null;}
 
 	private static String explain(GearStrategy strategy,String name,EquipmentInventorySlot slot,ItemEquipmentStats stats)

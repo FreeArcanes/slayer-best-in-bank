@@ -217,7 +217,10 @@ final class WeaponCombatRules
 	static int intrinsicRangedStrength(String itemName)
 	{
 		String n = NameMatcher.normalize(itemName);
-		return n.contains("toxic blowpipe") ? 35 : 0;
+		if (n.contains("toxic blowpipe")) return 35;
+		if (n.contains("ironwood blowpipe") || n.contains("rosewood blowpipe")) return 17;
+		if (n.contains("camphor blowpipe")) return 9;
+		return 0;
 	}
 
 	static String intrinsicReason(GearStrategy strategy, String itemName)

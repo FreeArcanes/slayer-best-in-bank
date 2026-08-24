@@ -1,0 +1,1296 @@
+﻿# OSRS Wiki DPS calculator monster data; CC BY-NC-SA 3.0
+# Source: https://github.com/weirdgloop/osrs-dps-calc/blob/main/cdn/json/monsters.json
+# Generated: 2026-08-24
+name`tversion`tdefence`tmagic_level`tstab`tslash`tcrush`tmagic`tlight`tstandard`theavy
+A corpse		90	1	0	0	0	0	0	0	0
+Aberrant spectre		90	105	20	20	20	0	15	-15	15
+Abhorrent spectre		180	300	40	40	40	0	30	-30	30
+Abyssal demon	Catacombs of Kourend	135	1	20	20	20	0	20	20	20
+Abyssal demon	Standard	135	1	20	20	20	0	20	20	20
+Abyssal demon	Wilderness Slayer Cave	135	1	20	20	20	0	20	20	20
+Abyssal Sire	Phase 1	250	200	40	60	50	20	60	60	60
+Abyssal Sire	Phase 2	250	200	40	60	50	20	60	60	60
+Abyssal Sire	Phase 3 (stage 1)	250	200	40	60	50	20	60	60	60
+Abyssal Sire	Phase 3 (stage 2)	250	200	20	30	25	-40	30	30	30
+Acidic Araxyte		50	1	25	25	25	-10	25	25	25
+Adamant dragon		272	186	20	110	85	30	95	95	65
+Ahrim the Blighted		100	100	103	85	117	73	0	0	0
+Albino bat		30	1	0	0	0	0	0	0	0
+Alchemical Hydra	Electric	100	260	75	150	150	150	45	45	45
+Alchemical Hydra	Extinguished	100	260	75	150	150	150	45	45	45
+Alchemical Hydra	Fire	100	260	75	150	150	150	45	45	45
+Alchemical Hydra	Serpentine	100	260	75	150	150	150	45	45	45
+Ammonite Crab		1	1	0	0	0	0	0	0	0
+Amoxliatl	Post-quest	80	170	100	100	40	100	200	200	200
+Amoxliatl	Quest	60	140	100	100	40	100	200	200	200
+Ancient Custodian		80	80	50	-30	80	0	-10	5	60
+Ancient Wyvern		150	90	50	70	70	170	120	120	90
+Ancient Zygomite		80	80	20	20	20	30	30	30	30
+Ankou	Level 75	60	1	0	0	0	0	0	0	0
+Ankou	Level 82	70	1	0	0	0	0	0	0	0
+Ankou	Level 86	80	1	0	0	0	0	0	0	0
+Ankou	Level 95	100	1	0	0	0	0	0	0	0
+Ankou	Level 98	80	1	0	0	0	0	0	0	0
+Aquanite	Lure	70	170	60	80	80	140	100	100	100
+Aquanite	No lure	70	170	10	80	80	140	100	100	100
+Araxxor		135	190	160	75	15	237	218	218	218
+Araxyte	Level 146	70	80	60	30	20	20	20	20	20
+Araxyte	Level 96	60	60	60	30	20	20	20	20	20
+Armoured zombie (Defender of Varrock)	Melee (invasion)	68	1	20	20	0	0	10	10	10
+Armoured zombie (Defender of Varrock)	Ranged (invasion)	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Base)	Melee	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Base)	Ranged	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Fort)	Melee, 1	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Fort)	Melee, 2	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Fort)	Melee, 3	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Fort)	Melee, 4	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Fort)	Melee, 5	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Fort)	Ranged, 1	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Fort)	Ranged, 2	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Fort)	Ranged, 3	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Fort)	Ranged, 4	68	1	20	20	0	0	10	10	10
+Armoured zombie (Zemouregal's Fort)	Ranged, 5	68	1	20	20	0	0	10	10	10
+Arrg (Nightmare Zone)	Hard Mode	40	0	35	60	35	200	200	200	200
+Arrg (Nightmare Zone)	Normal Mode	40	0	35	60	35	200	200	200	200
+Arrg		40	0	35	60	35	200	200	200	200
+Artio		150	90	125	110	110	0	40	40	40
+Asyn Shade	Shade	70	0	0	0	0	0	0	0	0
+Asyn Shade	Shadow	70	0	0	0	0	0	0	0	0
+Asyn shadow (Temple Trekking)		80	50	0	0	0	0	0	0	0
+Avatar of Creation		10	10	20	20	20	20	20	20	20
+Avatar of Destruction		10	10	20	20	20	20	20	20	20
+Aviansie	Level 131	175	1	0	0	0	0	-20	0	0
+Aviansie	Level 137	160	1	0	0	0	0	-20	0	0
+Aviansie	Level 148	160	1	0	0	0	0	-20	0	0
+Aviansie	Level 69	70	1	0	0	0	0	-20	0	0
+Aviansie	Level 71	55	1	0	0	0	0	-20	0	0
+Aviansie	Level 73	55	1	0	0	0	0	-20	0	0
+Aviansie	Level 79 (1)	70	1	0	0	0	0	-20	0	0
+Aviansie	Level 79 (2)	55	1	0	0	0	0	-20	0	0
+Aviansie	Level 83	100	1	0	0	0	0	-20	0	0
+Aviansie	Level 84	70	1	0	0	0	0	-20	0	0
+Aviansie	Level 89	115	1	0	0	0	0	-20	0	0
+Aviansie	Level 92	100	1	0	0	0	0	-20	0	0
+Aviansie	Level 94	115	1	0	0	0	0	-20	0	0
+Aviansie	Level 97 (1)	100	1	0	0	0	0	-20	0	0
+Aviansie	Level 97 (2)	115	1	0	0	0	0	-20	0	0
+Baby black dragon	Myths' Guild	70	1	0	50	50	40	30	30	5
+Baby black dragon	Normal	70	1	0	50	50	40	30	30	5
+Baby blue dragon	1	40	1	0	50	50	40	30	30	5
+Baby blue dragon	2	40	1	0	50	50	40	30	30	5
+Baby blue dragon	3	40	1	0	50	50	40	30	30	5
+Baby blue dragon	Ruins of Tapoyauik, 1	40	1	0	50	50	40	30	30	5
+Baby blue dragon	Ruins of Tapoyauik, 2	40	1	0	50	50	40	30	30	5
+Baby red dragon	1	40	1	0	50	50	40	30	30	10
+Baby red dragon	2	40	1	0	50	50	40	30	30	10
+Baby red dragon	3	40	1	0	50	50	40	30	30	10
+Baby Roc		70	1	0	0	0	150	0	0	0
+Balfrug Kreeyath		153	150	0	0	0	10	0	0	0
+Bandit	Level 130	57	1	0	23	22	0	0	0	0
+Bandit	Level 22	17	1	0	3	2	0	0	0	0
+Banshee		22	1	5	5	5	0	5	5	5
+Basilisk (The Fremennik Exiles)	Adult	75	1	20	20	0	20	0	0	0
+Basilisk (The Fremennik Exiles)	Baby	75	1	20	20	0	20	0	0	0
+Basilisk (unused)		75	1	20	20	0	20	0	0	0
+Basilisk Knight		186	186	30	30	-15	30	20	20	-15
+Basilisk Sentinel		274	274	50	50	10	50	10	10	10
+Basilisk Youngling		70	1	20	20	0	20	0	0	0
+Basilisk		75	1	20	20	0	20	0	0	0
+Bat		5	1	2	2	5	2	0	0	0
+Bear Cub		10	1	0	0	0	0	0	0	0
+Berry	Awake	25	0	0	0	10	200	200	200	200
+Berry	Sleeping	25	0	0	0	10	200	200	200	200
+Big Wolf	Feldip Hills	62	1	0	0	0	0	0	0	0
+Big Wolf	White Wolf Mountain	62	1	0	0	0	0	0	0	0
+Bird	Level 11	10	10	0	0	0	0	0	0	0
+Bird	Level 5	5	5	0	0	0	0	0	0	0
+Black bear		13	1	0	0	0	0	0	0	0
+Black demon (Nightmare Zone)	Hard Mode	152	1	0	0	0	-10	0	0	0
+Black demon (Nightmare Zone)	Normal Mode	152	1	0	0	0	-10	0	0	0
+Black demon (The Grand Tree)		152	1	0	0	0	-10	0	0	0
+Black demon (The Scar)		152	1	0	0	0	-10	0	0	0
+Black demon	Level 172	152	1	0	0	0	-10	0	0	0
+Black demon	Level 178	175	1	0	0	0	-5	0	0	0
+Black demon	Level 184	162	1	0	0	0	-10	0	0	0
+Black demon	Level 188	152	1	0	0	0	-10	0	0	0
+Black dragon	Level 227	200	100	0	70	70	60	50	50	10
+Black dragon	Level 247	200	150	0	70	70	60	50	50	10
+Black Guard Berserker	Blue	60	1	60	60	60	0	60	60	60
+Black Guard Berserker	Green	60	1	60	60	60	0	60	60	60
+Black Guard Berserker	Red	60	1	60	60	60	0	60	60	60
+Black Guard	Level 25, 1	20	1	3	4	4	2	3	3	3
+Black Guard	Level 25, 2	20	1	3	4	4	2	3	3	3
+Black Guard	Level 25, 3	20	1	3	4	4	2	3	3	3
+Black Guard	Level 25, 4	20	1	3	4	4	2	3	3	3
+Black Guard	Level 48, 1	45	1	40	40	40	0	40	40	40
+Black Guard	Level 48, 2	45	1	40	40	40	0	40	40	40
+Black Guard	Level 48, 3	45	1	40	40	40	0	40	40	40
+Black Guard	Level 48, 4	45	1	40	40	40	0	40	40	40
+Black Heather		27	1	9	8	10	0	0	0	0
+Black Knight	Hostile, female	25	1	73	76	70	-11	72	72	72
+Black Knight	Hostile, male	25	1	73	76	70	-11	72	72	72
+Black Knight	Passive, female	25	1	73	76	70	-11	72	72	72
+Black Knight	Passive, male	25	1	73	76	70	-11	72	72	72
+Blessed giant rat	1	1	1	-24	-24	-24	-24	-24	-24	-24
+Blessed giant rat	2	1	1	-24	-24	-24	-24	-24	-24	-24
+Blessed spider	Normal	35	1	15	16	7	12	16	16	16
+Blessed spider	Song of the Elves	35	1	15	16	7	12	16	16	16
+Blood-starved venator		120	100	-5	60	130	110	-5	-5	-5
+Bloodveld	GWD	30	1	0	0	0	0	0	0	0
+Bloodveld	Normal	30	1	0	0	0	0	0	0	0
+Blue dagannoth		81	1	150	150	150	50	50	50	50
+Blue dragon	1	95	1	0	70	70	60	50	50	10
+Blue dragon	2	95	1	0	70	70	60	50	50	10
+Blue dragon	3	95	1	0	70	70	60	50	50	10
+Blue dragon	4	95	1	0	70	70	60	50	50	10
+Blue dragon	5	95	1	0	70	70	60	50	50	10
+Blue dragon	Ruins of Tapoyauik, 1	95	1	0	70	70	60	50	50	15
+Blue dragon	Ruins of Tapoyauik, 2	95	1	0	70	70	60	50	50	15
+Blue dragon	Task only, 1	95	1	0	70	70	60	50	50	15
+Blue dragon	Task only, 2	95	1	0	70	70	60	50	50	15
+Blue dragon	Task only, 3	95	1	0	70	70	60	50	50	15
+Blue dragon	Task only, 4	95	1	0	70	70	60	50	50	15
+Blue dragon	Task only, 5	95	1	0	70	70	60	50	50	15
+Bouncer		120	1	0	0	0	0	0	0	0
+Branda the Fire Queen		100	100	12	12	0	700	700	700	700
+Brine rat		40	1	0	0	0	0	0	0	0
+Bronze dragon	Catacombs of Kourend	112	130	0	70	70	30	90	90	10
+Bronze dragon	Standard	112	100	0	70	70	30	90	90	10
+Brutal black dragon		258	250	0	70	70	60	50	50	10
+Brutal blue dragon	Catacombs of Kourend	198	198	0	70	70	60	50	50	10
+Brutal blue dragon	Ruins of Tapoyauik	198	198	0	70	70	60	50	50	10
+Brutal red dragon		198	250	0	70	70	60	50	50	10
+Brutus		10	8	-7	-7	-7	-3	-7	-7	-7
+Bryophyta		100	90	0	0	0	0	0	0	0
+Buffalo		1	1	-21	-21	-21	-21	-21	-21	-21
+Callisto		225	140	150	130	125	0	50	50	50
+Calvar'ion	Enraged	225	178	130	128	-10	198	211	211	211
+Calvar'ion	Normal	225	178	130	128	-10	198	211	211	211
+Catablepon	Level 49	40	60	40	30	20	20	40	40	40
+Catablepon	Level 64	50	45	50	40	30	30	50	50	50
+Catablepon	Level 68	60	60	50	40	30	30	50	50	50
+Cave abomination		142	230	0	0	0	0	0	0	0
+Cave bug	Level 6	6	1	10	10	5	5	10	10	10
+Cave bug	Level 96	84	1	72	59	35	25	95	95	95
+Cave crawler	Icy (1)	18	1	10	10	5	5	10	10	10
+Cave crawler	Icy (2)	18	1	10	10	5	5	10	10	10
+Cave crawler	Standard (1)	18	1	10	10	5	5	10	10	10
+Cave crawler	Standard (2)	18	1	10	10	5	5	10	10	10
+Cave crawler	Standard (3)	18	1	10	10	5	5	10	10	10
+Cave crawler	Standard (4)	18	1	10	10	5	5	10	10	10
+Cave goblin (monster)	Backpack	1	1	0	0	0	0	0	0	0
+Cave goblin (monster)	Beige	1	1	0	0	0	0	0	0	0
+Cave goblin (monster)	Blue	1	1	0	0	0	0	0	0	0
+Cave goblin (monster)	Brown	1	1	0	0	0	0	0	0	0
+Cave goblin guard	Level 24	22	1	0	15	19	-3	12	12	12
+Cave goblin guard	Level 26	25	1	1	16	19	-3	12	12	12
+Cave goblin miner	1	7	1	0	0	0	0	0	0	0
+Cave goblin miner	2	7	1	0	0	0	0	0	0	0
+Cave goblin miner	3	7	1	0	0	0	0	0	0	0
+Cave goblin miner	4	7	1	0	0	0	0	0	0	0
+Cave goblin miner	5	7	1	0	0	0	0	0	0	0
+Cave goblin miner	6	7	1	0	0	0	0	0	0	0
+Cave goblin miner	7	7	1	0	0	0	0	0	0	0
+Cave goblin miner	8	7	1	0	0	0	0	0	0	0
+Cave horror	Alpha	62	80	0	0	0	0	0	0	0
+Cave horror	Guard	62	80	0	0	0	0	0	0	0
+Cave horror	Small guard	62	80	0	0	0	0	0	0	0
+Cave horror	Worker	62	80	0	0	0	0	0	0	0
+Cave horror	Young worker	62	80	0	0	0	0	0	0	0
+Cave kraken	Cave kraken	150	120	0	0	0	-63	100	100	100
+Cave kraken	Whirlpool	150	120	0	0	0	-63	100	100	100
+Cave slime		35	13	0	0	0	0	0	0	0
+Cerberus		100	220	50	100	25	65	100	100	100
+Chaos druid warrior		25	1	13	17	14	-4	14	14	14
+Chaos druid		12	10	0	0	0	0	0	0	0
+Chaos dwarf		28	1	40	34	25	10	35	35	35
+Chaos Elemental		270	270	70	70	70	70	70	70	70
+Chaos Fanatic		220	200	260	260	250	280	80	50	80
+Chasm Crawler	Icy	55	1	41	43	23	24	40	20	40
+Chasm Crawler	Standard	55	1	41	43	23	24	40	20	40
+Chicken	Falador Farm	1	1	-42	-42	-42	-42	-42	-42	-42
+Chicken	Gordon and Mary's Farm	1	1	-42	-42	-42	-42	-42	-42	-42
+Chicken	Miscellania	1	1	-42	-42	-42	-42	-42	-42	-42
+Chicken	Normal	1	1	-42	-42	-42	-42	-42	-42	-42
+Chilled jelly		70	95	0	0	0	0	0	0	0
+Choke devil		120	1	0	0	0	0	0	0	0
+Chompy bird		3	0	0	0	0	0	0	0	0
+Chuck up		90	0	0	0	0	200	200	120	200
+City guard		70	1	13	24	19	0	0	0	0
+Cockathrice		78	1	20	20	0	20	0	0	0
+Cockatrice (unused)		37	1	10	10	0	10	0	0	0
+Cockatrice		37	1	10	10	0	10	0	0	0
+Colossal Hydra		100	250	100	200	200	200	20	20	20
+Commander Zilyana		300	300	100	100	100	100	100	100	75
+Corrupt Lizardman (Nightmare Zone)	Hard Mode	38	1	-10	25	0	0	0	0	0
+Corrupt Lizardman (Nightmare Zone)	Normal Mode	38	1	-10	25	0	0	0	0	0
+Corrupt Lizardman		38	1	-10	25	0	0	0	0	0
+Count Draynor (Nightmare Zone)	Hard Mode	30	1	2	1	3	0	0	0	0
+Count Draynor (Nightmare Zone)	Normal Mode	30	1	2	1	3	0	0	0	0
+Count Draynor		30	1	2	1	3	0	0	0	0
+Cow calf	1	1	1	-26	-26	-26	-26	-26	-26	-26
+Cow calf	2	1	1	-26	-26	-26	-26	-26	-26	-26
+Cow calf	Farmland	1	1	-26	-26	-26	-26	-26	-26	-26
+Cow	1	1	1	-21	-21	-21	-21	-21	-21	-21
+Cow	2	1	1	-21	-21	-21	-21	-21	-21	-21
+Cow	3	1	1	-21	-21	-21	-21	-21	-21	-21
+Cow	Isle of Souls	1	1	-21	-21	-21	-21	-21	-21	-21
+Cow	Zanaris	1	1	-21	-21	-21	-21	-21	-21	-21
+Crab	Level 21	22	1	0	0	0	0	0	0	0
+Crab	Level 23	26	1	0	0	0	0	0	0	0
+Crawling Hand	Level 12 (1)	7	1	0	0	0	0	0	0	0
+Crawling Hand	Level 12 (2)	7	1	0	0	0	0	0	0	0
+Crawling Hand	Level 12 (unused 1)	9	1	0	0	0	0	0	0	0
+Crawling Hand	Level 12 (unused 2)	10	1	0	0	0	0	0	0	0
+Crawling Hand	Level 7	3	1	0	0	0	0	0	0	0
+Crawling Hand	Level 8 (1)	4	1	0	0	0	0	0	0	0
+Crawling Hand	Level 8 (2)	4	1	0	0	0	0	0	0	0
+Crawling Hand	Level 8 (3)	4	1	0	0	0	0	0	0	0
+Crawling Hand	Level 8 (4)	4	1	0	0	0	0	0	0	0
+Crazy archaeologist		240	1	5	5	30	250	250	250	250
+Crocodile	Land	54	1	20	12	22	10	20	20	20
+Crocodile	Water & land	54	1	20	12	22	10	20	20	20
+Crocodile	Water	54	1	20	12	22	10	20	20	20
+Crushing hand		14	1	0	0	0	0	0	0	0
+Crypt rat		20	1	0	0	0	0	0	0	0
+Crypt spider		45	1	20	20	10	17	20	20	20
+Cyclops (Ardougne Zoo)		46	1	0	0	0	0	0	0	0
+Cyclops (Catacombs of Kourend)	Level 56	26	1	0	0	0	0	0	0	0
+Cyclops (Catacombs of Kourend)	Level 76	35	1	0	0	0	0	0	0	0
+Cyclops (God Wars Dungeon)	Green	48	1	0	0	0	0	0	0	0
+Cyclops (God Wars Dungeon)	Grey	48	1	0	0	0	0	0	0	0
+Cyclops	Level 106	55	1	0	0	0	0	0	0	0
+Cyclops	Level 56	26	1	0	0	0	0	0	0	0
+Cyclops	Level 76	35	1	0	0	0	0	0	0	0
+Dad (Nightmare Zone)	Hard Mode	50	0	25	25	40	200	200	200	200
+Dad (Nightmare Zone)	Normal Mode	50	0	25	25	40	200	200	200	200
+Dad		50	0	25	25	40	200	200	200	200
+Daddy's special water		99	0	25	25	40	200	200	200	200
+Dagannoth (Waterbirth Island)	Level 88	75	1	10	10	90	200	150	150	150
+Dagannoth (Waterbirth Island)	Level 90	65	1	50	50	50	50	50	50	50
+Dagannoth fledgeling		50	1	0	0	0	0	0	0	0
+Dagannoth mother (Nightmare Zone)	Hard Mode	81	1	150	150	150	50	50	50	50
+Dagannoth mother (Nightmare Zone)	Normal Mode	81	1	150	150	150	50	50	50	50
+Dagannoth mother		81	1	150	150	150	50	50	50	50
+Dagannoth Prime		255	255	255	255	255	255	10	10	10
+Dagannoth Rex		255	0	255	255	255	10	255	255	255
+Dagannoth spawn		25	1	0	0	0	0	0	0	0
+Dagannoth Supreme		128	255	10	10	10	255	550	550	550
+Dagannoth	Level 74 (1)	50	1	0	0	0	0	0	0	0
+Dagannoth	Level 74 (2)	50	1	0	0	0	0	0	0	0
+Dagannoth	Level 92 (1)	71	1	0	0	0	50	50	50	50
+Dagannoth	Level 92 (2)	71	1	0	0	0	50	50	50	50
+Damien Leucurte		160	160	30	30	30	30	30	30	30
+Dark Ankou		100	1	0	0	0	0	0	0	0
+Dark beast		120	160	30	40	100	90	100	100	100
+Dark energy core		20	1	10	10	10	-5	10	10	10
+Dark warrior	Level 145	55	1	106	109	139	0	0	0	0
+Dark warrior	Level 37	20	10	10	20	40	0	0	0	0
+Dark warrior	Level 51	30	15	10	20	40	0	0	0	0
+Dark warrior	Level 62	40	20	10	20	40	0	0	0	0
+Dark warrior	Level 8	5	1	96	79	59	0	0	0	0
+Dawn		100	100	0	0	0	80	0	0	0
+Deadly red spider		30	1	15	16	7	12	16	16	16
+Death wing		70	1	0	0	0	0	0	0	0
+Demonic gorilla	1	200	195	0	0	0	20	0	0	0
+Demonic gorilla	2	200	195	0	0	0	20	0	0	0
+Deranged archaeologist		280	1	20	20	50	300	300	300	300
+Desert Lizard	Green	20	1	5	15	15	0	5	5	5
+Desert Lizard	Orange	20	1	5	15	15	0	5	5	5
+Desert Lizard	Yellow	20	1	5	15	15	0	5	5	5
+Desert Wolf	1	22	0	0	0	0	0	0	0	0
+Desert Wolf	2	22	0	0	0	0	0	0	0	0
+Desert Wolf	3	22	0	0	0	0	0	0	0	0
+Dessous (Nightmare Zone)	Hard Mode	99	1	10	150	150	0	0	0	0
+Dessous (Nightmare Zone)	Normal Mode	99	1	10	150	150	0	0	0	0
+Dessous		99	1	10	150	150	0	0	0	0
+Deviant spectre		90	205	80	80	80	0	85	85	20
+Dharok the Wretched		100	1	252	250	244	-11	249	249	249
+Dinky the drink troll		40	0	0	0	0	0	0	0	0
+Dire gryphon		100	60	10	20	40	150	60	60	60
+Dire Wolf Alpha		80	40	0	0	0	0	0	0	0
+Dire Wolf	Level 72	62	1	0	0	0	0	0	0	0
+Dire Wolf	Level 88	75	1	0	0	0	0	0	0	0
+Dire Wolf	Meat and Greet	70	1	0	0	0	0	0	0	0
+Donny the lad		27	1	9	8	10	0	0	0	0
+Drake		120	112	5	60	60	20	100	100	0
+Dreadborn Araxyte		100	100	60	30	0	10	100	100	100
+Drink troll		9	1	0	0	0	0	0	0	0
+Duck	Female	1	1	-42	-42	-42	-42	-42	-42	-42
+Duck	Male	1	1	-42	-42	-42	-42	-42	-42	-42
+Duckling		1	1	-42	-42	-42	-42	-42	-42	-42
+Duke (monkey)		130	130	0	0	0	0	0	0	0
+Duke Sucellus	Post-quest, Awake	275	310	255	45	190	440	320	320	320
+Duke Sucellus	Quest, Awake	215	230	210	30	160	400	300	300	300
+Dungeon rat	Full tail	10	1	0	0	0	0	0	0	0
+Dungeon rat	Short tail	10	1	0	0	0	0	0	0	0
+Dungeon rat	Small	10	1	0	0	0	0	0	0	0
+Dusk	First form	100	140	0	0	0	0	0	0	0
+Dusk	Second form	150	250	0	0	0	0	0	0	0
+Dust devil	Catacombs of Kourend	40	1	0	0	0	0	0	0	0
+Dust devil	Smoke Dungeon	40	1	0	0	0	0	0	0	0
+Dust devil	Wilderness Slayer Cave	40	1	0	0	0	0	0	0	0
+Dwarf gang member	Level 44	35	1	7	7	0	0	7	7	7
+Dwarf gang member	Level 48	25	1	7	7	0	0	7	7	7
+Dwarf gang member	Level 49	57	1	7	7	0	0	7	7	7
+Dwarf	Mining Guild (1)	8	1	0	0	0	5	10	10	10
+Dwarf	Mining Guild (2)	8	1	0	0	0	10	0	0	0
+Dwarf	Mining Guild (3)	10	1	0	0	0	5	0	0	0
+Dwarf	Standard (Level 20)	16	1	0	0	0	5	0	0	0
+Dwarf	Standard	6	1	0	0	0	5	0	0	0
+Dwarf	Worker (1)	8	1	0	0	0	5	10	10	10
+Dwarf	Worker (2)	8	1	0	0	0	5	10	10	10
+Dwarf	Worker (3)	8	1	0	10	10	10	20	20	20
+Dwarf	Worker (4)	8	1	0	0	0	5	10	10	10
+Dwarf	Worker (5)	8	1	0	0	0	5	10	10	10
+Dwarf	Worker (6)	10	1	0	0	0	5	10	10	10
+Dwarf	Worker (7)	8	1	0	0	0	5	10	10	10
+Dwarf	Worker (8)	6	1	0	0	0	5	10	10	10
+Dwarf	Worker (9)	10	1	0	0	0	5	10	10	10
+Earth warrior		42	1	30	40	20	10	30	30	30
+Earthen Nagua	Normal	40	40	30	50	50	60	150	150	150
+Earthen Nagua	Reinforced	40	40	50	70	10	60	150	150	150
+Earthen Nagua	Weakened	40	40	0	0	0	60	150	150	150
+Elder aquanite	Lure	180	330	60	80	80	140	100	100	100
+Elder aquanite	No lure	180	330	10	80	80	140	100	100	100
+Elder Chaos druid		65	110	0	0	0	0	0	0	0
+Elder custodian stalker		45	75	30	-10	50	35	30	5	-10
+Eldric the Ice King		100	100	12	12	0	700	700	700	700
+Elf Archer	1	80	1	50	50	50	60	70	70	70
+Elf Archer	2	80	1	50	50	50	60	70	70	70
+Elf Warrior	1	80	1	50	70	70	60	50	50	50
+Elf Warrior	2	80	1	50	70	70	60	50	50	50
+Elvarg (Nightmare Zone)	Hard Mode	70	210	20	40	40	30	20	20	20
+Elvarg (Nightmare Zone)	Normal Mode	70	70	20	40	40	30	20	20	20
+Elvarg		70	70	20	40	40	30	20	20	20
+Enclave guard		70	1	13	24	19	0	0	0	0
+Ent	Wilderness	75	1	50	70	70	40	30	30	30
+Entrana firebird		1	1	-26	-26	-26	-26	-26	-26	-26
+Evil Chicken (Nightmare Zone)	Hard Mode	126	400	0	0	0	0	0	0	0
+Evil Chicken (Nightmare Zone)	Normal Mode	126	200	0	0	0	0	0	0	0
+Evil Chicken (Recipe for Disaster)		126	200	0	0	0	0	0	0	0
+Evil Chicken		126	200	0	0	0	0	0	0	0
+Feral Vampyre	Level 100 (Temple Trekking)	30	0	0	0	0	0	0	0	0
+Feral Vampyre	Level 130 (Temple Trekking)	30	0	0	0	0	0	0	0	0
+Feral Vampyre	Level 61	55	40	0	0	0	0	0	0	0
+Feral Vampyre	Level 64 (Juvenile/Juvinate)	60	1	0	0	0	0	0	0	0
+Feral Vampyre	Level 70 (Temple Trekking)	30	0	0	0	0	0	0	0	0
+Feral Vampyre	Level 72 (Spider)	65	50	0	0	0	0	0	0	0
+Feral Vampyre	Level 77 (God Wars Dungeon)	81	1	0	0	0	0	0	0	0
+Fever spider		40	1	20	15	10	15	15	15	15
+Fire giant	Level 104	120	1	20	10	10	50	-10	-10	-10
+Fire giant	Level 109	65	1	0	3	2	0	0	0	0
+Fire giant	Level 86	65	1	0	3	2	0	0	0	0
+Fiyr Shade	Shade	85	0	0	0	0	0	0	0	0
+Fiyr Shade	Shadow	85	0	0	0	0	0	0	0	0
+Flaming pyrelord		52	1	18	18	18	0	18	18	18
+Flesh Crawler	Level 28	10	1	15	15	15	15	15	15	15
+Flesh Crawler	Level 35	10	1	15	15	15	15	15	15	15
+Flesh Crawler	Level 41	10	1	15	15	15	15	15	15	15
+Flight Kilisa		175	50	0	0	0	0	0	0	0
+Flockleader Geerin		175	50	0	0	0	0	0	0	0
+Forgotten Soul	1	12	10	0	0	0	0	0	0	0
+Forgotten Soul	2	12	10	0	0	0	0	0	0	0
+Frenzied ice troll female		40	1	30	60	30	0	0	0	0
+Frenzied ice troll grunt		60	1	30	60	30	0	0	0	0
+Frenzied ice troll male		40	1	30	60	30	0	0	0	0
+Frenzied ice troll runt		70	1	30	60	30	0	0	0	0
+Frost Crab	Active	1	1	0	0	0	-50	0	0	0
+Frost Crab	Hidden	1	1	0	0	0	-50	0	0	0
+Frost dragon		150	150	25	90	15	50	70	50	30
+Frost Nagua		40	90	0	50	10	60	200	200	200
+Gargoyle	Basement	107	1	50	60	-20	20	20	20	-20
+Gargoyle	Upstairs	107	1	50	60	-20	20	20	20	-20
+General Graardor		250	80	90	90	90	298	90	90	90
+Ghost (Grave of Scorpius)		23	1	0	0	0	0	0	0	0
+Ghost (Melzar's Maze)	1	18	1	5	5	5	-5	5	5	5
+Ghost (Melzar's Maze)	2	18	1	5	5	5	-5	5	5	5
+Ghost (Melzar's Maze)	3	18	1	5	5	5	-5	5	5	5
+Ghost (Melzar's Maze)	4	18	1	5	5	5	-5	5	5	5
+Ghost (Melzar's Maze)	5	18	1	5	5	5	-5	5	5	5
+Ghost	Level 19	18	1	5	5	5	-5	5	5	5
+Ghost	Level 76	68	1	45	45	5	-5	45	45	45
+Ghost	Level 77	68	1	55	55	5	55	55	55	55
+Ghoul		30	1	0	0	0	0	0	0	0
+Giant bat (Brine Rat Cavern)		22	1	10	10	12	10	8	8	8
+Giant bat	Arceuus	22	1	10	10	12	10	8	8	8
+Giant bat	Normal	22	1	10	10	12	10	8	8	8
+Giant crypt rat		65	1	0	0	0	0	0	0	0
+Giant crypt spider		65	1	20	20	10	17	20	20	20
+Giant lobster (Ghosts Ahoy)		40	1	5	15	5	0	5	5	5
+Giant lobster		40	1	30	30	15	99	70	50	70
+Giant Mole		200	200	60	80	100	80	60	60	60
+Giant rat (Scurrius)		10	1	0	0	0	0	0	0	0
+Giant rat	Level 26	22	1	0	0	0	0	0	0	0
+Giant rat	Level 3	2	1	0	0	0	0	0	0	0
+Giant rat	Level 6	2	1	0	0	0	0	0	0	0
+Giant Roc (Nightmare Zone)	Hard Mode	100	1	0	0	0	150	0	0	0
+Giant Roc (Nightmare Zone)	Normal Mode	100	1	0	0	0	150	0	0	0
+Giant Roc		100	1	0	0	0	150	0	0	0
+Giant Rock Crab	1	200	1	225	200	175	-10	250	250	80
+Giant Rock Crab	2	200	1	225	200	175	10	250	250	80
+Giant rockslug		77	1	0	0	0	0	0	0	0
+Giant Scarab (Nightmare Zone)	Hard Mode	169	1	70	99	99	159	149	103	149
+Giant Scarab (Nightmare Zone)	Normal Mode	169	1	70	99	99	159	149	103	149
+Giant Scarab		169	1	70	99	99	159	149	103	149
+Giant skeleton (Shadow Dungeon)	1	70	1	0	0	0	0	0	0	0
+Giant skeleton (Shadow Dungeon)	2	70	1	0	0	0	0	0	0	0
+Giant skeleton (Tarn's Lair)		80	1	50	40	0	0	40	40	40
+Giant spider	Level 2	1	1	-10	-10	-10	-10	-10	-10	-10
+Giant spider	Level 27	21	1	0	0	0	0	0	0	0
+Giant spider	Level 50	31	1	10	10	10	10	10	10	10
+Goblin (Goblin Village)	Green	4	1	0	0	0	0	0	0	0
+Goblin (Goblin Village)	Red	4	1	0	0	0	0	0	0	0
+Goblin (God Wars Dungeon)	Level 12 (banner)	19	1	0	0	0	0	0	0	0
+Goblin (God Wars Dungeon)	Level 12	13	1	0	0	0	0	0	0	0
+Goblin (God Wars Dungeon)	Level 13	20	1	0	0	0	0	0	0	0
+Goblin (God Wars Dungeon)	Level 15	19	1	0	0	0	0	0	0	0
+Goblin (God Wars Dungeon)	Level 17	14	1	0	0	0	0	0	0	0
+Goblin (Vault of War)	Level 11	7	1	0	0	0	0	0	0	0
+Goblin (Vault of War)	Level 13	7	1	4	6	8	4	4	4	4
+Goblin (Vault of War)	Level 16	14	1	0	0	0	0	0	0	0
+Goblin (Vault of War)	Level 25	17	1	14	16	18	14	14	14	14
+Goblin (Vault of War)	Level 5	4	1	0	0	0	0	0	0	0
+Goblin guard		37	1	4	6	6	0	0	0	0
+Goblin	Level 13	7	1	4	6	8	4	4	4	4
+Goblin	Level 2 (armed)	4	1	-15	-15	-15	-15	-15	-15	-15
+Goblin	Level 2	1	1	-15	-15	-15	-15	-15	-15	-15
+Goblin	Level 5	4	1	0	0	0	0	0	0	0
+Gorad		54	1	15	27	21	0	0	0	0
+Grave scorpion		14	1	0	3	3	0	0	0	0
+Greater abyssal demon		240	1	50	50	50	0	50	50	50
+Greater demon (The Scar)		81	1	0	0	0	-10	0	0	0
+Greater demon	Level 100	80	1	0	0	0	-10	0	0	0
+Greater demon	Level 101	50	1	0	0	0	-10	0	0	0
+Greater demon	Level 104 (Wilderness Slayer Cave)	81	1	0	0	0	-10	0	0	0
+Greater demon	Level 113	50	1	0	0	0	-10	0	0	0
+Greater demon	Level 92	81	1	0	0	0	-10	0	0	0
+Greater Nechryael	Regular	85	1	50	50	50	0	50	50	50
+Greater Nechryael	Wilderness Slayer Cave	85	1	50	50	50	0	50	50	50
+Greater Skeleton Hellhound (Calvar'ion)		110	1	95	101	15	156	184	184	184
+Greater Skeleton Hellhound (Vet'ion)		180	1	150	163	20	210	275	275	275
+Green dragon	Level 79	68	68	0	40	40	30	50	50	10
+Green dragon	Level 88	68	75	0	40	40	30	50	50	10
+Grimy Lizard		10	25	35	15	50	50	35	35	35
+Grizzly bear (Escape Caves)		72	1	0	0	0	0	0	0	0
+Grizzly bear cub	Level 33	25	1	0	0	0	0	0	0	0
+Grizzly bear cub	Level 36	28	1	0	0	0	0	0	0	0
+Grizzly bear	Level 21	15	1	0	0	0	0	0	0	0
+Grizzly bear	Level 42	35	1	0	0	0	0	0	0	0
+Gryphon (Troubled Tortugans)		50	50	10	20	40	100	60	60	60
+Gryphon		50	50	10	20	40	100	60	60	60
+Guard (Cave goblin)	Bone club	25	1	1	16	19	-3	12	12	12
+Guard (Cave goblin)	Bone spear	22	1	0	15	19	-3	12	12	12
+Guard (dwarf)	1	9	1	3	4	4	2	3	3	3
+Guard (dwarf)	2	9	1	3	4	4	2	3	3	3
+Guard (Prifddinas)	1	80	1	50	70	70	60	50	50	50
+Guard (Prifddinas)	2	80	1	50	70	70	60	50	50	50
+Guard (Prifddinas)	3	80	1	50	70	70	60	50	50	50
+Guard (Prifddinas)	4	80	1	50	70	70	60	50	50	50
+Guard (Prifddinas)	5	80	1	50	70	70	60	50	50	50
+Guard (Prifddinas)	6	80	1	50	70	70	60	50	50	50
+Guard (Prifddinas)	7	80	1	50	70	70	60	50	50	50
+Guard Bandit		17	1	4	8	5	1	4	4	4
+Guard dog	Hosidius	37	1	0	0	0	0	0	0	0
+Guard dog	Normal	37	1	0	0	0	0	0	0	0
+Guardian Drake		200	300	20	100	100	20	150	150	0
+Gunthor the brave		25	1	12	14	10	-1	11	11	11
+Guthan the Infested		100	1	259	257	241	-11	250	250	250
+Harpie Bug Swarm		32	1	10	5	10	5	10	10	10
+Haze	Ghost	28	1	5	5	5	-5	5	5	5
+Hellhound	Level 122	102	1	0	0	0	0	0	0	0
+Hellhound	Level 127	106	1	0	0	0	0	0	0	0
+Hellhound	Level 136	102	1	0	0	0	0	0	0	0
+Hill Giant		26	1	0	0	0	0	0	0	0
+Hill Giant	1	26	1	0	0	0	0	0	0	0
+Hill Giant	2	26	1	0	0	0	0	0	0	0
+Hill Giant	3	26	1	0	0	0	0	0	0	0
+Hill Giant	4	26	1	0	0	0	0	0	0	0
+Hill Giant	5	26	1	0	0	0	0	0	0	0
+Hill Giant	6	26	1	0	0	0	0	0	0	0
+Hill Giant	Brassard	26	1	0	0	0	0	0	0	0
+Hill Giant	Clothed	26	1	0	0	0	0	0	0	0
+Hill Giant	Hammer	26	1	0	0	0	0	0	0	0
+Hill Giant	Helmetless	26	1	0	0	0	0	0	0	0
+Hill Giant	Scimitar and singlet	26	1	0	0	0	0	0	0	0
+Hill Giant	Shirtless	26	1	0	0	0	0	0	0	0
+Hobgoblin (The Slug Menace)		24	1	0	0	0	0	0	0	0
+Hobgoblin	Hobgoblin (armed)	36	1	1	1	0	0	0	0	0
+Hobgoblin	Hobgoblin (brown)	24	1	0	0	0	0	0	0	0
+Hobgoblin	Hobgoblin (brown, armed)	24	1	0	0	0	0	0	0	0
+Hobgoblin	Hobgoblin (grey)	24	1	0	0	0	0	0	0	0
+Hobgoblin	Hobgoblin (GWD)	35	1	0	0	0	0	0	0	0
+Hobgoblin	Hobgoblin (khaki)	24	1	0	0	0	0	0	0	0
+Hobgoblin	Hobgoblin	24	1	0	0	0	0	0	0	0
+Hydra		100	210	160	160	160	160	0	0	0
+Ice giant	1	40	1	0	3	2	0	0	0	0
+Ice giant	2	40	1	0	3	2	0	0	0	0
+Ice giant	3	40	1	0	3	2	0	0	0	0
+Ice giant	Asgarnia Ice Dungeon 1	40	1	0	3	2	0	0	0	0
+Ice giant	Asgarnia Ice Dungeon 2	40	1	0	3	2	0	0	0	0
+Ice giant	Varlamore 1	40	1	0	3	2	0	0	0	0
+Ice giant	Varlamore 2	40	1	0	3	2	0	0	0	0
+Ice giant	Wilderness Slayer Cave 1	40	1	0	3	2	0	0	0	0
+Ice giant	Wilderness Slayer Cave 2	40	1	0	3	2	0	0	0	0
+Ice giant	Wilderness Slayer Cave 3	40	1	0	3	2	0	0	0	0
+Ice spider	Normal	43	1	20	17	12	13	13	13	13
+Ice spider	Ruins of Tapoyauik	43	1	20	17	12	13	13	13	13
+Ice spider	Settlement Ruins	43	1	20	17	12	13	13	13	13
+Ice troll female	Variant 1	40	1	30	60	30	0	0	0	0
+Ice troll female	Variant 2	40	1	30	60	30	0	0	0	0
+Ice troll grunt		60	1	30	60	30	0	0	0	0
+Ice Troll King (Nightmare Zone)	Hard Mode	80	1	45	45	45	2000	2000	2000	2000
+Ice Troll King (Nightmare Zone)	Normal Mode	80	1	45	45	45	2000	2000	2000	2000
+Ice Troll King		80	1	45	45	45	2000	2000	2000	2000
+Ice troll male	Variant 1	40	1	30	60	30	0	0	0	0
+Ice troll male	Variant 2	40	1	30	60	30	0	0	0	0
+Ice troll runt	Variant 1	70	1	30	60	30	0	0	0	0
+Ice troll runt	Variant 2	70	1	30	60	30	0	0	0	0
+Ice troll	Level 120	120	1	30	60	30	0	0	0	0
+Ice troll	Level 121	110	1	30	60	30	0	0	0	0
+Ice troll	Level 123	100	1	30	60	30	0	0	0	0
+Ice troll	Level 124	80	1	30	60	30	0	0	0	0
+Ice warrior	Asgarnia Ice Dungeon	47	1	30	40	20	10	30	30	30
+Ice warrior	Ice Queen's Lair	47	1	30	40	20	10	30	30	30
+Ice warrior	Normal	47	1	30	40	20	10	30	30	30
+Ice warrior	Varlamore	47	1	30	40	20	10	30	30	30
+Ice wolf	Level 132	70	1	0	0	0	0	0	0	0
+Ice wolf	Level 96	70	1	0	0	0	0	0	0	0
+Icefiend	Level 13	12	1	0	0	0	0	0	0	0
+Icefiend	Level 18	19	1	0	0	0	0	0	0	0
+Icelord	Melee, 1	40	1	0	0	0	0	0	0	0
+Icelord	Melee, 2	40	1	0	0	0	0	0	0	0
+Icelord	Melee, 3	40	1	0	0	0	0	0	0	0
+Icelord	Ranged	40	1	0	0	0	0	0	0	0
+Infernal Mage		60	75	0	0	0	40	0	0	0
+Infernal pyrelord		68	1	18	18	18	0	18	18	18
+Insatiable Bloodveld		85	1	0	0	0	0	0	0	0
+Insatiable mutated Bloodveld		130	1	0	0	0	0	0	0	0
+Iorwerth Archer	Female	80	1	50	50	50	60	70	70	70
+Iorwerth Archer	Male	80	1	50	50	50	60	70	70	70
+Iorwerth Warrior	Iorwerth Camp	80	1	50	70	70	60	50	50	50
+Iorwerth Warrior	Iorwerth Dungeon	80	1	50	70	70	60	50	50	50
+Iron dragon	Catacombs of Kourend	185	120	0	70	70	30	90	90	10
+Iron dragon	Standard	165	100	0	70	70	30	90	90	10
+Jackal		15	1	0	0	0	0	0	0	0
+Jal-Ak		95	160	25	25	25	25	25	25	25
+Jal-AkRek-Ket		95	1	25	25	25	0	0	0	0
+Jal-AkRek-Mej		95	120	0	0	0	25	0	0	0
+Jal-AkRek-Xil		95	1	0	0	0	0	25	25	25
+Jal-ImKot		120	120	65	65	65	30	50	50	50
+Jal-MejJak		100	1	0	0	0	0	0	0	0
+Jal-MejRah		55	120	30	30	30	-20	45	45	45
+Jal-Nib		15	15	-20	-20	-20	-20	-20	-20	-20
+JalTok-Jad		480	510	0	0	0	0	0	0	0
+Jal-Xil		60	90	0	0	0	0	0	0	0
+Jal-Zek		260	300	0	0	0	0	0	0	0
+Jelly	Dark (w)	120	45	0	0	0	0	0	0	0
+Jelly	Dark	120	45	0	0	0	0	0	0	0
+Jelly	Green	120	45	0	0	0	0	0	0	0
+Jelly	Grey (w)	120	45	0	0	0	0	0	0	0
+Jelly	Grey	120	45	0	0	0	0	0	0	0
+Jelly	Olive (w)	120	45	0	0	0	0	0	0	0
+Jelly	Olive	120	45	0	0	0	0	0	0	0
+Jelly	Regular (w)	120	45	0	0	0	0	0	0	0
+Jelly	Regular	120	45	0	0	0	0	0	0	0
+Jelly	Tan (w)	120	45	0	0	0	0	0	0	0
+Jelly	Tan	120	45	0	0	0	0	0	0	0
+Jubbly bird		6	1	0	0	0	0	0	0	0
+Judge of Yama (A Kingdom Divided)		84	84	40	40	40	600	600	600	600
+Jungle horror	Guard	55	1	0	0	0	0	0	0	0
+Jungle horror	Warrior	55	1	0	0	0	0	0	0	0
+Jungle horror	Worker	55	1	0	0	0	0	0	0	0
+Jungle horror	Young warrior	55	1	0	0	0	0	0	0	0
+Jungle horror	Young worker	55	1	0	0	0	0	0	0	0
+Jungle spider (Ape Atoll)		10	10	0	0	0	0	0	0	0
+Jungle spider		35	1	20	20	10	17	20	20	20
+Jungle Wolf		52	1	0	0	0	0	0	0	0
+Juvenile custodian stalker		45	25	30	-10	50	35	-10	5	30
+Kalphite Guardian		110	1	25	25	5	50	50	30	50
+Kalphite Guardian	Lower level	110	1	25	25	5	50	50	30	50
+Kalphite Guardian	Upper level	110	1	25	25	5	50	50	30	50
+Kalphite Queen	Airborne	300	150	100	100	100	10	10	10	10
+Kalphite Queen	Crawling	300	150	50	50	10	100	100	100	100
+Kalphite Soldier	Kalphite Cave (task only)	70	1	25	25	5	50	50	30	50
+Kalphite Soldier	Kalphite Lair	70	1	25	25	5	50	50	30	50
+Kalphite Worker		20	1	5	5	1	10	10	10	10
+Kamil (Nightmare Zone)	Hard Mode	135	1	35	60	35	0	0	0	0
+Kamil (Nightmare Zone)	Normal Mode	135	1	35	60	35	0	0	0	0
+Kamil		135	1	35	60	35	0	0	0	0
+Karil the Tainted		100	1	79	71	90	106	100	100	100
+Ket-Zek	Standard	240	240	0	0	0	0	0	0	0
+Killerwatt	Attacking	40	67	10	10	10	20	-10	-10	-10
+Killerwatt	Idle	40	67	10	10	10	20	-10	-10	-10
+King Black Dragon		240	240	40	90	90	80	70	70	40
+King kurask		250	1	0	50	50	0	0	0	0
+King Sand Crab	Active	100	1	0	0	0	0	0	0	0
+King Sand Crab	Hidden	100	1	0	0	0	0	0	0	0
+King Scorpion		23	1	5	15	15	0	5	5	5
+Kolodion	Demon	105	400	0	0	0	0	0	0	0
+Kraka		50	0	25	25	40	200	200	200	200
+Kraken	Kraken	1	1	0	0	0	130	300	300	300
+Kraken	Whirlpool	1	1	0	0	0	130	300	300	300
+Kree'arra		260	200	180	180	180	200	200	200	200
+K'ril Tsutsaroth		270	200	70	80	80	80	80	80	80
+Kroy		80	80	50	50	50	50	50	50	50
+Kurask	Big	105	1	0	20	20	0	0	0	0
+Kurask	Normal	105	1	0	20	20	0	0	0	0
+Large chicken		10	1	0	0	0	0	0	0	0
+Lava dragon		220	1	20	90	90	80	70	70	20
+Lava Strykewyrm		50	50	30	60	70	40	120	120	120
+Lesser demon (Melzar's Maze)		71	1	0	0	0	-10	0	0	0
+Lesser demon (The Scar)	Level 39	30	1	0	0	0	0	0	0	0
+Lesser demon	Level 82	71	1	0	0	0	-10	0	0	0
+Lesser demon	Level 87	71	1	0	0	0	-10	0	0	0
+Lesser demon	Level 94 (Wilderness Slayer Cave)	71	1	0	0	0	-10	0	0	0
+Lesser demon	Level 94	85	1	0	0	0	-10	0	0	0
+Lizard		35	1	5	15	15	0	5	5	5
+Lizardman brute	Battlefront	65	1	-20	30	10	0	-10	0	0
+Lizardman brute	Standard	65	1	-20	30	10	0	-10	0	0
+Lizardman shaman (Chambers of Xeric)	Normal	210	130	102	160	150	160	0	0	0
+Lizardman shaman	Lizardman Temple	140	130	-20	40	30	50	-10	0	0
+Lizardman shaman	Standard	140	130	-20	40	30	50	-10	0	0
+Lizardman	Level 53	43	1	-20	25	0	0	-10	0	0
+Lizardman	Level 62	52	1	-20	20	5	0	-10	0	0
+Loar Shade	Shade	26	0	0	0	0	0	0	0	0
+Loar Shade	Shadow	26	0	0	0	0	0	0	0	0
+Lobstrosity		40	1	30	50	15	99	70	70	70
+Locust rider	Lancer (Quest)	90	1	90	90	40	0	0	0	0
+Locust rider	Lancer	90	1	90	90	40	0	0	0	0
+Locust rider	Ranger (Quest)	50	1	50	90	50	34	66	66	66
+Locust rider	Ranger	50	1	50	90	50	34	66	66	66
+Long-tailed Wyvern		90	90	70	70	70	140	120	120	70
+Maggot King	Far	200	200	172	100	45	150	232	158	43
+Maggot King	Nearby	200	200	172	100	45	400	232	158	43
+Maggot King	Roaring	100	200	172	100	45	150	232	158	43
+Magic axe	Catacombs of Kourend	29	1	10	5	15	5	10	10	10
+Magic axe	Normal	29	1	10	5	15	5	10	10	10
+Magma strykewyrm		110	110	60	30	70	40	120	120	120
+Malevolent Mage		135	175	0	0	0	75	0	0	0
+Mammoth	Normal	50	1	0	0	0	0	0	0	0
+Maniacal monkey		10	1	0	0	0	0	0	0	0
+Marble gargoyle		190	1	50	50	0	50	50	50	50
+Mature custodian stalker		45	40	30	-10	50	35	-10	5	30
+Minotaur	Level 12	10	1	-21	-21	-21	-21	-21	-21	-21
+Minotaur	Level 27	25	1	-10	-10	-10	-21	-10	-10	-10
+Minotaur	Unused	15	1	1	1	1	1	0	0	0
+Mirrorback Araxyte		50	1	25	25	25	-10	25	25	25
+Mithril dragon		268	168	0	100	70	30	90	90	20
+Mogre (sea)		40	1	0	0	0	0	0	0	0
+Mogre		48	1	0	0	0	0	0	0	0
+Molanisk		50	0	45	45	35	30	55	55	55
+Monkey (monster)	Common	2	1	0	0	0	0	0	0	0
+Monkey (monster)	Mos Le'Harmless	2	1	0	0	0	0	0	0	0
+Monkey Archer	Ape Atoll gate	80	1	0	0	0	0	0	0	0
+Monkey Archer	Marim	80	1	0	0	0	0	0	0	0
+Monkey Guard (ninja)		130	130	0	0	0	0	0	0	0
+Monkey Guard	Bearded	200	130	0	0	0	0	0	0	0
+Monkey Guard	Unbearded	200	130	0	0	0	0	0	0	0
+Monkey Zombie	Level 129	90	90	0	0	0	0	0	0	0
+Monkey Zombie	Level 82	60	60	0	0	0	0	0	0	0
+Monkey Zombie	Level 98	60	60	0	0	0	0	0	0	0
+Monstrous Basilisk (The Fremennik Exiles)		130	1	35	35	0	35	0	0	0
+Monstrous basilisk		130	1	35	35	0	35	0	0	0
+Moonlight Cockatrice		39	1	14	14	0	14	0	0	0
+Moss Giant (Iorwerth Dungeon)		60	1	0	0	0	0	0	0	0
+Moss giant	Level 42 (Varlamore)	30	1	0	0	0	0	0	0	0
+Moss giant	Level 42	30	1	0	0	0	0	0	0	0
+Moss giant	Level 48	30	1	0	0	0	0	0	0	0
+Moss Guardian		60	1	0	0	0	0	0	0	0
+Mosschin		50	50	10	10	5	5	20	20	20
+Mountain troll	Level 69	40	0	0	0	10	200	200	40	200
+Mountain troll	Level 71	25	0	0	0	10	200	200	40	200
+Mounted terrorbird gnome	Level 31	25	1	16	16	18	15	10	10	10
+Mounted terrorbird gnome	Level 49	40	1	16	16	18	15	10	10	10
+Mourner	level 108	80	1	50	70	70	60	50	50	50
+Mutated Bloodveld		30	1	0	0	0	0	0	0	0
+Mutated Terrorbird		40	110	50	50	0	0	62	62	62
+Mutated Tortoise		120	90	50	50	0	0	60	60	0
+Nazastarool	Ghost	80	0	0	0	0	0	0	0	0
+Nazastarool	Skeleton	58	0	5	5	5	5	5	5	5
+Nazastarool	Zombie	80	0	0	0	0	0	0	0	0
+Nechryael	Normal	105	1	20	20	20	0	20	20	20
+Nechryael	Slayer task	105	1	20	20	20	0	20	20	20
+Nechryarch		140	1	30	30	30	0	30	30	30
+Night beast		220	300	75	80	200	190	200	200	200
+Nuclear smoke devil		390	1	0	0	0	850	80	80	80
+Obor		60	1	35	40	45	20	20	20	20
+Ogre chieftain		75	1	10	21	16	0	0	0	0
+Ogre	GWD	43	1	0	0	0	0	0	0	0
+Ogre	Level 53	43	1	0	0	0	0	0	0	0
+Ogre	Level 63	54	1	19	23	24	0	0	0	0
+Ogress Shaman		82	68	12	14	14	16	8	8	8
+Ogress Warrior	1	82	60	10	12	12	14	16	16	16
+Ogress Warrior	2	82	60	10	12	12	14	16	16	16
+Oipuis		130	130	0	0	0	0	0	0	0
+Oomlie bird		40	1	0	0	0	0	0	0	0
+Otherworldly being		46	1	15	10	20	-5	15	15	15
+Ouhai		130	130	0	0	0	0	0	0	0
+Pee Hat		50	0	25	25	40	200	200	200	200
+Penguin (monster)		2	1	0	0	0	0	0	0	0
+Phantom Muspah	Melee	200	150	185	134	120	34	261	261	261
+Phantom Muspah	Post-shield	200	179	185	134	120	437	56	56	56
+Phantom Muspah	Ranged	200	150	185	134	120	437	56	56	56
+Phantom Muspah	Shielded	200	180	185	134	120	437	56	56	56
+Phantom Muspah	Teleporting	200	150	185	134	120	437	56	56	56
+Phrin Shade	Shade	42	0	0	0	0	0	0	0	0
+Phrin Shade	Shadow	42	0	0	0	0	0	0	0	0
+Pirate	Asgarnian Ice Dungeon	23	1	3	2	0	0	0	0	0
+Pirate	Brimhaven	21	1	3	2	0	0	0	0	0
+Pirate	Cabin Fever	50	1	0	0	0	0	0	0	0
+Pirate	Pirate's Cove	20	1	0	1	0	0	0	0	0
+Pirate	Port Piscarilius	20	1	0	1	0	0	0	0	0
+Pirate	Port Sarim	20	1	0	1	0	0	0	0	0
+Pit Scorpion		23	1	0	5	5	0	0	0	0
+Poison Scorpion		15	1	5	15	15	0	5	5	5
+Poison spider (Escape Caves)		35	1	20	17	10	14	14	14	14
+Poison spider	Level 64	52	1	20	17	10	14	14	14	14
+Porazdir		100	180	200	200	200	-60	200	200	200
+Pyrefiend	Level 43	22	1	10	10	10	0	10	10	10
+Pyrefiend	Level 48	22	1	10	10	10	0	10	10	10
+Pyrelord	1	30	1	10	10	10	0	10	10	10
+Pyrelord	2	30	1	10	10	10	0	10	10	10
+Ranis Drakan	A Taste of Hope (1/4th health)	120	120	60	60	60	60	60	60	60
+Ranis Drakan	A Taste of Hope	120	120	60	60	60	60	60	60	60
+Rat	Regular	1	1	-42	-42	-42	-42	-42	-42	-42
+Rat	Stronghold of Security	1	1	-42	-42	-42	-42	-42	-42	-42
+Reanimated abyssal		135	1	20	20	20	0	20	20	20
+Reanimated aviansie		70	1	0	0	0	0	0	0	0
+Reanimated bear		15	1	0	0	0	0	0	0	0
+Reanimated bloodveld		30	1	0	0	0	0	0	0	0
+Reanimated chaos druid		12	10	0	0	0	0	0	0	0
+Reanimated dagannoth		81	1	0	0	0	0	0	0	0
+Reanimated demon		71	1	0	0	0	-10	0	0	0
+Reanimated dog		54	1	0	0	0	0	0	0	0
+Reanimated elf		80	1	5	20	40	60	50	50	50
+Reanimated giant		26	1	0	0	0	0	0	0	0
+Reanimated goblin		1	1	-15	-15	-15	-15	-15	-15	-15
+Reanimated hellhound		102	1	0	0	0	0	0	0	0
+Reanimated horror		55	1	0	0	0	0	0	0	0
+Reanimated kalphite		110	1	25	25	5	50	50	50	50
+Reanimated minotaur		10	1	-21	-21	-21	-21	-21	-21	-21
+Reanimated monkey		3	1	0	0	0	0	0	0	0
+Reanimated ogre		43	1	0	0	0	0	0	0	0
+Reanimated scorpion		11	1	5	15	15	5	0	0	0
+Reanimated troll		40	1	0	0	10	200	200	200	200
+Reanimated TzHaar		120	40	0	0	0	0	0	0	0
+Red dragon	1	130	1	0	70	70	60	50	50	10
+Red dragon	2	130	1	0	70	70	60	50	50	10
+Red dragon	3	130	1	0	70	70	60	50	50	10
+Red dragon	4	130	1	0	70	70	60	50	50	10
+Red dragon	5	130	1	0	70	70	60	50	50	10
+Redeyes		70	70	10	10	5	5	20	20	20
+Repugnant spectre		220	380	120	120	120	0	115	115	115
+Respiratory system		80	0	0	0	0	0	0	0	0
+Revenant cyclops		49	65	110	130	135	10	135	135	95
+Revenant dark beast		80	130	113	152	155	70	158	158	118
+Revenant demon		80	120	124	118	130	85	90	90	90
+Revenant dragon		87	150	143	206	188	101	197	197	157
+Revenant goblin		14	12	25	28	31	1	31	31	31
+Revenant hellhound		80	104	98	140	142	62	110	140	140
+Revenant hobgoblin		41	55	65	60	68	30	50	50	20
+Revenant imp		4	9	0	0	0	5	0	0	0
+Revenant knight		80	146	145	200	180	95	190	190	150
+Revenant maledictus		90	130	201	206	188	101	231	231	231
+Revenant ork		60	110	118	150	146	50	148	148	118
+Revenant pyrefiend		33	67	45	40	50	15	10	10	10
+River troll	Level 120	100	1	0	0	0	0	0	0	0
+River troll	Level 14	9	1	0	0	0	0	0	0	0
+River troll	Level 159	130	1	0	0	0	0	0	0	0
+River troll	Level 29	22	1	0	0	0	0	0	0	0
+River troll	Level 49	38	1	0	0	0	0	0	0	0
+River troll	Level 79	65	1	0	0	0	0	0	0	0
+Riyl Shade	Shade	60	0	0	0	0	0	0	0	0
+Riyl Shade	Shadow	60	0	0	0	0	0	0	0	0
+Riyl shadow (Temple Trekking)		60	50	0	0	0	0	0	0	0
+Rock (Troll)		70	0	35	60	35	200	200	200	180
+Rock Crab	Active	1	1	0	0	0	0	0	0	0
+Rock Crab	Hidden	1	1	0	0	0	0	0	0	0
+Rockslug	Adult	27	1	0	0	0	0	0	0	0
+Rockslug	Baby	27	1	0	0	0	0	0	0	0
+Rogue	Level 135	150	1	0	0	0	0	0	0	0
+Rogue	Level 15	13	1	6	9	11	0	0	0	0
+Rooster	Level 2	1	1	-42	-42	-42	-42	-42	-42	-42
+Rooster	Level 3	1	1	-42	-42	-42	-42	-42	-42	-42
+Rune dragon		276	196	20	115	90	30	95	95	50
+Ruptura Araxyte		50	1	25	25	25	-10	25	25	25
+Salarin the twisted		62	1	0	0	0	0	0	0	0
+Sand Crab	Active	1	1	0	0	0	0	0	0	0
+Sand Crab	Hidden	1	1	0	0	0	0	0	0	0
+Sarachnis		150	150	60	40	10	150	300	300	300
+Scarab Mage	Level 119 (Beneath Cursed Sands)	60	100	0	20	20	30	0	0	0
+Scarab Mage	Level 66 (Contact!)	90	70	40	90	90	34	0	0	0
+Scarab Mage	Level 93	90	70	40	90	90	34	0	0	0
+Scarab Swarm	Normal	30	1	90	90	5	90	90	90	90
+Scarab Swarm	Pyramid Plunder	30	1	90	90	5	90	90	90	90
+Scarabs		10	1	15	15	15	15	15	15	15
+Scorpia		180	1	246	284	284	44	284	284	284
+Scorpia's guardian		60	30	0	0	0	0	0	0	0
+Scorpia's offspring (monster)		1	1	0	0	0	-40	0	0	0
+Scorpion	Level 1	1	1	-53	-53	-53	-53	-53	-53	-53
+Scorpion	Level 14	11	1	5	15	15	0	5	5	5
+Scorpion	Level 37	31	1	35	15	15	30	35	35	35
+Scorpion	Level 38	10	10	0	0	0	0	0	0	0
+Scorpion	Level 59	50	1	5	15	15	0	55	55	55
+Screaming banshee		56	1	13	13	13	0	13	13	13
+Screaming twisted banshee		80	1	25	25	25	0	25	25	25
+Scurrius	Group	100	100	20	20	20	10	20	20	20
+Scurrius	Solo	60	50	20	20	20	10	20	20	20
+Sea Snake Hatchling		50	1	0	0	0	0	0	0	0
+Sea Snake Young		70	1	0	0	0	0	0	0	0
+Seagull (Icyene Graveyard)		1	1	-42	-42	-42	-42	-42	-42	-42
+Seagull	Level 2	1	1	-42	-42	-42	-42	-42	-42	-42
+Seagull	Level 3	1	1	-42	-42	-42	-42	-42	-42	-42
+Sergeant Grimspike		132	50	0	0	0	0	0	0	0
+Sergeant Steelwill		150	150	0	0	0	0	0	0	0
+Sergeant Strongstack		125	50	0	0	0	0	0	0	0
+Shade (Temple Trekking)		100	50	0	0	0	0	0	0	0
+Shade	Catacombs of Kourend	100	50	0	0	0	0	0	0	0
+Shade	Stronghold of Security	130	1	0	0	0	0	0	0	0
+Shadow Hound		54	1	0	0	0	0	0	0	0
+Shadow spider		44	1	20	15	10	15	15	15	15
+Shadow warrior		36	0	43	31	19	15	38	38	38
+Shadow Wyrm	Attacking	125	160	20	100	100	50	20	0	20
+Shadow Wyrm	Idle	125	160	20	100	100	50	20	0	20
+Shellbane gryphon		120	100	10	20	40	100	60	60	60
+Skeletal miner		38	1	9	11	-2	1	4	4	4
+Skeletal Mystic	Normal	187	140	155	155	75	140	115	115	75
+Skeletal Wyvern	1	120	125	140	90	90	80	140	140	140
+Skeletal Wyvern	2	120	125	140	90	90	80	140	140	140
+Skeletal Wyvern	3	120	125	140	90	90	80	140	140	140
+Skeletal Wyvern	4	120	125	140	90	90	80	140	140	140
+Skeleton (Ape Atoll)		110	110	0	0	0	0	0	0	0
+Skeleton (Barrows)	Armed round shield	72	1	5	5	-5	0	5	5	5
+Skeleton (Barrows)	Square shield	72	1	5	5	-5	0	5	5	5
+Skeleton (Barrows)	Unarmed round shield	72	1	5	5	-5	0	5	5	5
+Skeleton (Barrows)	Unarmed	72	1	5	5	-5	0	5	5	5
+Skeleton (Catacombs of Kourend)		17	1	5	5	-5	0	5	5	5
+Skeleton (Draynor Manor)		17	1	9	11	-2	1	4	4	4
+Skeleton (Forthos Ruin)	1	24	1	9	11	-1	1	4	4	4
+Skeleton (Forthos Ruin)	2	24	1	9	11	-1	1	4	4	4
+Skeleton (Forthos Ruin)	3	24	1	9	11	-1	1	4	4	4
+Skeleton (Forthos Ruin)	4	24	1	9	11	-1	1	4	4	4
+Skeleton (Forthos Ruin)	5	24	1	9	11	-1	1	4	4	4
+Skeleton (Lucien's camp)	1	62	1	25	20	25	10	30	30	30
+Skeleton (Lucien's camp)	2	62	1	25	20	25	10	30	30	30
+Skeleton (Lucien's camp)	3	62	1	25	20	25	10	30	30	30
+Skeleton (Lucien's camp)	4	62	1	25	20	25	10	30	30	30
+Skeleton (mage)		80	110	50	40	0	0	40	40	40
+Skeleton (Melzar's Maze)	1	17	1	9	11	-2	1	4	4	4
+Skeleton (Melzar's Maze)	2	17	1	9	11	-2	1	4	4	4
+Skeleton (Melzar's Maze)	3	17	1	9	11	-2	1	4	4	4
+Skeleton (Shayzien Crypts)	Magic	62	180	35	30	35	20	10	10	10
+Skeleton (Shayzien Crypts)	Melee	62	1	25	20	25	10	30	30	30
+Skeleton (Shayzien Crypts)	Range	62	1	15	10	15	30	20	20	20
+Skeleton (Stronghold of Security)	1	40	1	35	35	-5	0	35	35	35
+Skeleton (Stronghold of Security)	2	40	1	35	35	-5	0	35	35	35
+Skeleton (Stronghold of Security)	3	40	1	35	35	-5	0	35	35	35
+Skeleton (Stronghold of Security)	4	60	1	35	35	-5	0	35	35	35
+Skeleton (Stronghold of Security)	5	74	1	79	31	20	5	70	70	70
+Skeleton (Stronghold of Security)	6	74	1	79	31	20	5	70	70	70
+Skeleton (Stronghold of Security)	7	74	1	79	31	20	5	70	70	70
+Skeleton (Tarn's Lair)	Level 40	52	1	50	40	0	0	40	40	40
+Skeleton (Tarn's Lair)	Level 42 (Hammer)	30	1	50	40	0	0	40	40	40
+Skeleton (Tarn's Lair)	Level 42 (Sword)	40	1	50	40	0	0	40	40	40
+Skeleton (Tarn's Lair)	Level 59	62	1	50	40	0	0	40	40	40
+Skeleton (Tarn's Lair)	Level 63	45	1	50	40	0	0	40	40	40
+Skeleton (Tarn's Lair)	Level 72	45	1	50	40	0	0	40	40	40
+Skeleton (Tarn's Lair)	Level 77	60	1	50	40	0	0	40	40	40
+Skeleton (Tarn's Lair)	Level 81	80	1	50	40	0	0	40	40	40
+Skeleton (Tarn's Lair)	Level 87	55	1	50	40	0	0	40	40	40
+Skeleton (The Restless Ghost)		7	1	5	5	-5	0	5	5	5
+Skeleton (Wilderness Agility Course)	1	24	1	9	11	-2	1	4	4	4
+Skeleton (Wilderness Agility Course)	2	24	1	9	11	-2	1	4	4	4
+Skeleton (Wilderness Agility Course)	3	24	1	9	11	-2	1	4	4	4
+Skeleton (Wilderness Agility Course)	4	24	1	9	11	-2	1	4	4	4
+Skeleton (Wilderness Agility Course)	5	24	1	9	11	-2	1	4	4	4
+Skeleton (Wilderness Agility Course)	6	24	1	9	11	-2	1	4	4	4
+Skeleton (Wilderness Agility Course)	7	24	1	9	11	-2	1	4	4	4
+Skeleton brute		110	1	0	3	2	-3	2	2	2
+Skeleton fremennik	Level 40	30	1	14	18	15	-4	15	15	15
+Skeleton fremennik	Level 50	35	1	14	18	15	-4	15	15	15
+Skeleton fremennik	Level 60	40	1	14	18	15	-4	15	15	15
+Skeleton heavy		110	1	0	3	2	-3	2	2	2
+Skeleton Hellhound (Calvar'ion)		95	1	76	73	10	126	155	155	155
+Skeleton Hellhound (Vet'ion)		150	1	101	103	10	180	266	266	266
+Skeleton Hellhound		100	1	0	0	0	0	0	0	0
+Skeleton hero		110	1	0	3	2	-3	2	2	2
+Skeleton Mage	Level 16	14	18	0	0	0	0	0	0	0
+Skeleton Mage	Level 83	60	100	0	0	0	15	0	0	0
+Skeleton thug		110	1	0	3	2	-3	2	2	2
+Skeleton warlord		110	1	0	3	2	-3	2	2	2
+Skeleton	Level 21, 1	17	1	5	5	-5	0	5	5	5
+Skeleton	Level 21, 2	17	1	5	5	-5	0	5	5	5
+Skeleton	Level 21, 3	17	1	5	5	-5	0	5	5	5
+Skeleton	Level 22, 1	17	1	5	5	-5	0	5	5	5
+Skeleton	Level 22, 2	17	1	5	5	-5	0	5	5	5
+Skeleton	Level 22, 3	17	1	5	5	-5	0	5	5	5
+Skeleton	Level 22, 4	17	1	5	5	-5	0	5	5	5
+Skeleton	Level 25, 1	24	1	9	11	-2	1	4	4	4
+Skeleton	Level 25, 2	24	1	9	11	-2	1	4	4	4
+Skeleton	Level 25, 3	24	1	9	11	-2	1	4	4	4
+Skeleton	Level 25, 4	24	1	9	11	-2	1	4	4	4
+Skeleton	Level 25, 5	24	1	9	11	-2	1	4	4	4
+Skeleton	Level 45, 1	36	1	9	11	-2	1	4	4	4
+Skeleton	Level 45, 2	36	1	9	11	-2	1	4	4	4
+Skoblin		10	10	10	10	5	5	20	20	20
+Skogre	1	35	1	0	0	0	0	0	0	0
+Skogre	2	35	1	0	0	0	0	0	0	0
+Skogre	3	35	1	0	0	0	0	0	0	0
+Skotizo		200	280	80	80	80	80	130	130	130
+Slash Bash		60	1	30	30	30	0	0	0	0
+Small Lizard	Green	10	1	0	5	5	0	0	0	0
+Small Lizard	Orange	10	1	0	5	5	0	0	0	0
+Small scarab		55	1	0	0	0	0	0	0	0
+Smoke devil		275	1	0	0	0	600	44	44	44
+Snailfeet		30	30	10	10	5	5	20	20	20
+Snothead		15	15	10	10	5	5	20	20	20
+Sorebones	Apron	50	1	0	0	0	0	0	0	0
+Sorebones	Jacket	50	1	0	0	0	0	0	0	0
+Sourhog		25	25	0	30	10	30	0	0	0
+Spawn of Sarachnis	Level 107	50	1	50	50	20	-10	150	150	20
+Spawn of Sarachnis	Level 68	50	100	50	50	50	150	0	0	0
+Speedy Keith		27	1	9	8	10	0	0	0	0
+Spider (Ape Atoll)		1	1	0	1	0	1	0	0	0
+Spider (Ungael)		20	1	20	20	10	17	20	20	20
+Spider	Common	1	1	-53	-53	-53	-53	-53	-53	-53
+Spider	Stronghold of Security	21	1	53	53	53	53	53	53	53
+Spider	Underground Pass	1	1	-53	-53	-53	-53	-53	-53	-53
+Spiked Turoth		154	1	0	40	40	0	0	0	0
+Spindel		225	235	70	70	10	205	103	103	103
+Spiritual mage	Armadyl	111	150	9	12	5	45	28	28	28
+Spiritual mage	Bandos	103	142	12	14	13	35	13	13	13
+Spiritual mage	Saradomin	86	160	8	7	3	16	2	2	2
+Spiritual mage	Zamorak	61	180	0	0	0	0	0	0	0
+Spiritual mage	Zaros	100	200	420	400	420	200	0	0	0
+Spiritual ranger	Armadyl	130	1	17	16	8	35	41	41	41
+Spiritual ranger	Bandos	96	1	12	14	13	5	13	13	13
+Spiritual ranger	Saradomin	100	1	3	5	13	16	23	23	23
+Spiritual ranger	Zamorak	80	1	0	0	0	0	0	0	0
+Spiritual ranger	Zaros	100	100	20	0	20	300	50	50	50
+Spiritual warrior	Armadyl	120	1	23	25	13	35	35	35	35
+Spiritual warrior	Bandos	100	1	12	14	13	5	13	13	13
+Spiritual warrior	Saradomin	110	1	12	14	13	5	13	13	13
+Spiritual warrior	Zamorak	100	1	0	0	0	0	0	0	0
+Spiritual warrior	Zaros	100	50	100	100	80	0	250	250	250
+Spitting Wyvern		90	125	50	70	70	140	120	70	120
+Steel dragon	Level 246 (Task only)	215	100	0	70	70	30	90	90	10
+Steel dragon	Level 246	215	100	0	70	70	30	90	90	10
+Steel dragon	Level 274	235	130	0	70	70	30	90	90	10
+Stick		60	0	30	30	50	200	200	200	200
+Strange creature (Shadows of Custodia)		45	25	30	-10	50	35	-10	5	30
+Strongbones		90	90	10	10	5	5	20	20	20
+Sulphur Lizard		30	1	15	25	25	0	15	15	15
+Sulphur Nagua (Perilous Moons)		40	50	50	50	10	200	200	200	200
+Sulphur Nagua		40	50	50	50	10	200	200	200	200
+Summoned Zombie		10	1	0	0	0	0	0	0	0
+Suqah	1	95	1	50	70	70	90	50	30	50
+Suqah	2	95	1	50	70	70	90	50	30	50
+Suqah	3	95	1	50	70	70	90	50	30	50
+Suqah	4	95	1	50	70	70	90	50	30	50
+Suqah	5	95	1	50	70	70	90	50	30	50
+Suqah	6	95	1	50	70	70	90	50	30	50
+Suqah	7	95	1	50	70	70	90	50	30	50
+Swamp Crab	Bloomed	50	50	100	100	100	100	-55	-55	-55
+Swamp Crab	Hidden	50	50	100	100	100	100	-55	-55	-55
+Swamp Crab	Normal	50	50	100	100	100	100	-55	-55	-55
+Taloned Wyvern		90	90	50	70	70	140	120	70	120
+Temple Guardian		20	1	0	0	0	0	0	0	0
+Temple Spider		10	1	20	30	10	25	20	20	20
+Terror dog	Level 100	74	1	0	0	0	0	0	0	0
+Terror dog	Level 110	78	1	0	0	0	0	0	0	0
+Terrorbird	1	19	1	0	0	0	0	0	0	0
+Terrorbird	2	19	1	0	0	0	0	0	0	0
+Terrorbird	3	19	1	0	0	0	0	0	0	0
+The Jormungand		214	214	50	50	10	50	50	50	50
+The Leviathan	Post-quest	250	160	260	190	230	280	50	50	25
+The Leviathan	Quest	200	130	200	150	180	220	50	50	25
+The rocks		135	1	35	60	35	0	0	0	0
+The Whisperer	Post-quest	250	180	180	300	220	10	300	300	300
+The Whisperer	Quest	200	130	180	300	220	10	300	300	300
+Thermonuclear smoke devil		360	1	11	4	9	800	900	900	900
+Thrower troll (Trollheim)		15	0	0	0	0	200	200	120	200
+Thrower Troll		30	0	0	0	0	200	200	120	200
+Tok-Xil	Standard	60	60	0	0	0	0	0	0	0
+Torag the Corrupted		100	1	221	235	222	0	221	221	221
+Tormented Demon	1	150	255	75	175	68	5	140	150	90
+Tormented Demon	2	150	255	75	175	68	5	140	150	90
+Tormented Demon	3	150	255	75	175	68	5	140	150	90
+Tormented Demon	4	150	255	75	175	68	5	140	150	90
+Tortured gorilla	Level 141	95	95	0	0	0	25	0	0	0
+Tortured gorilla	Level 142	110	110	0	0	0	0	0	0	0
+Tortured soul		38	1	0	0	0	0	0	0	0
+Tree spirit (Lost City)		80	1	0	0	0	0	0	0	0
+Treus Dayth	In combat	100	1	5	5	5	-5	5	5	5
+Troll general	Hammer (brown)	40	0	35	60	35	200	200	120	200
+Troll general	Hammer (grey)	40	0	35	60	35	200	200	120	200
+Troll general	Sword	40	0	35	60	35	200	200	120	200
+Troll spectator		25	0	0	0	10	200	200	200	200
+Tstanon Karlak		125	50	0	0	0	-5	0	0	0
+Turoth	Baby	83	1	0	20	20	0	0	0	0
+Turoth	Child	84	1	0	20	20	0	0	0	0
+Turoth	Dad	88	1	0	20	20	0	0	0	0
+Turoth	Mum	86	1	0	20	20	0	0	0	0
+Twig	Awake	25	0	0	0	10	200	200	200	200
+Twig	Sleeping	25	0	0	0	10	200	200	200	200
+Twisted Banshee		50	1	15	15	15	0	15	15	15
+Typhor		186	186	30	30	0	30	0	0	0
+TzHaar-Hur		60	80	0	0	0	0	0	0	0
+TzHaar-Ket	Level 149	120	40	0	0	0	0	0	0	0
+TzHaar-Ket	Level 221	190	40	0	0	0	0	0	0	0
+TzHaar-Mej		80	120	0	0	0	0	0	0	0
+TzHaar-Xil	Knife	100	40	0	0	0	0	0	0	0
+TzHaar-Xil	Ring	100	40	0	0	0	0	0	0	0
+TzHaar-Xil	Sword	100	40	0	0	0	0	0	0	0
+TzKal-Zuk	Enraged	260	150	0	0	0	350	100	100	100
+TzKal-Zuk	Normal	260	150	0	0	0	350	100	100	100
+Tz-Kek	Level 22	15	15	0	0	0	0	0	0	0
+Tz-Kek	Level 45	30	30	0	0	0	0	0	0	0
+Tz-Kih		15	15	0	0	0	0	0	0	0
+TzTok-Jad		480	480	0	0	0	0	0	0	0
+Ulfric		82	1	0	0	0	0	0	0	0
+Undead chicken		1	1	-42	-42	-42	-42	-42	-42	-42
+Undead cow		1	1	-21	-21	-21	-21	-21	-21	-21
+Undead Druid		60	115	40	30	80	140	40	40	40
+Undead Lumberjack	Level 30	10	1	0	0	0	0	0	0	0
+Undead Lumberjack	Level 35	11	1	0	0	0	0	0	0	0
+Undead Lumberjack	Level 40	12	1	0	0	0	0	0	0	0
+Undead Lumberjack	Level 45	13	1	0	0	0	0	0	0	0
+Undead Lumberjack	Level 50	14	1	0	0	0	0	0	0	0
+Undead Lumberjack	Level 55	15	1	0	0	0	0	0	0	0
+Undead Lumberjack	Level 60	16	1	0	0	0	0	0	0	0
+Undead Lumberjack	Level 64	17	1	0	0	0	0	0	0	0
+Undead Lumberjack	Level 70	18	1	0	0	0	0	0	0	0
+Undead one	Level 61	55	0	5	5	3	1	4	4	4
+Undead one	Level 68 (Skeletal)	63	0	0	0	0	0	0	0	0
+Undead one	Level 68 (Zombie)	63	0	0	0	0	0	0	0	0
+Undead one	Level 73	65	0	0	0	0	0	0	0	0
+Uodai		130	130	0	0	0	0	0	0	0
+Urium Shade	Shade	100	0	0	0	0	0	0	0	0
+Urium Shade	Shadow	100	0	0	0	0	0	0	0	0
+Uyoro		130	130	0	0	0	0	0	0	0
+Vampyre Juvenile	Burgh de Rott and Crombwick Manor	30	1	0	0	0	0	0	0	0
+Vampyre Juvenile	Darkmeyer	30	1	0	0	0	0	0	0	0
+Vampyre Juvenile	Meiyerditch	30	1	0	0	0	0	0	0	0
+Vampyre Juvinate	Level 119 (Sins of the Father)	65	50	0	0	0	0	0	0	0
+Vampyre Juvinate	Level 119 (Temple Trekking)	65	50	0	0	0	0	0	0	0
+Vampyre Juvinate	Level 50 (In Aid of the Myreque)	30	1	0	0	0	0	0	0	0
+Vampyre Juvinate	Level 54 (Burgh de Rott)	30	1	0	0	0	0	0	0	0
+Vampyre Juvinate	Level 54 (Darkmeyer)	30	1	0	0	0	0	0	0	0
+Vampyre Juvinate	Level 54 (Meiyerditch)	30	1	0	0	0	0	0	0	0
+Vampyre Juvinate	Level 59 (Temple Trekking)	45	50	0	0	0	0	0	0	0
+Vampyre Juvinate	Level 75 (In Aid of the Myreque)	35	1	0	0	0	0	0	0	0
+Vampyre Juvinate	Level 90 (Temple Trekking)	55	50	0	0	0	0	0	0	0
+Vanstrom Klause	Sins of the Father	180	180	34	34	34	34	34	34	34
+Vardorvis	Post-quest	0	215	215	65	85	580	580	580	580
+Vardorvis	Quest	0	180	150	25	50	560	560	560	560
+Venator	1	120	100	-5	20	90	100	100	100	100
+Venator	2	120	100	-5	20	90	100	100	100	100
+Venator	3	120	100	-5	20	90	100	100	100	100
+Venator	4	120	100	-5	20	90	100	100	100	100
+Venator	5	120	100	-5	20	90	100	100	100	100
+Venenatis		321	300	100	100	10	300	150	150	150
+Verac the Defiled		100	1	227	230	221	0	225	225	225
+Vet'ion	Enraged	395	300	201	200	-10	250	270	270	270
+Vet'ion	Normal	395	300	201	200	-10	250	270	270	270
+Vitreous Chilled Jelly		250	180	0	0	0	0	0	0	0
+Vitreous Jelly		220	150	0	0	0	0	0	0	0
+Vitreous Warped Jelly		250	180	0	0	0	0	0	0	0
+Vorkath	Dragon Slayer II	164	148	66	126	126	204	80	80	80
+Vorkath	Post-quest	214	150	26	108	108	240	26	26	26
+Vulture	Flying	10	1	0	0	0	0	0	0	0
+Vulture	Landed	10	1	0	0	0	0	0	0	0
+Vyrewatch Sentinel	1	180	120	0	0	0	0	100	100	100
+Vyrewatch Sentinel	2	180	120	0	0	0	0	100	100	100
+Vyrewatch Sentinel	3	180	120	0	0	0	0	100	100	100
+Vyrewatch Sentinel	4	180	120	0	0	0	0	100	100	100
+Vyrewatch Sentinel	5	180	120	0	0	0	0	100	100	100
+Vyrewatch Sentinel	6	180	120	0	0	0	0	100	100	100
+Vyrewatch Sentinel	7	180	120	0	0	0	0	100	100	100
+Vyrewatch Sentinel	8	180	120	0	0	0	0	100	100	100
+Vyrewatch	Level 105	85	105	0	0	0	0	0	0	0
+Vyrewatch	Level 110	85	110	0	0	0	0	0	0	0
+Vyrewatch	Level 120	85	120	0	0	0	0	0	0	0
+Vyrewatch	Level 125	85	120	0	0	0	0	0	0	0
+Vyrewatch	Level 87	75	75	0	0	0	0	0	0	0
+Wall beast	Beast	16	1	0	0	0	0	0	0	0
+Wall beast	Hole	16	1	0	0	0	0	0	0	0
+Warped Jelly		70	95	0	0	0	0	0	0	0
+Warped Terrorbird	Level 138	60	160	50	50	0	0	20	62	62
+Warped Terrorbird	Level 96	20	60	50	50	0	0	20	62	62
+Warped Tortoise		78	50	50	50	0	0	60	60	20
+Waterfiend	Normal	128	105	100	100	10	100	100	100	20
+Waterfiend	Slayer task	128	105	100	100	10	100	100	100	20
+Werewolf	Alexis	70	1	0	0	0	60	0	0	0
+Werewolf	Boris	70	1	0	0	0	60	0	0	0
+Werewolf	Eduard	70	1	0	0	0	60	0	0	0
+Werewolf	Galina	70	1	0	0	0	60	0	0	0
+Werewolf	Georgy	70	1	0	0	0	60	0	0	0
+Werewolf	God Wars Dungeon (1)	85	1	-21	-21	-21	-21	-21	-21	-21
+Werewolf	God Wars Dungeon (2)	85	1	-21	-21	-21	-21	-21	-21	-21
+Werewolf	Imre	70	1	0	0	0	60	0	0	0
+Werewolf	Irina	70	1	0	0	0	60	0	0	0
+Werewolf	Joseph	70	1	0	0	0	60	0	0	0
+Werewolf	Ksenia	70	1	0	0	0	60	0	0	0
+Werewolf	Lev	70	1	0	0	0	60	0	0	0
+Werewolf	Liliya	70	1	0	0	0	60	0	0	0
+Werewolf	Milla	70	1	0	0	0	60	0	0	0
+Werewolf	Nikita	70	1	0	0	0	60	0	0	0
+Werewolf	Nikolai	70	1	0	0	0	60	0	0	0
+Werewolf	Sofiya	70	1	0	0	0	60	0	0	0
+Werewolf	Svetlana	70	1	0	0	0	60	0	0	0
+Werewolf	Vera	70	1	0	0	0	60	0	0	0
+Werewolf	Yadviga	70	1	0	0	0	60	0	0	0
+Werewolf	Yuri	70	1	0	0	0	60	0	0	0
+Werewolf	Zoja	70	1	0	0	0	60	0	0	0
+White wolf	Level 25	22	1	0	0	0	0	0	0	0
+White wolf	Level 38	32	1	0	0	0	0	0	0	0
+Wild dog	Normal	54	1	0	0	0	0	0	0	0
+Wild dog	Unused	54	1	0	0	0	0	0	0	0
+Wingman Skree		160	150	0	0	0	0	0	0	0
+Wolf	Level 11	10	1	0	0	0	0	0	0	0
+Wolf	Level 14	10	1	0	0	0	0	0	0	0
+Wolf	Level 25	22	1	0	0	0	0	0	0	0
+Wolf	Level 64 (Rellekka)	52	1	0	0	0	0	0	0	0
+Wolf	Level 64	52	1	0	0	0	0	0	0	0
+Wormbrain		1	1	0	0	0	0	0	0	0
+Wyrm	Attacking	80	80	10	50	50	50	20	20	10
+Wyrm	Idle	80	80	10	50	50	50	20	20	10
+Wyrmling	Attacking (Neypotzli)	40	60	20	50	50	50	20	20	20
+Wyrmling	Attacking (Wyrmscraig)	40	60	20	50	50	50	20	20	20
+Wyrmling	Idle (Neypotzli)	40	60	20	50	50	50	20	20	20
+Wyrmling	Idle (Wyrmscraig)	40	60	20	50	50	50	20	20	20
+Yt-HurKot	Level 108	60	120	0	0	0	100	100	100	100
+Yt-HurKot	Level 141	100	150	0	0	0	130	130	130	130
+Yt-MejKot	Standard	120	120	0	0	0	0	0	0	0
+Zakl'n Gritch		127	50	0	0	0	-5	0	0	0
+Zogre		35	1	0	0	0	0	0	0	0
+Zombie (Entrana Dungeon)	1	21	1	10	8	12	10	10	10	10
+Zombie (Entrana Dungeon)	2	21	1	10	8	12	10	10	10	10
+Zombie (Entrana Dungeon)	3	21	1	10	8	12	10	10	10	10
+Zombie (Entrana Dungeon)	4	21	1	10	8	12	10	10	10	10
+Zombie (Entrana Dungeon)	5	21	1	10	8	12	10	10	10	10
+Zombie (Kourend)	Level 56	47	1	20	20	0	0	10	10	10
+Zombie (Kourend)	Level 70	61	1	20	20	0	0	10	10	10
+Zombie (Kourend)	Level 72	62	1	20	20	0	0	10	10	10
+Zombie (Kourend)	Level 76	62	1	20	20	0	0	10	10	10
+Zombie (Melzar's Maze)		16	1	9	8	12	10	11	11	11
+Zombie (Sepulchre of Death)		130	1	0	0	0	0	0	0	0
+Zombie (Shayzien Crypts)	Magic	62	180	35	30	35	20	10	10	10
+Zombie (Shayzien Crypts)	Melee	62	1	25	20	25	10	30	30	30
+Zombie (Shayzien Crypts)	Range	62	1	15	10	15	30	20	20	20
+Zombie (Stronghold of Security)	Level 30, 1	20	1	0	0	0	0	0	0	0
+Zombie (Stronghold of Security)	Level 30, 2	20	1	0	0	0	0	0	0	0
+Zombie (Stronghold of Security)	Level 30, 3	20	1	0	0	0	0	0	0	0
+Zombie (Stronghold of Security)	Level 44, 1	40	1	0	0	22	0	0	0	0
+Zombie (Stronghold of Security)	Level 44, 2	40	1	0	0	22	0	0	0	0
+Zombie (Stronghold of Security)	Level 44, 3	40	1	0	0	22	0	0	0	0
+Zombie (Stronghold of Security)	Level 53, 1	48	1	19	18	0	20	21	21	21
+Zombie (Stronghold of Security)	Level 53, 2	48	1	19	18	0	20	21	21	21
+Zombie (Stronghold of Security)	Level 53, 3	48	1	19	18	0	20	21	21	21
+Zombie (Tarn's Lair)	Level 100	81	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 40	33	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 42	35	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 47	42	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 50	44	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 56	47	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 61	50	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 67	60	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 70	61	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 72	62	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 76	62	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 80	62	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 81	71	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 85	70	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 86	71	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 90	72	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 95	75	1	20	20	0	0	10	10	10
+Zombie (Tarn's Lair)	Level 98	81	1	20	20	0	0	10	10	10
+Zombie (Temple Trekking)		20	1	0	0	0	0	0	0	0
+Zombie (Wilderness)	Level 18, 1	18	1	0	0	0	0	0	0	0
+Zombie (Wilderness)	Level 18, 2	18	1	0	0	0	0	0	0	0
+Zombie (Wilderness)	Level 18, 3	18	1	0	0	0	0	0	0	0
+Zombie (Wilderness)	Level 18, 4	18	1	0	0	0	0	0	0	0
+Zombie (Wilderness)	Level 18, 5	18	1	0	0	0	0	0	0	0
+Zombie (Wilderness)	Level 18, 6	18	1	0	0	0	0	0	0	0
+Zombie (Wilderness)	Level 18, 7	18	1	0	0	0	0	0	0	0
+Zombie (Wilderness)	Level 24, 1	16	1	9	8	12	10	11	11	11
+Zombie (Wilderness)	Level 24, 2	16	1	9	8	12	10	11	11	11
+Zombie (Wilderness)	Level 24, 3	16	1	9	8	12	10	11	11	11
+Zombie (Wilderness)	Level 24, 4	16	1	9	8	12	10	11	11	11
+Zombie (Wilderness)	Level 24, 5	16	1	9	8	12	10	11	11	11
+Zombie (Zogre Flesh Eaters)		30	1	0	0	0	0	0	0	0
+Zombie pirate (Braindeath Island)	1	50	1	0	0	0	0	0	0	0
+Zombie pirate (Braindeath Island)	2	50	1	0	0	0	0	0	0	0
+Zombie pirate (Braindeath Island)	3	50	1	0	0	0	0	0	0	0
+Zombie pirate (Braindeath Island)	4	50	1	0	0	0	0	0	0	0
+Zombie pirate (Braindeath Island)	5	50	1	0	0	0	0	0	0	0
+Zombie pirate (Braindeath Island)	6	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	1	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	10	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	11	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	12	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	13	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	14	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	15	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	16	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	17	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	18	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	19	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	2	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	20	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	21	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	22	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	23	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	24	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	25	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	26	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	3	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	4	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	5	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	6	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	7	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	8	50	1	0	0	0	0	0	0	0
+Zombie pirate (Harmony Island)	9	50	1	0	0	0	0	0	0	0
+Zombie pirate	Level 22	20	1	0	0	0	0	0	0	0
+Zombie pirate	Level 28	20	1	0	0	0	0	0	0	0
+Zombie pirate	Level 34	20	1	0	0	0	0	0	0	0
+Zombie rat	1	2	1	0	0	0	0	0	0	0
+Zombie rat	2	2	1	0	0	0	0	0	0	0
+Zombie rat	3	2	1	0	0	0	0	0	0	0
+Zombie swab	1	50	1	0	0	0	0	0	0	0
+Zombie swab	2	50	1	0	0	0	0	0	0	0
+Zombie swab	3	50	1	0	0	0	0	0	0	0
+Zombie swab	4	50	1	0	0	0	0	0	0	0
+Zombie swab	5	50	1	0	0	0	0	0	0	0
+Zombie swab	6	50	1	0	0	0	0	0	0	0
+Zombie	Level 13, 1	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 10	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 11	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 12	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 13	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 2	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 3	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 4	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 5	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 6	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 7	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 8	10	1	0	0	0	0	0	0	0
+Zombie	Level 13, 9	10	1	0	0	0	0	0	0	0
+Zombie	Level 18, 1	18	1	0	0	0	0	0	0	0
+Zombie	Level 18, 2	18	1	0	0	0	0	0	0	0
+Zombie	Level 18, 3	18	1	0	0	0	0	0	0	0
+Zombie	Level 24, 1	16	1	9	8	12	10	11	11	11
+Zombie	Level 24, 2	16	1	9	8	12	10	11	11	11
+Zombie	Level 24, 3	16	1	9	8	12	10	11	11	11
+Zombie	Level 24, 4	16	1	9	8	12	10	11	11	11
+Zombie	Level 24, 5	16	1	9	8	12	10	11	11	11
+Zombie	Level 24, 6	16	1	9	8	12	10	11	11	11
+Zombie	Level 24, 7	16	1	9	8	12	10	11	11	11
+Zombie	Level 24, 8	16	1	9	8	12	10	11	11	11
+Zombie	Level 24, 9	16	1	9	8	12	10	11	11	11
+Zulrah	Magma	300	300	0	0	0	0	300	300	300
+Zulrah	Serpentine	300	300	0	0	0	-45	50	50	50
+Zulrah	Tanzanite	300	300	0	0	0	300	0	0	0
+Zygomite	Level 74	65	65	10	10	10	20	20	20	20
+Zygomite	Level 86	75	75	10	10	10	20	20	20	20
