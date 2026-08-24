@@ -6,7 +6,6 @@ bank-layout, customization, and support improvements into one reviewable update.
 ## Polished planning and feedback
 
 - Added one-click task-aware Objective switching with a restore action.
-- Added a compact withdrawal checklist above the detailed gear and supply rows.
 - Added modeled trip cost and GP-per-kill estimates for quantity-planned
   supplies, compatible worn ammunition, and supported Magic casts.
 - Applied visible Ava recovery rates without guessing hidden Dizana's quiver
@@ -20,7 +19,7 @@ bank-layout, customization, and support improvements into one reviewable update.
   preferences, trip settings, and Low-risk policy.
 - Added session-only observed supply consumption and elapsed-time summaries.
 - Added an optional single chat summary when an assignment ends or changes.
-- Advanced the local-only update notice to **Dev Update V.27**. The public
+- Advanced the local-only update notice to **Dev Update V.28**. The public
   Plugin Hub version remains independent.
 
 ## Internal reliability

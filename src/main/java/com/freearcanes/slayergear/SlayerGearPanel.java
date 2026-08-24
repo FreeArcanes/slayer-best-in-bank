@@ -468,7 +468,6 @@ class SlayerGearPanel extends PluginPanel
 				addCompletionSummary();
 				addReadiness(recommendations);
 				addPrepControls(recommendations);
-				addWithdrawalChecklist(recommendations);
 				if (prepFocusMode == PrepFocusMode.MISSING
 					&& isPrepComplete(recommendations.getReadiness()))
 				{
@@ -871,83 +870,6 @@ class SlayerGearPanel extends PluginPanel
 			content.add(lock);
 		}
 		content.add(Box.createVerticalStrut(10));
-	}
-
-	private void addWithdrawalChecklist(GearRecommendations recommendations)
-	{
-		List<String> lines = withdrawalChecklistLines(recommendations);
-		if (lines.isEmpty()) return;
-		RoundedPanel checklist = card(SURFACE);
-		checklist.setLayout(new BoxLayout(checklist, BoxLayout.Y_AXIS));
-		checklist.setBorder(new EmptyBorder(8, 10, 8, 10));
-		checklist.add(smallCaps("WITHDRAWAL CHECKLIST", WARNING));
-		int visible = Math.min(8, lines.size());
-		for (int index = 0; index < visible; index++)
-		{
-			checklist.add(Box.createVerticalStrut(2));
-			checklist.add(wrappedLabel("• " + lines.get(index), SOFT_TEXT, WRAP_WIDTH));
-		}
-		if (lines.size() > visible)
-		{
-			checklist.add(wrappedLabel("+" + (lines.size() - visible) + " more",
-				MUTED_TEXT, WRAP_WIDTH));
-		}
-		content.add(checklist);
-		content.add(Box.createVerticalStrut(8));
-	}
-
-	static List<String> withdrawalChecklistLines(GearRecommendations recommendations)
-	{
-		List<String> lines = new ArrayList<>();
-		if (recommendations == null) return lines;
-		for (EquipmentInventorySlot slot : SLOT_ORDER)
-		{
-			List<GearRecommendation> choices = recommendations.get(slot);
-			if (!hasTierOneChoice(choices)) continue;
-			GearRecommendation item = choices.get(0);
-			if (!item.isPacked())
-			{
-				lines.add((item.isBanked() ? "Withdraw " : "Missing ") + item.getItemName());
-			}
-		}
-		for (GearRecommendation item : recommendations.getWeaponSwitches())
-		{
-			if (!item.isPacked()) lines.add((item.isBanked() ? "Withdraw switch " : "Missing switch ")
-				+ item.getItemName());
-		}
-		for (SupplyRecommendation supply : recommendations.getSupplies())
-		{
-			if (!supply.isEnabledForTrip() || isSupplyReady(supply)) continue;
-			if (supply.hasQuantityTarget())
-			{
-				int neededUnits = supply.getQuantityStillNeeded();
-				int bankUnits = Math.min(neededUnits, supply.getBankQuantity());
-				if (bankUnits > 0)
-				{
-					int unitsPerWithdrawal = "shots".equals(supply.getQuantityUnit())
-						? 1 : Math.max(1, supply.getUnitsPerWithdrawal());
-					int withdrawals = (bankUnits + unitsPerWithdrawal - 1) / unitsPerWithdrawal;
-					String unit = "shots".equals(supply.getQuantityUnit()) ? " shots" : "";
-					lines.add("Withdraw " + withdrawals + unit + " " + supply.getItemName());
-				}
-				int unavailable = neededUnits - bankUnits;
-				if (unavailable > 0)
-				{
-					String unit = supply.getQuantityUnit().isEmpty()
-						? "" : " " + supply.getQuantityUnit();
-					lines.add("Missing " + unavailable + unit + " " + supply.getItemName());
-				}
-			}
-			else if (supply.getStatus() == SupplyStatus.MISSING)
-			{
-				lines.add("Missing " + supply.getItemName());
-			}
-			else
-			{
-				lines.add("Withdraw " + supply.getItemName());
-			}
-		}
-		return lines;
 	}
 
 	private JPanel metricTile(String label, String value, Color valueColor)

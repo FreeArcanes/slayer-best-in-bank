@@ -11,7 +11,7 @@ are retained as the ongoing in-client regression matrix.
 Automated result:
 
 ```text
-306 tests passed
+304 tests passed
 0 failures
 0 errors
 ```
@@ -84,7 +84,6 @@ It is not part of the shipped main plugin source.
 ### Polished task workflow
 
 - Task-aware Objective suggestions can be applied and restored from the panel.
-- Withdrawal checklist entries distinguish banked withdrawals from missing gear.
 - Versioned presets round-trip punctuation and Unicode and reject malformed,
   oversized, wrong-version, or incompatible input.
 - Supply consumption tracks canonical potion-dose variants and reports only
@@ -155,7 +154,7 @@ on bank close, logout/world transition, and plugin shutdown.
 - [x] Potion/cannon withdrawals retain stable click positions.
 - [x] Quantity controls and estimated supply withdrawals operate locally.
 - [x] Discord support icon opens the intended invite after a direct click.
-- [x] Preset codec, charge filtering, trip cost, withdrawal checklist, and
+- [x] Preset codec, charge filtering, trip cost, and
       canonical-dose consumption tracking pass automated regression tests.
 
 ## Manual release-candidate matrix

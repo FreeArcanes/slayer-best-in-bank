@@ -149,8 +149,8 @@ Real consumption varies with stats, gear, Prayer use, kill speed, incoming
 damage, and location. Treat all supply quantities as a starting point, not a
 guarantee.
 
-The sidebar turns that plan into a compact withdrawal checklist and shows a
-modeled trip cost with GP per planned kill. The estimate uses GE guide prices
+The sidebar shows a modeled trip cost with GP per planned kill. The estimate
+uses GE guide prices
 for quantity-planned supplies and can also include compatible worn ammunition
 and supported spell or powered-staff casts when the loadout has a target-aware
 kill-time estimate. Hidden quiver ammunition and charge states that RuneLite
