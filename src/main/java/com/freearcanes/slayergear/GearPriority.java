@@ -4,7 +4,8 @@ public enum GearPriority
 {
 	BALANCED("Max DPS"),
 	PRAYER_FIRST("Prayer Sustain"),
-	DEFENCE_FIRST("Defence First");
+	DEFENCE_FIRST("Defence First"),
+	VALUE("Value / Low Cost");
 
 	private final String displayName;
 

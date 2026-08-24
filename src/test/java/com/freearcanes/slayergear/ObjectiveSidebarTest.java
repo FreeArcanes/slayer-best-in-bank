@@ -22,6 +22,8 @@ public class ObjectiveSidebarTest
 			.contains("defensive armour"));
 		assertTrue(SlayerGearPanel.objectiveSummary(GearPriority.DEFENCE_FIRST)
 			.contains("food"));
+		assertTrue(SlayerGearPanel.objectiveSummary(GearPriority.VALUE)
+			.contains("reducing optional"));
 	}
 
 	@Test

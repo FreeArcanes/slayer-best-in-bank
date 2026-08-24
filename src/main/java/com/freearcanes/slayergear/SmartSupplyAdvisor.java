@@ -1025,6 +1025,15 @@ class SmartSupplyAdvisor
 			case DEFENCE_FIRST:
 				if ("Food".equals(category)) multiplier = 1.5;
 				break;
+			case VALUE:
+				if ("Combat boost".equals(category)
+					|| "Ranged boost".equals(category)
+					|| "Prayer regen".equals(category)
+					|| "Goading".equals(category))
+				{
+					multiplier = 0.5;
+				}
+				break;
 			case BALANCED:
 			default:
 				if ("Combat boost".equals(category)

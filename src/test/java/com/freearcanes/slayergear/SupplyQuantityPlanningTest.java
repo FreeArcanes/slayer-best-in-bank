@@ -34,6 +34,10 @@ public class SupplyQuantityPlanningTest
 			"Antifire", 5, GearPriority.DEFENCE_FIRST));
 		assertEquals(8, SmartSupplyAdvisor.applyObjectiveQuantity(
 			"Combat boost", 8, null));
+		assertEquals(4, SmartSupplyAdvisor.applyObjectiveQuantity(
+			"Combat boost", 8, GearPriority.VALUE));
+		assertEquals(8, SmartSupplyAdvisor.applyObjectiveQuantity(
+			"Prayer", 8, GearPriority.VALUE));
 	}
 
 	@Test

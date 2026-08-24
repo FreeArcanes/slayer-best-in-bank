@@ -78,7 +78,7 @@ public interface SlayerGearAdvisorConfig extends Config
 	@ConfigItem(
 		keyName = "gearPriority",
 		name = "Objective",
-		description = "Max DPS prioritizes target-aware damage, Prayer Sustain extends trips, and Defence First favors tank gear. Mandatory Slayer mechanics and valid weapons always take precedence.",
+		description = "Max DPS prioritizes target-aware damage, Prayer Sustain extends trips, Defence First favors tank gear, and Value / Low Cost reduces optional consumable targets. Mandatory Slayer mechanics and valid weapons always take precedence.",
 		position = 1,
 		section = preferenceSection
 	)

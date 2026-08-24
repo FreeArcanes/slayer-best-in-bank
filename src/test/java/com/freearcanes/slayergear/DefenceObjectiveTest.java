@@ -15,6 +15,7 @@ public class DefenceObjectiveTest
 		assertEquals("Max DPS", GearPriority.BALANCED.toString());
 		assertEquals("Prayer Sustain", GearPriority.PRAYER_FIRST.toString());
 		assertEquals("Defence First", GearPriority.DEFENCE_FIRST.toString());
+		assertEquals("Value / Low Cost", GearPriority.VALUE.toString());
 	}
 
 	@Test

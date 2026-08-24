@@ -115,6 +115,7 @@ class SlayerGearPanel extends PluginPanel
 	private boolean showAlternatives;
 	private boolean showDpsDetails;
 	private boolean showRecommendationExplanations;
+	private boolean showObjectiveComparison;
 	private boolean showTaskDetails;
 	private PrepFocusMode prepFocusMode = PrepFocusMode.ALL;
 	private GearRecommendations lastRecommendations;
@@ -535,6 +536,46 @@ class SlayerGearPanel extends PluginPanel
 			objective.add(Box.createVerticalStrut(2));
 			objective.add(wrappedLabel(objectiveSummary(recommendations.getObjective()),
 				MUTED_TEXT, WRAP_WIDTH - 16));
+			objective.add(Box.createVerticalStrut(3));
+			objective.add(wrappedLabel(ObjectiveAdvisor.changeFromMaxDps(
+				recommendations.getObjective()), FAINT_TEXT, WRAP_WIDTH - 16));
+			ObjectiveAdvisor.Suggestion suggestion = ObjectiveAdvisor.suggest(
+				recommendations.getProfile(), strategy);
+			if (suggestion.getObjective() != recommendations.getObjective())
+			{
+				objective.add(Box.createVerticalStrut(4));
+				objective.add(wrappedLabel("Suggested: " + suggestion.getObjective()
+					+ " — " + suggestion.getReason(), TEAL, WRAP_WIDTH - 16));
+			}
+			objective.add(Box.createVerticalStrut(5));
+			RoundedButton compare = new RoundedButton();
+			compare.setText(showObjectiveComparison ? "Hide comparison" : "Compare objectives");
+			compare.setForeground(showObjectiveComparison ? TEAL : MUTED_TEXT);
+			compare.setAlignmentX(Component.LEFT_ALIGNMENT);
+			compare.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+			compare.addActionListener(event ->
+			{
+				showObjectiveComparison = !showObjectiveComparison;
+				refreshLastRecommendations();
+			});
+			objective.add(compare);
+			if (showObjectiveComparison)
+			{
+				for (GearPriority candidate : GearPriority.values())
+				{
+					objective.add(Box.createVerticalStrut(4));
+					String marker = candidate == recommendations.getObjective() ? "Selected"
+						: candidate == suggestion.getObjective() ? "Suggested" : "";
+					String title = candidate.toString() + (marker.isEmpty() ? "" : " · " + marker);
+					objective.add(smallCaps(title, candidate == recommendations.getObjective()
+						? GOLD : candidate == suggestion.getObjective() ? TEAL : MUTED_TEXT));
+					objective.add(wrappedLabel(ObjectiveAdvisor.policy(candidate),
+						FAINT_TEXT, WRAP_WIDTH - 16));
+					objective.add(wrappedLabel(objectiveLoadoutText(
+						recommendations.getObjectiveComparisons(), candidate),
+						MUTED_TEXT, WRAP_WIDTH - 16));
+				}
+			}
 			hero.add(objective);
 
 			if (strategy.getRationale() != null && !strategy.getRationale().trim().isEmpty())
@@ -1113,7 +1154,27 @@ class SlayerGearPanel extends PluginPanel
 		{
 			return "Favors defensive armour and accessories and increases the food target.";
 		}
+		if (objective == GearPriority.VALUE)
+		{
+			return "Keeps DPS-valid gear while reducing optional boost and support quantities.";
+		}
 		return "Ranks practical target DPS first and increases combat boosts and aggression support.";
+	}
+
+	static String objectiveLoadoutText(
+		List<ObjectiveLoadoutComparison> comparisons, GearPriority objective)
+	{
+		if (comparisons != null)
+		{
+			for (ObjectiveLoadoutComparison comparison : comparisons)
+			{
+				if (comparison.getObjective() == objective)
+				{
+					return "Gear: " + comparison.getGearChanges();
+				}
+			}
+		}
+		return "Gear comparison unavailable";
 	}
 
 	static String recommendationExplanation(GearRecommendation recommendation)

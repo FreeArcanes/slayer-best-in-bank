@@ -13,12 +13,12 @@ final class PluginRelease
 
 	// Keep DEVELOPMENT locally. Change to PUBLIC only as part of publishing.
 	static final Channel CHANNEL = Channel.DEVELOPMENT;
-	static final String DEV_VERSION = "V.25";
+	static final String DEV_VERSION = "V.26";
 	static final String PUBLIC_VERSION = "V1.81";
 
 	static final List<String> CHANGE_LINES = List.of(
-		"- The selected Objective is now shown directly in the task sidebar.",
-		"- Its gear and supply effects are summarized beside the active method.");
+		"- Added Value mode, advisory task Objectives, and exact policy changes.",
+		"- Added a side-by-side Objective comparison in the task sidebar.");
 
 	private PluginRelease() {}
 

@@ -240,7 +240,8 @@ class GearScorer
 		double bestOffenseEstimate = 0;
 		List<TargetDefence> offenseTargets = TargetDefenceCatalog.find(
 			taskName, profile.getKey(), selected);
-		if (gearPriority == GearPriority.BALANCED && !offenseTargets.isEmpty())
+		if ((gearPriority == GearPriority.BALANCED || gearPriority == GearPriority.VALUE)
+			&& !offenseTargets.isEmpty())
 		{
 			coherentLoadouts.sort(Comparator.comparingDouble(
 				(Map<EquipmentInventorySlot, GearRecommendation> loadout) -> averageOffense(
@@ -333,10 +334,92 @@ class GearScorer
 		List<GearRecommendation> weaponSwitches = bossWeaponSwitches(
 			taskName, profile, selected, equipment, best, requirements,
 			gearPriority, pinned, excluded);
+		List<ObjectiveLoadoutComparison> objectiveComparisons = objectiveComparisons(
+			equipment, selected, requirements, pinned, excluded, lowRiskMode,
+			riskCapGp, loadedDizanasQuiver, best, gearPriority);
 
 		return GearRecommendations.ready(taskName, taskAmount, profile, selected, alternatives,
 			bySlot, loadoutTiers, weaponSwitches, supplies, readiness,
-			equipment.size(), gearPriority);
+			equipment.size(), gearPriority, objectiveComparisons);
+	}
+
+	private List<ObjectiveLoadoutComparison> objectiveComparisons(
+		List<BankEquipment> equipment,
+		GearStrategy strategy,
+		List<GearRequirement> requirements,
+		Set<String> pinned,
+		Set<String> excluded,
+		boolean lowRiskMode,
+		int riskCapGp,
+		boolean loadedDizanasQuiver,
+		Map<EquipmentInventorySlot, GearRecommendation> selectedLoadout,
+		GearPriority selectedObjective)
+	{
+		List<ObjectiveLoadoutComparison> comparisons = new ArrayList<>();
+		Map<EquipmentInventorySlot, GearRecommendation> dpsPreview = selectedLoadout;
+		if (selectedObjective != GearPriority.BALANCED
+			&& selectedObjective != GearPriority.VALUE)
+		{
+			dpsPreview = objectivePreview(equipment, strategy, requirements, pinned,
+				excluded, lowRiskMode, riskCapGp, loadedDizanasQuiver,
+				GearPriority.BALANCED);
+		}
+		for (GearPriority objective : GearPriority.values())
+		{
+			Map<EquipmentInventorySlot, GearRecommendation> preview = selectedLoadout;
+			if (objective == GearPriority.BALANCED || objective == GearPriority.VALUE)
+			{
+				preview = dpsPreview;
+			}
+			else if (objective != selectedObjective)
+			{
+				preview = objectivePreview(equipment, strategy, requirements, pinned,
+					excluded, lowRiskMode, riskCapGp, loadedDizanasQuiver, objective);
+			}
+			comparisons.add(new ObjectiveLoadoutComparison(objective,
+				objectiveGearChanges(selectedLoadout, preview,
+					objective == selectedObjective)));
+		}
+		return comparisons;
+	}
+
+	private Map<EquipmentInventorySlot, GearRecommendation> objectivePreview(
+		List<BankEquipment> equipment, GearStrategy strategy,
+		List<GearRequirement> requirements, Set<String> pinned, Set<String> excluded,
+		boolean lowRiskMode, int riskCapGp, boolean loadedDizanasQuiver,
+		GearPriority objective)
+	{
+		Map<EquipmentInventorySlot, List<BankEquipment>> candidates = buildCandidates(
+			equipment, strategy, requirements, objective, pinned, excluded,
+			lowRiskMode, riskCapGp);
+		List<Map<EquipmentInventorySlot, GearRecommendation>> loadouts = buildCoherentLoadouts(
+			1, candidates, strategy, requirements, pinned, lowRiskMode, riskCapGp);
+		if (loadedDizanasQuiver) usePrayerBlessings(loadouts, candidates, strategy);
+		return loadouts.isEmpty() ? Collections.emptyMap() : loadouts.get(0);
+	}
+
+	static String objectiveGearChanges(
+		Map<EquipmentInventorySlot, GearRecommendation> selected,
+		Map<EquipmentInventorySlot, GearRecommendation> preview,
+		boolean current)
+	{
+		if (current) return "Current Tier 1 loadout";
+		List<String> changes = new ArrayList<>();
+		for (EquipmentInventorySlot slot : EquipmentInventorySlot.values())
+		{
+			GearRecommendation before = selected.get(slot);
+			GearRecommendation after = preview.get(slot);
+			String beforeName = before == null ? "" : before.getItemName();
+			String afterName = after == null ? "" : after.getItemName();
+			if (!NameMatcher.normalize(beforeName).equals(NameMatcher.normalize(afterName)))
+			{
+				String slotName = slot.name().toLowerCase(Locale.ENGLISH).replace('_', ' ');
+				changes.add(slotName + ": " + (afterName.isEmpty() ? "empty" : afterName));
+			}
+		}
+		if (changes.isEmpty()) return "Same Tier 1 gear";
+		String result = String.join(" · ", changes.subList(0, Math.min(3, changes.size())));
+		return changes.size() > 3 ? result + " · +" + (changes.size() - 3) + " slots" : result;
 	}
 
 	private static double averageOffense(
