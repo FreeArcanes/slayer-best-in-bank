@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import net.runelite.api.Client;
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
@@ -33,6 +34,8 @@ import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
+import net.runelite.client.chat.ChatMessageManager;
+import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -75,6 +78,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 
 	@Inject
 	private ConfigManager configManager;
+
+	@Inject
+	private ChatMessageManager chatMessageManager;
 
 	@Inject
 	private SlayerGearAdvisorConfig config;
@@ -127,6 +133,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private int lastTaskAmount = -1;
 	private volatile boolean highlightsActive;
 	private boolean turaelAyaSpeedMode;
+	private boolean updateNoticeChecked;
 	private String selectedBoss = "";
 	private final BankFlowState bankFlow = new BankFlowState();
 	private final TripPreparationState tripPreparation = new TripPreparationState();
@@ -180,6 +187,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 
 		clientThread.invoke(() ->
 		{
+			maybeShowUpdateNotice();
 			lastInventoryItems = snapshotContainer(InventoryID.INV);
 			lastWornItems = snapshotContainer(InventoryID.WORN);
 			ItemContainer bank = client.getItemContainer(InventoryID.BANK);
@@ -288,7 +296,39 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			recommendations = GearRecommendations.noTask();
 			prepReminderOverlay.hide();
 			panel.display(recommendations);
+			if (state == GameState.LOGIN_SCREEN)
+			{
+				updateNoticeChecked = false;
+			}
 		}
+		else if (state == GameState.LOGGED_IN)
+		{
+			maybeShowUpdateNotice();
+		}
+	}
+
+	private void maybeShowUpdateNotice()
+	{
+		if (updateNoticeChecked || client.getGameState() != GameState.LOGGED_IN)
+		{
+			return;
+		}
+		updateNoticeChecked = true;
+		String lastSeen = configManager.getConfiguration(
+			SlayerGearAdvisorConfig.GROUP, PluginUpdateNotice.CONFIG_KEY);
+		if (!PluginUpdateNotice.shouldShow(lastSeen))
+		{
+			return;
+		}
+		for (String line : PluginUpdateNotice.LINES)
+		{
+			chatMessageManager.queue(QueuedMessage.builder()
+				.type(ChatMessageType.GAMEMESSAGE)
+				.runeLiteFormattedMessage(line)
+				.build());
+		}
+		configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+			PluginUpdateNotice.CONFIG_KEY, PluginUpdateNotice.ID);
 	}
 
 	@Subscribe
