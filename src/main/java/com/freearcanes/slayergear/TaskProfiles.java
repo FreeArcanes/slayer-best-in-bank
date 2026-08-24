@@ -228,15 +228,34 @@ final class TaskProfiles
 			"fire giants", "fire giant");
 
 		register(profile("fossil-wyverns", "Fossil Island wyverns",
-				"One-handed dragonbane combat with an ancient-wyvern-breath shield.",
+				"Prefer an owned one-handed dragonbane weapon; otherwise use the strongest protected Ranged setup.",
 				"An elemental, mind, dragonfire, or ancient wyvern shield is required.",
 				GearStrategy.builder()
 					.name("Protected dragonbane Ranged")
 					.location("Fossil Island Wyvern Cave")
-					.rationale("Ranks ranged dragonbane weapons while enforcing wyvern protection.")
+					.rationale("Uses an owned dragon hunter crossbow while enforcing wyvern protection.")
 					.combatStyle(CombatStyle.RANGED)
 					.requiredOffhand("elemental shield|mind shield|dragonfire shield|ancient wyvern shield")
+					.requiredWeapon("dragon hunter crossbow")
 					.preferredItem("dragon hunter crossbow")
+					.build(),
+				GearStrategy.builder()
+					.name("Protected dragonbane Melee")
+					.location("Fossil Island Wyvern Cave")
+					.rationale("Uses an owned dragon hunter lance with tank-oriented melee gear and wyvern protection.")
+					.combatStyle(CombatStyle.MELEE)
+					.attackType(AttackType.BALANCED)
+					.requiredOffhand("elemental shield|mind shield|dragonfire shield|ancient wyvern shield")
+					.requiredWeapon("dragon hunter lance")
+					.preferredItem("dragon hunter lance")
+					.build(),
+				GearStrategy.builder()
+					.name("Protected Ranged fallback")
+					.location("Fossil Island Wyvern Cave")
+					.rationale("Ranks the strongest compatible owned Ranged setup when no ranged dragonbane weapon is owned.")
+					.combatStyle(CombatStyle.RANGED)
+					.requiredOffhand("elemental shield|mind shield|dragonfire shield|ancient wyvern shield")
+					.preferredItem("hunter's sunlight crossbow")
 					.build()),
 			"fossil island wyverns", "fossil island wyvern");
 

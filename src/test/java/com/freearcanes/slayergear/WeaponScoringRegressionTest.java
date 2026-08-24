@@ -4,6 +4,7 @@ import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.client.game.ItemEquipmentStats;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class WeaponScoringRegressionTest
@@ -267,6 +268,13 @@ public class WeaponScoringRegressionTest
 
 		assertTrue("Loaded darts must keep Toxic blowpipe ahead of the sunlight crossbow package",
 			blowpipe > sunlightCrossbow + sunlightBolts);
+	}
+
+	@Test
+	public void sunlightCrossbowOnlyAcceptsAntlerBolts()
+	{
+		assertEquals("antler bolt", GearScorer.ammoToken("hunter's sunlight crossbow"));
+		assertEquals("bolt", GearScorer.ammoToken("rune crossbow"));
 	}
 
 	@Test

@@ -212,7 +212,7 @@ public class CatalogConsistencyTest
 	{
 		if (requiredWeapon == null) return false;
 		String normalized = NameMatcher.normalize(requiredWeapon);
-		return normalized.contains("bow")
+		return (normalized.contains("bow") && !normalized.contains("crossbow"))
 			|| normalized.contains("halberd")
 			|| normalized.contains("godsword")
 			|| normalized.contains("maul")

@@ -2080,9 +2080,11 @@ class GearScorer
 		}
 		return rank <= 0 || rank > compatible.size() ? null : compatible.get(rank - 1);
 	}
-	private static String ammoToken(String weapon)
+	static String ammoToken(String weapon)
 	{
-		return weapon.contains("crossbow") ? "bolt"
+		return weapon.contains("hunter's sunlight crossbow") || weapon.contains("hunters' sunlight crossbow")
+			? "antler bolt"
+			: weapon.contains("crossbow") ? "bolt"
 			: weapon.contains("atlatl") ? "atlatl dart"
 			: weapon.contains("ballista") ? "javelin"
 			: weapon.contains("salamander") ? "tar"
