@@ -9,12 +9,12 @@ import java.util.List;
  */
 final class PluginRelease
 {
-	static final String VERSION = "V1.80";
+	static final String VERSION = "V1.81";
 	static final String DISPLAY_NAME = "Slayer Best in Bank - SBIB " + VERSION;
 	static final List<String> NOTICE_LINES = List.of(
 		"<col=ff981f>" + DISPLAY_NAME + "</col>",
-		"- Smarter ranged ammo matching and Dizana variant support.",
-		"- Target-aware DPS details with current boosts/prayers and a cleaner DPS menu.");
+		"- Target-aware DPS now includes Slayer helmet and Black mask bonuses.",
+		"- Imbued, recoloured, charged, and shortened-name variants are recognized.");
 
 	private PluginRelease() {}
 }

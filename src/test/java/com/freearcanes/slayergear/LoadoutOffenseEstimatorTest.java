@@ -113,6 +113,31 @@ public class LoadoutOffenseEstimatorTest
 			loadout, equipment, air, target, context) > 0);
 	}
 
+	@Test
+	public void taskHeadgearRecognizesImbuesAndCosmeticVariants()
+	{
+		assertEquals(7.0 / 6.0, SlayerTaskHeadgear.accuracyMultiplier(
+			"Black mask (10)", CombatStyle.MELEE), 0.000001);
+		assertEquals(1.15, SlayerTaskHeadgear.accuracyMultiplier(
+			"Twisted slayer helmet (i)", CombatStyle.RANGED), 0.000001);
+		assertEquals(1.15, SlayerTaskHeadgear.damageMultiplier(
+			"Tzkal slayer helm (i)", CombatStyle.MAGIC), 0.000001);
+		assertEquals(1.0, SlayerTaskHeadgear.accuracyMultiplier(
+			"Purple slayer helmet", CombatStyle.RANGED), 0.000001);
+	}
+
+	@Test
+	public void imbuedSlayerHelmetRaisesRangedDpsWhileUnimbuedDoesNot()
+	{
+		GearStrategy ranged = GearStrategy.builder().combatStyle(CombatStyle.RANGED).build();
+		double noHelmet = estimateWithHeadgear(ranged, null);
+		double unimbued = estimateWithHeadgear(ranged, "Slayer helmet");
+		double imbued = estimateWithHeadgear(ranged, "Black slayer helmet (i)");
+
+		assertEquals(noHelmet, unimbued, 0.000001);
+		assertTrue(imbued > unimbued);
+	}
+
 	private static ItemEquipmentStats rangedWeapon(int accuracy, int strength, int speed)
 	{
 		return ItemEquipmentStats.builder().arange(accuracy).rstr(strength).aspeed(speed).build();
@@ -134,6 +159,27 @@ public class LoadoutOffenseEstimatorTest
 		return LoadoutOffenseEstimator.estimate(loadout, Map.of(1, equipment), strategy, target,
 			CombatLevelContext.unboosted(
 				accuracyLevel, strengthLevel, accuracyLevel, accuracyLevel));
+	}
+
+	private static double estimateWithHeadgear(GearStrategy strategy, String headgear)
+	{
+		Map<EquipmentInventorySlot, GearRecommendation> loadout =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		loadout.put(EquipmentInventorySlot.WEAPON,
+			recommendation(1, "Test bow", EquipmentInventorySlot.WEAPON));
+		Map<Integer, GearScorer.BankEquipment> equipment = new java.util.HashMap<>();
+		equipment.put(1, bankEquipment(1, "Test bow", EquipmentInventorySlot.WEAPON,
+			ItemEquipmentStats.builder().arange(80).rstr(80).aspeed(4).build()));
+		if (headgear != null)
+		{
+			loadout.put(EquipmentInventorySlot.HEAD,
+				recommendation(2, headgear, EquipmentInventorySlot.HEAD));
+			equipment.put(2, bankEquipment(2, headgear, EquipmentInventorySlot.HEAD,
+				ItemEquipmentStats.builder().build()));
+		}
+		return LoadoutOffenseEstimator.estimate(loadout, equipment, strategy,
+			new TargetDefence("Test", 100, 100, 0, 0, 0, 0, 0, 0, 0),
+			CombatLevelContext.unboosted(80, 80, 80, 80));
 	}
 
 	private static GearRecommendation recommendation(

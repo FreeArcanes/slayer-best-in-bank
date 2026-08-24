@@ -31,12 +31,17 @@ final class LoadoutOffenseEstimator
 		int accuracyBonus = 0;
 		int strengthBonus = 0;
 		double magicDamagePercent = 0;
+		String headgearName = "";
 		int speed = 4;
 		for (GearRecommendation recommendation : loadout.values())
 		{
 			GearScorer.BankEquipment item = equipmentByCanonicalId.get(recommendation.getCanonicalItemId());
 			if (item == null || item.stats == null) continue;
 			ItemEquipmentStats stats = item.stats;
+			if (recommendation.getSlot() == EquipmentInventorySlot.HEAD)
+			{
+				headgearName = item.name;
+			}
 			switch (strategy.getCombatStyle())
 			{
 				case MAGIC:
@@ -64,6 +69,10 @@ final class LoadoutOffenseEstimator
 				}
 			}
 		}
+		double taskAccuracyMultiplier = SlayerTaskHeadgear.accuracyMultiplier(
+			headgearName, strategy.getCombatStyle());
+		double taskDamageMultiplier = SlayerTaskHeadgear.damageMultiplier(
+			headgearName, strategy.getCombatStyle());
 
 		int accuracyLevel;
 		double averageHit;
@@ -100,8 +109,11 @@ final class LoadoutOffenseEstimator
 				averageHit = maximumHit / 2.0;
 				break;
 		}
+		maximumHit = (int) Math.floor(maximumHit * taskDamageMultiplier);
+		averageHit = maximumHit / 2.0;
 
 		double attackRoll = accuracyLevel * (accuracyBonus + 64.0);
+		attackRoll = Math.floor(attackRoll * taskAccuracyMultiplier);
 		// Target-specific accuracy effects modify the attack roll before the
 		// piecewise hit-chance comparison; they do not multiply hit chance.
 		attackRoll = Math.floor(attackRoll
