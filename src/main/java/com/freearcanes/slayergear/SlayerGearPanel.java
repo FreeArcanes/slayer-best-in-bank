@@ -113,6 +113,7 @@ class SlayerGearPanel extends PluginPanel
 	private boolean advisorEnabled = true;
 	private boolean turaelAyaSpeedMode;
 	private boolean showAlternatives;
+	private boolean showDpsDetails;
 	private boolean showTaskDetails;
 	private PrepFocusMode prepFocusMode = PrepFocusMode.ALL;
 	private GearRecommendations lastRecommendations;
@@ -769,31 +770,55 @@ class SlayerGearPanel extends PluginPanel
 			}
 		}
 
-		String loadoutSubtitle = offenseComparisonSubtitle(recommendations.getLoadoutTiers());
+		boolean hasDps = !recommendations.getLoadoutTiers().isEmpty()
+			&& recommendations.getLoadoutTiers().get(0).getOffenseEstimate().isAvailable();
+		String loadoutSubtitle = hasDps ? "" : "T2/T3 show swaps only";
 		if (!recommendations.getLoadoutTiers().isEmpty())
 		{
 			LoadoutTier tierOne = recommendations.getLoadoutTiers().get(0);
 			if (tierOne.getRiskCapGp() > 0)
 			{
 				loadoutSubtitle = "Low risk  ~" + compactGp(tierOne.getGuidePrice())
-					+ " / " + compactGp(tierOne.getRiskCapGp())
-					+ "  ·  " + offenseComparisonSubtitle(recommendations.getLoadoutTiers());
+					+ " / " + compactGp(tierOne.getRiskCapGp());
 			}
 		}
 		JPanel heading = sectionHeading("LOADOUT", loadoutSubtitle);
+		JPanel headingActions = transparentPanel(new GridLayout(1, 0, 4, 0));
+		if (hasDps)
+		{
+			RoundedButton dps = new RoundedButton();
+			dps.setText(showDpsDetails ? "Hide DPS" : "DPS");
+			dps.setForeground(showDpsDetails ? TEAL : GOLD);
+			dps.setToolTipText("Show target-aware DPS estimates and tier comparisons");
+			dps.addActionListener(event ->
+			{
+				showDpsDetails = !showDpsDetails;
+				refreshLastRecommendations();
+			});
+			headingActions.add(dps);
+		}
 		RoundedButton alternatives = new RoundedButton();
-		alternatives.setText(showAlternatives ? "Hide backups" : "Show backups");
+		alternatives.setText(showAlternatives ? "Hide" : "Backups");
 		alternatives.setForeground(showAlternatives ? TEAL : MUTED_TEXT);
-		alternatives.setPreferredSize(new Dimension(78, 25));
+		alternatives.setPreferredSize(new Dimension(58, 25));
 		alternatives.setMargin(new Insets(2, 6, 2, 6));
+		alternatives.setToolTipText(showAlternatives
+			? "Hide Tier 2 and Tier 3 alternatives"
+			: "Show Tier 2 and Tier 3 alternatives");
 		alternatives.addActionListener(event ->
 		{
 			showAlternatives = !showAlternatives;
 			refreshLastRecommendations();
 		});
-		heading.add(alternatives, BorderLayout.EAST);
+		headingActions.add(alternatives);
+		heading.add(headingActions, BorderLayout.EAST);
 		content.add(heading);
 		content.add(Box.createVerticalStrut(5));
+		if (hasDps && showDpsDetails)
+		{
+			content.add(buildDpsCard(recommendations.getLoadoutTiers()));
+			content.add(Box.createVerticalStrut(6));
+		}
 
 		List<GearRecommendation> weapons = recommendations.get(EquipmentInventorySlot.WEAPON);
 		boolean topWeaponIsTwoHanded = !weapons.isEmpty() && weapons.get(0).isTwoHanded();
@@ -847,6 +872,45 @@ class SlayerGearPanel extends PluginPanel
 			}
 		}
 		content.add(Box.createVerticalStrut(5));
+	}
+
+	private JPanel buildDpsCard(List<LoadoutTier> tiers)
+	{
+		RoundedPanel panel = card(SURFACE);
+		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+		panel.setBorder(new EmptyBorder(8, 10, 8, 10));
+		panel.add(smallCaps("DPS ESTIMATE", GOLD));
+		LoadoutOffenseEstimate top = tiers.get(0).getOffenseEstimate();
+		if (!top.getTargetName().isEmpty())
+		{
+			panel.add(Box.createVerticalStrut(3));
+			panel.add(wrappedLabel("Target: " + top.getTargetName(), SOFT_TEXT, WRAP_WIDTH));
+		}
+		for (LoadoutTier tier : tiers)
+		{
+			LoadoutOffenseEstimate estimate = tier.getOffenseEstimate();
+			if (!estimate.isAvailable()) continue;
+			panel.add(Box.createVerticalStrut(3));
+			String comparison = tier.getRank() == 1 ? "best owned"
+				: String.format(Locale.ENGLISH, "%+.1f%% vs T1", estimate.getRelativePercent());
+			panel.add(wrappedLabel("T" + tier.getRank() + ": "
+				+ formatDps(estimate) + "  ·  " + comparison,
+				tier.getRank() == 1 ? SUCCESS : MUTED_TEXT, WRAP_WIDTH));
+		}
+		panel.add(Box.createVerticalStrut(5));
+		panel.add(wrappedLabel(
+			"Uses current visible boosts and active prayers. Combat-stance bonuses and unsupported special effects are excluded.",
+			FAINT_TEXT, WRAP_WIDTH));
+		return panel;
+	}
+
+	static String formatDps(LoadoutOffenseEstimate estimate)
+	{
+		if (estimate == null || !estimate.isAvailable()) return "Unavailable";
+		String minimum = String.format(Locale.ENGLISH, "%.2f", estimate.getDamagePerSecond());
+		if (!estimate.isRange()) return minimum + " DPS";
+		return minimum + "–" + String.format(Locale.ENGLISH, "%.2f",
+			estimate.getMaximumDamagePerSecond()) + " DPS";
 	}
 
 	static String offenseComparisonSubtitle(List<LoadoutTier> tiers)

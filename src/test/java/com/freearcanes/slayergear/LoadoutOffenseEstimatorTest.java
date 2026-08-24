@@ -55,6 +55,7 @@ public class LoadoutOffenseEstimatorTest
 			LoadoutOffenseEstimate.range(3.25, 4.75, 0, "4 target variants"));
 		assertEquals("Est. 3.25–4.75 DPS vs 4 target variants",
 			SlayerGearPanel.offenseComparisonSubtitle(List.of(tier)));
+		assertEquals("3.25–4.75 DPS", SlayerGearPanel.formatDps(tier.getOffenseEstimate()));
 	}
 
 	@Test
