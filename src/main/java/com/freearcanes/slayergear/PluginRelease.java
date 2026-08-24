@@ -1,5 +1,6 @@
 package com.freearcanes.slayergear;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -12,13 +13,15 @@ final class PluginRelease
 	enum Channel { DEVELOPMENT, PUBLIC }
 
 	// Keep DEVELOPMENT locally. Change to PUBLIC only as part of publishing.
-	static final Channel CHANNEL = Channel.DEVELOPMENT;
+	static final Channel CHANNEL = Channel.PUBLIC;
 	static final String DEV_VERSION = "V.28";
-	static final String PUBLIC_VERSION = "V1.81";
+	static final String PUBLIC_VERSION = "V1.82";
 
 	static final List<String> CHANGE_LINES = List.of(
-		"- Added sidebar Objective switching and validated task presets.",
-		"- Added charge-safe gear, trip/GP-per-kill costs, and observed task summaries.");
+		"- Fixed Fossil Island wyvern methods and ranged weapon/ammo matching, including quiver variants.",
+		"- Added target-aware DPS, live boosts/prayers, combat effects, TTK, kills/hr, and readable comparisons.",
+		"- Added Why? explanations and task-aware Objectives with comparisons, switching, and supply policies.",
+		"- Added charge-safe gear, validated presets, trip/GP-per-kill costs, and observed task summaries.");
 
 	private PluginRelease() {}
 
@@ -34,9 +37,12 @@ final class PluginRelease
 			? "Dev Update " + DEV_VERSION
 			: "Slayer Best in Bank - SBIB " + PUBLIC_VERSION
 				+ " - Report bugs in the Discord";
-		return List.of(
-			"<col=ff981f>" + heading + "</col>",
-			CHANGE_LINES.get(0),
-			CHANGE_LINES.get(1));
+		List<String> lines = new ArrayList<>();
+		lines.add("<col=ff981f>" + heading + "</col>");
+		for (int index = 0; index < Math.min(4, CHANGE_LINES.size()); index++)
+		{
+			lines.add(CHANGE_LINES.get(index));
+		}
+		return List.copyOf(lines);
 	}
 }

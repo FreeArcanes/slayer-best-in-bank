@@ -1,4 +1,4 @@
-# Slayer Best in Bank — Unreleased Release Candidate
+# Slayer Best in Bank — SBIB V1.82
 
 This release candidate consolidates the current loadout, supply-planning,
 bank-layout, customization, and support improvements into one reviewable update.
@@ -19,8 +19,7 @@ bank-layout, customization, and support improvements into one reviewable update.
   preferences, trip settings, and Low-risk policy.
 - Added session-only observed supply consumption and elapsed-time summaries.
 - Added an optional single chat summary when an assignment ends or changes.
-- Advanced the local-only update notice to **Dev Update V.28**. The public
-  Plugin Hub version remains independent.
+- Prepared the complete public update notice for **SBIB V1.82**.
 
 ## Internal reliability
 
@@ -172,7 +171,7 @@ bank-layout, customization, and support improvements into one reviewable update.
 ## Validation
 
 - Main source compiles for Java 11 with deprecation warnings treated as errors.
-- Full release-candidate suite: **128 tests passed, zero failures**.
+- Full release-candidate suite: **304 tests passed, zero failures**.
 - Prohibited API and lifecycle review completed.
 - Remaining in-client and screenshot gates are documented in
   [VALIDATION.md](VALIDATION.md).
