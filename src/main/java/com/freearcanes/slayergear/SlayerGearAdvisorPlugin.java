@@ -55,7 +55,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.AsyncBufferedImage;
 
 @PluginDescriptor(
-	name = PluginRelease.DISPLAY_NAME,
+	name = "Slayer Best in Bank",
 	description = "Builds stable Slayer loadouts from gear and supplies you actually own",
 	tags = {"slayer", "gear", "bank", "equipment", "loadout", "overlay"}
 )

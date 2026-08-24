@@ -6,8 +6,8 @@ import java.util.List;
 final class PluginUpdateNotice
 {
 	static final String CONFIG_KEY = "lastUpdateNotice";
-	static final String ID = "sbib-" + PluginRelease.VERSION;
-	static final List<String> LINES = PluginRelease.NOTICE_LINES;
+	static final String ID = PluginRelease.noticeId(PluginRelease.CHANNEL);
+	static final List<String> LINES = PluginRelease.noticeLines(PluginRelease.CHANNEL);
 
 	private PluginUpdateNotice() {}
 
