@@ -12,13 +12,13 @@ final class PluginRelease
 	enum Channel { DEVELOPMENT, PUBLIC }
 
 	// Keep DEVELOPMENT locally. Change to PUBLIC only as part of publishing.
-	static final Channel CHANNEL = Channel.PUBLIC;
-	static final String DEV_VERSION = "V.24";
+	static final Channel CHANNEL = Channel.DEVELOPMENT;
+	static final String DEV_VERSION = "V.25";
 	static final String PUBLIC_VERSION = "V1.81";
 
 	static final List<String> CHANGE_LINES = List.of(
-		"- Target-aware DPS, ammo/effects, TTK, kills/hr, and loadout tiers added.",
-		"- Added Why? explanations, Objectives, and objective-aware trip planning.");
+		"- The selected Objective is now shown directly in the task sidebar.",
+		"- Its gear and supply effects are summarized beside the active method.");
 
 	private PluginRelease() {}
 

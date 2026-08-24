@@ -525,6 +525,18 @@ class SlayerGearPanel extends PluginPanel
 				hero.add(location);
 			}
 
+			hero.add(Box.createVerticalStrut(7));
+			RoundedPanel objective = new RoundedPanel(SURFACE_RAISED, ROW_RADIUS, BORDER);
+			objective.setLayout(new BoxLayout(objective, BoxLayout.Y_AXIS));
+			objective.setBorder(new EmptyBorder(6, 8, 6, 8));
+			objective.setAlignmentX(Component.LEFT_ALIGNMENT);
+			objective.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+			objective.add(smallCaps("OBJECTIVE · " + recommendations.getObjective(), GOLD));
+			objective.add(Box.createVerticalStrut(2));
+			objective.add(wrappedLabel(objectiveSummary(recommendations.getObjective()),
+				MUTED_TEXT, WRAP_WIDTH - 16));
+			hero.add(objective);
+
 			if (strategy.getRationale() != null && !strategy.getRationale().trim().isEmpty())
 			{
 				hero.add(Box.createVerticalStrut(5));
@@ -1089,6 +1101,19 @@ class SlayerGearPanel extends PluginPanel
 			}
 		});
 		return card;
+	}
+
+	static String objectiveSummary(GearPriority objective)
+	{
+		if (objective == GearPriority.PRAYER_FIRST)
+		{
+			return "Favors Prayer-bonus gear and increases Prayer restoration for longer trips.";
+		}
+		if (objective == GearPriority.DEFENCE_FIRST)
+		{
+			return "Favors defensive armour and accessories and increases the food target.";
+		}
+		return "Ranks practical target DPS first and increases combat boosts and aggression support.";
 	}
 
 	static String recommendationExplanation(GearRecommendation recommendation)

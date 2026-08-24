@@ -335,7 +335,8 @@ class GearScorer
 			gearPriority, pinned, excluded);
 
 		return GearRecommendations.ready(taskName, taskAmount, profile, selected, alternatives,
-			bySlot, loadoutTiers, weaponSwitches, supplies, readiness, equipment.size());
+			bySlot, loadoutTiers, weaponSwitches, supplies, readiness,
+			equipment.size(), gearPriority);
 	}
 
 	private static double averageOffense(
