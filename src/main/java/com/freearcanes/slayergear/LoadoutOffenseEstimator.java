@@ -20,7 +20,7 @@ final class LoadoutOffenseEstimator
 		CombatLevelContext levels)
 	{
 		if (loadout == null || loadout.isEmpty() || strategy == null || target == null
-			|| levels == null || strategy.getCombatStyle() == CombatStyle.MAGIC) return 0;
+			|| levels == null) return 0;
 
 		GearScorer.BankEquipment weapon = equipmentFor(
 			loadout.get(EquipmentInventorySlot.WEAPON), equipmentByCanonicalId);
@@ -30,6 +30,7 @@ final class LoadoutOffenseEstimator
 
 		int accuracyBonus = 0;
 		int strengthBonus = 0;
+		double magicDamagePercent = 0;
 		int speed = 4;
 		for (GearRecommendation recommendation : loadout.values())
 		{
@@ -40,6 +41,8 @@ final class LoadoutOffenseEstimator
 			{
 				case MAGIC:
 					accuracyBonus += stats.getAmagic();
+					magicDamagePercent += GearScorer.effectiveMagicDamageBonus(
+						strategy, NameMatcher.normalize(item.name), stats);
 					break;
 				case RANGED:
 					accuracyBonus += stats.getArange();
@@ -64,17 +67,37 @@ final class LoadoutOffenseEstimator
 
 		int accuracyLevel;
 		double averageHit;
+		int maximumHit;
+		boolean elementalWeaknessApplies = false;
 		switch (strategy.getCombatStyle())
 		{
-			case MAGIC: return 0;
+			case MAGIC:
+				MagicCombatMethod magicMethod = MagicCombatMethod.resolve(
+					strategy, weaponName, levels.getBoostedMagic());
+				if (magicMethod == null) return 0;
+				elementalWeaknessApplies = magicMethod.isElemental();
+				accuracyLevel = levels.getMagicAttack();
+				if (normalizedWeaponName.contains("tumeken")
+					&& normalizedWeaponName.contains("shadow"))
+				{
+					accuracyBonus *= 3;
+					magicDamagePercent = Math.min(100, magicDamagePercent * 3);
+				}
+				maximumHit = magicMaxHit(magicMethod.getBaseMaxHit(), magicDamagePercent,
+					levels.getMagicDamagePrayerPercent(), elementalWeaknessApplies
+						? strategy.getElementalWeaknessPercent() : 0);
+				averageHit = maximumHit / 2.0;
+				break;
 			case RANGED:
 				accuracyLevel = levels.getRangedAttack();
-				averageHit = maxHit(eclipseAtlatl ? levels.getAtlatlStrength() : levels.getRangedStrength(),
-					strengthBonus) / 2.0;
+				maximumHit = maxHit(eclipseAtlatl ? levels.getAtlatlStrength() : levels.getRangedStrength(),
+					strengthBonus);
+				averageHit = maximumHit / 2.0;
 				break;
 			default:
 				accuracyLevel = levels.getAttack();
-				averageHit = maxHit(levels.getStrength(), strengthBonus) / 2.0;
+				maximumHit = maxHit(levels.getStrength(), strengthBonus);
+				averageHit = maximumHit / 2.0;
 				break;
 		}
 
@@ -83,17 +106,32 @@ final class LoadoutOffenseEstimator
 		// piecewise hit-chance comparison; they do not multiply hit chance.
 		attackRoll = Math.floor(attackRoll
 			* WeaponCombatRules.accuracyMultiplier(strategy, weaponName));
+		if (elementalWeaknessApplies
+			&& strategy.getElementalWeaknessPercent() > 0)
+		{
+			attackRoll = Math.floor(attackRoll
+				* (1.0 + strategy.getElementalWeaknessPercent() / 100.0));
+		}
 		int defenceRoll = target.defenceRoll(strategy, weaponName);
 		double accuracy = normalHitChance(attackRoll, defenceRoll);
 		double damageMultiplier = WeaponCombatRules.damageMultiplier(strategy, weaponName)
 			* WeaponCombatRules.intrinsicDamageMultiplier(strategy, weaponName);
-		int maximumHit = (int) Math.round(averageHit * 2.0);
 		if (maximumHit > 0)
 		{
 			// Successful zero-damage rolls are converted to one damage in OSRS.
 			averageHit += 1.0 / (maximumHit + 1.0);
 		}
 		return accuracy * averageHit * damageMultiplier / (Math.max(1, speed) * 0.6);
+	}
+
+	static int magicMaxHit(int baseMaxHit, double equipmentDamagePercent,
+		int prayerDamagePercent, int elementalWeaknessPercent)
+	{
+		int primary = (int) Math.floor(baseMaxHit
+			* (1.0 + Math.max(0, equipmentDamagePercent) / 100.0
+				+ Math.max(0, prayerDamagePercent) / 100.0));
+		return primary + (int) Math.floor(baseMaxHit
+			* Math.max(0, elementalWeaknessPercent) / 100.0);
 	}
 
 	private static GearScorer.BankEquipment equipmentFor(

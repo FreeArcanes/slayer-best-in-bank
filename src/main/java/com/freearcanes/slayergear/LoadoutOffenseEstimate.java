@@ -11,20 +11,22 @@ final class LoadoutOffenseEstimate
 	private final double relativePercent;
 	private final boolean available;
 	private final String targetName;
+	private final String methodName;
 
 	private LoadoutOffenseEstimate(double damagePerSecond, double relativePercent, boolean available)
 	{
-		this(damagePerSecond, damagePerSecond, relativePercent, available, "");
+		this(damagePerSecond, damagePerSecond, relativePercent, available, "", "");
 	}
 
 	private LoadoutOffenseEstimate(double damagePerSecond, double maximumDamagePerSecond, double relativePercent,
-		boolean available, String targetName)
+		boolean available, String targetName, String methodName)
 	{
 		this.damagePerSecond = Math.max(0, damagePerSecond);
 		this.maximumDamagePerSecond = Math.max(this.damagePerSecond, maximumDamagePerSecond);
 		this.relativePercent = relativePercent;
 		this.available = available;
 		this.targetName = targetName == null ? "" : targetName;
+		this.methodName = methodName == null ? "" : methodName;
 	}
 
 	static LoadoutOffenseEstimate unavailable()
@@ -35,14 +37,23 @@ final class LoadoutOffenseEstimate
 	static LoadoutOffenseEstimate estimated(
 		double damagePerSecond, double relativePercent, String targetName)
 	{
-		return new LoadoutOffenseEstimate(damagePerSecond, damagePerSecond, relativePercent, true, targetName);
+		return new LoadoutOffenseEstimate(damagePerSecond, damagePerSecond,
+			relativePercent, true, targetName, "");
 	}
 
 	static LoadoutOffenseEstimate range(double minimumDamagePerSecond,
 		double maximumDamagePerSecond, double relativePercent, String targetName)
 	{
+		return range(minimumDamagePerSecond, maximumDamagePerSecond,
+			relativePercent, targetName, "");
+	}
+
+	static LoadoutOffenseEstimate range(double minimumDamagePerSecond,
+		double maximumDamagePerSecond, double relativePercent, String targetName,
+		String methodName)
+	{
 		return new LoadoutOffenseEstimate(minimumDamagePerSecond, maximumDamagePerSecond,
-			relativePercent, true, targetName);
+			relativePercent, true, targetName, methodName);
 	}
 
 	static LoadoutOffenseEstimate estimated(double damagePerSecond, double relativePercent)
@@ -56,4 +67,5 @@ final class LoadoutOffenseEstimate
 	double getRelativePercent() { return relativePercent; }
 	boolean isAvailable() { return available; }
 	String getTargetName() { return targetName; }
+	String getMethodName() { return methodName; }
 }

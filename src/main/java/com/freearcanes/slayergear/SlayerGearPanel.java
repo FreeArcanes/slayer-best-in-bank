@@ -886,6 +886,11 @@ class SlayerGearPanel extends PluginPanel
 			panel.add(Box.createVerticalStrut(3));
 			panel.add(wrappedLabel("Target: " + top.getTargetName(), SOFT_TEXT, WRAP_WIDTH));
 		}
+		if (!top.getMethodName().isEmpty())
+		{
+			panel.add(Box.createVerticalStrut(2));
+			panel.add(wrappedLabel("Method: " + top.getMethodName(), TEAL, WRAP_WIDTH));
+		}
 		for (LoadoutTier tier : tiers)
 		{
 			LoadoutOffenseEstimate estimate = tier.getOffenseEstimate();

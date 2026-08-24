@@ -991,7 +991,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			client.getBoostedSkillLevel(Skill.STRENGTH), meleeStrengthPrayerMultiplier(),
 			client.getBoostedSkillLevel(Skill.RANGED), rangedAttackPrayerMultiplier(),
 			rangedStrengthPrayerMultiplier(), client.getBoostedSkillLevel(Skill.MAGIC),
-			magicAttackPrayerMultiplier());
+			magicAttackPrayerMultiplier(), magicDamagePrayerPercent());
 	}
 
 	private double meleeAttackPrayerMultiplier()
@@ -1032,6 +1032,14 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		if (active(Prayer.MYSTIC_MIGHT)) return 1.15;
 		if (active(Prayer.MYSTIC_LORE)) return 1.10;
 		return active(Prayer.MYSTIC_WILL) ? 1.05 : 1.0;
+	}
+
+	private int magicDamagePrayerPercent()
+	{
+		if (active(Prayer.AUGURY)) return 4;
+		if (active(Prayer.MYSTIC_VIGOUR)) return 3;
+		if (active(Prayer.MYSTIC_MIGHT)) return 2;
+		return active(Prayer.MYSTIC_LORE) ? 1 : 0;
 	}
 
 	private boolean active(Prayer prayer)

@@ -258,6 +258,8 @@ class GearScorer
 				}
 			}
 			double offense = maximumOffense > 0 ? (minimumOffense + maximumOffense) / 2.0 : 0;
+			String offenseMethod = offenseMethodName(
+				loadout, equipmentByCanonicalId, selected, combatLevels);
 			if (index == 0) bestOffenseEstimate = offense;
 			double relativePercent = bestOffenseEstimate > 0
 				? (offense / bestOffenseEstimate - 1.0) * 100.0 : 0;
@@ -267,7 +269,7 @@ class GearScorer
 					? LoadoutOffenseEstimate.range(minimumOffense, maximumOffense,
 						relativePercent, offenseTargets.size() == 1
 							? offenseTargets.get(0).getName()
-							: offenseTargets.size() + " target variants")
+							: offenseTargets.size() + " target variants", offenseMethod)
 					: LoadoutOffenseEstimate.unavailable()));
 			for (Map.Entry<EquipmentInventorySlot, GearRecommendation> entry : loadout.entrySet())
 			{
@@ -311,6 +313,21 @@ class GearScorer
 
 		return GearRecommendations.ready(taskName, taskAmount, profile, selected, alternatives,
 			bySlot, loadoutTiers, weaponSwitches, supplies, readiness, equipment.size());
+	}
+
+	private static String offenseMethodName(
+		Map<EquipmentInventorySlot, GearRecommendation> loadout,
+		Map<Integer, BankEquipment> equipmentByCanonicalId,
+		GearStrategy strategy,
+		CombatLevelContext levels)
+	{
+		if (strategy.getCombatStyle() != CombatStyle.MAGIC) return "";
+		GearRecommendation weapon = loadout.get(EquipmentInventorySlot.WEAPON);
+		BankEquipment equipment = weapon == null ? null
+			: equipmentByCanonicalId.get(weapon.getCanonicalItemId());
+		MagicCombatMethod method = MagicCombatMethod.resolve(strategy,
+			equipment == null ? "" : equipment.name, levels.getBoostedMagic());
+		return method == null ? "" : method.getName();
 	}
 
 	List<GearRecommendation> bossWeaponSwitches(

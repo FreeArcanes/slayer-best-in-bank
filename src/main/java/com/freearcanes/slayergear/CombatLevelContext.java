@@ -9,9 +9,12 @@ final class CombatLevelContext
 	private final int rangedStrength;
 	private final int atlatlStrength;
 	private final int magicAttack;
+	private final int boostedMagic;
+	private final int magicDamagePrayerPercent;
 
 	private CombatLevelContext(int attack, int strength, int rangedAttack,
-		int rangedStrength, int atlatlStrength, int magicAttack)
+		int rangedStrength, int atlatlStrength, int magicAttack,
+		int boostedMagic, int magicDamagePrayerPercent)
 	{
 		this.attack = positive(attack);
 		this.strength = positive(strength);
@@ -19,12 +22,14 @@ final class CombatLevelContext
 		this.rangedStrength = positive(rangedStrength);
 		this.atlatlStrength = positive(atlatlStrength);
 		this.magicAttack = positive(magicAttack);
+		this.boostedMagic = positive(boostedMagic);
+		this.magicDamagePrayerPercent = Math.max(0, magicDamagePrayerPercent);
 	}
 
 	static CombatLevelContext effective(int boostedAttack, double attackPrayer,
 		int boostedStrength, double strengthPrayer, int boostedRanged,
 		double rangedAttackPrayer, double rangedStrengthPrayer,
-		int boostedMagic, double magicPrayer)
+		int boostedMagic, double magicPrayer, int magicDamagePrayerPercent)
 	{
 		return new CombatLevelContext(
 			effectiveLevel(boostedAttack, attackPrayer),
@@ -32,12 +37,18 @@ final class CombatLevelContext
 			effectiveLevel(boostedRanged, rangedAttackPrayer),
 			effectiveLevel(boostedRanged, rangedStrengthPrayer),
 			effectiveLevel(boostedStrength, rangedStrengthPrayer),
-			effectiveLevel(boostedMagic, magicPrayer));
+			effectiveMagicLevel(boostedMagic, magicPrayer), boostedMagic,
+			magicDamagePrayerPercent);
 	}
 
 	static CombatLevelContext unboosted(int attack, int strength, int magic, int ranged)
 	{
-		return effective(attack, 1, strength, 1, ranged, 1, 1, magic, 1);
+		return effective(attack, 1, strength, 1, ranged, 1, 1, magic, 1, 0);
+	}
+
+	private static int effectiveMagicLevel(int boostedLevel, double prayerMultiplier)
+	{
+		return (int) Math.floor(Math.max(1, boostedLevel) * Math.max(1, prayerMultiplier)) + 9;
 	}
 
 	private static int effectiveLevel(int boostedLevel, double prayerMultiplier)
@@ -52,4 +63,6 @@ final class CombatLevelContext
 	int getRangedStrength() { return rangedStrength; }
 	int getAtlatlStrength() { return atlatlStrength; }
 	int getMagicAttack() { return magicAttack; }
+	int getBoostedMagic() { return boostedMagic; }
+	int getMagicDamagePrayerPercent() { return magicDamagePrayerPercent; }
 }

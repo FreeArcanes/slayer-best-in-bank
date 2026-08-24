@@ -92,6 +92,27 @@ public class LoadoutOffenseEstimatorTest
 		assertTrue(highStrength > lowStrength);
 	}
 
+	@Test
+	public void identifiedElementalMagicProducesTargetAwareDps()
+	{
+		GearStrategy air = GearStrategy.builder().combatStyle(CombatStyle.MAGIC)
+			.elementalWeakness(ElementalWeakness.AIR, 50).build();
+		GearRecommendation weaponRecommendation = recommendation(
+			1, "Mystic air staff", EquipmentInventorySlot.WEAPON);
+		Map<EquipmentInventorySlot, GearRecommendation> loadout = new EnumMap<>(EquipmentInventorySlot.class);
+		loadout.put(EquipmentInventorySlot.WEAPON, weaponRecommendation);
+		Map<Integer, GearScorer.BankEquipment> equipment = Map.of(1,
+			bankEquipment(1, "Mystic air staff", EquipmentInventorySlot.WEAPON,
+				ItemEquipmentStats.builder().amagic(14).mdmg(10).aspeed(5).build()));
+		TargetDefence target = new TargetDefence("Weak target", 50, 50,
+			0, 0, 0, 0, 0, 0, 0);
+		CombatLevelContext context = CombatLevelContext.effective(
+			80, 1, 80, 1, 80, 1, 1, 99, 1.25, 4);
+
+		assertTrue(LoadoutOffenseEstimator.estimate(
+			loadout, equipment, air, target, context) > 0);
+	}
+
 	private static ItemEquipmentStats rangedWeapon(int accuracy, int strength, int speed)
 	{
 		return ItemEquipmentStats.builder().arange(accuracy).rstr(strength).aspeed(speed).build();
