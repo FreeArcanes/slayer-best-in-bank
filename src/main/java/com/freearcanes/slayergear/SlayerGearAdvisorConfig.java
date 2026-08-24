@@ -261,6 +261,15 @@ public interface SlayerGearAdvisorConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "taskSummaryChat",
+		name = "Task summary in chat",
+		description = "Post one compact local chat message when Best-in-Bank detects a completed or replaced assignment. Includes observed modeled-supply use and elapsed time.",
+		position = 14,
+		section = tripPlanningSection
+	)
+	default boolean taskSummaryChat() { return true; }
+
+	@ConfigItem(
 		keyName = "travelSuggestionsEnabled",
 		name = "Travel suggestions",
 		description = "Recommend optional teleport items for the assigned or selected Slayer location.",

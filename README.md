@@ -149,6 +149,17 @@ Real consumption varies with stats, gear, Prayer use, kill speed, incoming
 damage, and location. Treat all supply quantities as a starting point, not a
 guarantee.
 
+The sidebar turns that plan into a compact withdrawal checklist and shows a
+modeled trip cost with GP per planned kill. The estimate uses GE guide prices
+for quantity-planned supplies and can also include compatible worn ammunition
+and supported spell or powered-staff casts when the loadout has a target-aware
+kill-time estimate. Hidden quiver ammunition and charge states that RuneLite
+cannot observe are clearly left out instead of guessed.
+
+After a bank exit, Best-in-Bank can track observed use of its modeled supplies
+until the assignment changes. The latest task summary remains in the sidebar;
+one compact chat summary can be disabled in settings.
+
 ## Make it yours
 
 The plugin is designed to adapt to different accounts, budgets, and trip styles.
@@ -163,6 +174,7 @@ The plugin is designed to adapt to different accounts, budgets, and trip styles.
 | **Trip length** | Plan for the full assignment, a short trip, or a custom kill count. |
 | **Food / Prayer safety** | Use Light, Normal, or Extra automatic supply estimates. |
 | **Supply preferences** | Toggle Goading, Prayer regeneration, Divine boosts, and an Expeditious or Slaughter bracelet switch. |
+| **Task summary in chat** | Show or hide the single observed-consumption message posted when an assignment finishes or changes. |
 | **Teleport preferences** | Choose owned home, spell, Slayer-ring, fairy-ring, and Kourend travel options, including Max cape and Dramen staff. |
 | **Bank highlights** | Enable normal-bank markers and choose colors for each tier. |
 | **Prep reminder** | Show or hide the reminder after leaving the bank underprepared. |
@@ -170,6 +182,11 @@ The plugin is designed to adapt to different accounts, budgets, and trip styles.
 Each adjustable supply also has task-specific decrease, Auto, and increase
 controls in the sidebar. Optional supplies can be disabled for one task and
 restored later. RuneLite stores those preferences with the RuneScape profile.
+
+The Objective card can apply its task-aware suggestion and restore the previous
+choice without opening settings. Expanded task details can also copy or import
+a validated `SBIB1` preset containing the current method, Objective, personal
+item preferences, trip length, safety levels, and Low-risk settings.
 
 <table>
   <tr>

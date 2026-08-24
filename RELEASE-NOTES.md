@@ -3,6 +3,26 @@
 This release candidate consolidates the current loadout, supply-planning,
 bank-layout, customization, and support improvements into one reviewable update.
 
+## Polished planning and feedback
+
+- Added one-click task-aware Objective switching with a restore action.
+- Added a compact withdrawal checklist above the detailed gear and supply rows.
+- Added modeled trip cost and GP-per-kill estimates for quantity-planned
+  supplies, compatible worn ammunition, and supported Magic casts.
+- Applied visible Ava recovery rates without guessing hidden Dizana's quiver
+  upgrades or inaccessible loaded ammunition.
+- Added conservative charge-state filtering for inactive, empty, broken,
+  damaged, and fully degraded equipment while retaining usable specialty forms
+  such as `(i)`, `(f)`, ornamented, locked, and Max cape variants.
+- Added explicit charge reminders for powered weapons, Crystal equipment,
+  wilderness weapons, Barrows gear, and Dizana's quiver variants.
+- Added validated, versioned task presets for sharing a method, Objective,
+  preferences, trip settings, and Low-risk policy.
+- Added session-only observed supply consumption and elapsed-time summaries.
+- Added an optional single chat summary when an assignment ends or changes.
+- Advanced the local-only update notice to **Dev Update V.27**. The public
+  Plugin Hub version remains independent.
+
 ## Internal reliability
 
 - Consolidated bank, inventory, and worn-item canonicalization so duplicate

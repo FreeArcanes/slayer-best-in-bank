@@ -672,6 +672,7 @@ class GearScorer
 			{
 				if (item.slot != EquipmentInventorySlot.WEAPON
 					|| selectedIds.contains(item.canonicalItemId)
+					|| !EquipmentChargePolicy.isUsable(item.name)
 					|| !NameMatcher.normalize(item.name).contains(wanted)) continue;
 				result.add(recommendation(item, 1, strategy, item.score,
 					reason + " switch (best owned applicable tier)"));
@@ -2262,7 +2263,18 @@ class GearScorer
 		return canonical;
 	}
 
-	private static Set<String> collectOwnedNames(List<BankEquipment> items) { Set<String> r=new HashSet<>(); for(BankEquipment i:items) r.add(NameMatcher.normalize(i.name)); return r; }
+	private static Set<String> collectOwnedNames(List<BankEquipment> items)
+	{
+		Set<String> names = new HashSet<>();
+		for (BankEquipment item : items)
+		{
+			if (EquipmentChargePolicy.isUsable(item.name))
+			{
+				names.add(NameMatcher.normalize(item.name));
+			}
+		}
+		return names;
+	}
 	private static Set<String> parsePreferenceTokens(String s) { Set<String> r=new HashSet<>(); if(s!=null) for(String t:s.split(",")) if(!t.trim().isEmpty()) r.add(NameMatcher.normalize(t)); return r; }
 	private static boolean matchesAnyPreference(String name, Set<String> tokens) { String n=NameMatcher.normalize(name); for(String t:tokens) if(n.contains(t)) return true; return false; }
 
@@ -2276,6 +2288,7 @@ class GearScorer
 	static boolean allowed(BankEquipment item, GearStrategy strategy)
 	{
 		String n = NameMatcher.normalize(item.name);
+		if (!EquipmentChargePolicy.isUsable(n)) return false;
 		/*
 		 * Void's offensive bonuses only exist with its top, robe, gloves and a
 		 * combat helm worn together. Slayer loadouts prioritize the stronger
@@ -2363,6 +2376,8 @@ class GearScorer
 	private static String explain(GearStrategy strategy,String name,EquipmentInventorySlot slot,ItemEquipmentStats stats)
 	{
 		List<String> r = new ArrayList<>();
+		String chargeNote = EquipmentChargePolicy.note(name);
+		if (!chargeNote.isEmpty()) r.add(chargeNote);
 		if (slot == EquipmentInventorySlot.WEAPON)
 		{
 			String affinity = WeaponCombatRules.affinityReason(strategy, name);

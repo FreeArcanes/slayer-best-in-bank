@@ -1,6 +1,6 @@
 # Slayer Best in Bank Release-Candidate Validation
 
-Validation date: 2026-08-21
+Validation date: 2026-08-24
 
 ## Current status
 
@@ -11,7 +11,7 @@ are retained as the ongoing in-client regression matrix.
 Automated result:
 
 ```text
-234 tests passed
+306 tests passed
 0 failures
 0 errors
 ```
@@ -76,6 +76,23 @@ It is not part of the shipped main plugin source.
 - Profile-backed supply override keys are stable and trigger recommendation
   refreshes.
 - Exact potion doses and remaining withdrawal badges are covered.
+- Whole-potion, item, cannon-ammunition, worn-ammunition, and supported combat
+  cast prices contribute to the modeled trip and GP-per-kill estimate.
+- Visible Ava variants apply their documented recovery rates; hidden quiver
+  state is not guessed.
+
+### Polished task workflow
+
+- Task-aware Objective suggestions can be applied and restored from the panel.
+- Withdrawal checklist entries distinguish banked withdrawals from missing gear.
+- Versioned presets round-trip punctuation and Unicode and reject malformed,
+  oversized, wrong-version, or incompatible input.
+- Supply consumption tracks canonical potion-dose variants and reports only
+  observed decreases after the bank closes.
+- Boss-preview selection cannot replace the underlying Slayer assignment amount
+  used by completion tracking.
+- Inactive charge variants and fully degraded Barrows equipment are excluded;
+  functional charged and cosmetic/specialty variants remain eligible.
 
 ### Bank flow
 
@@ -119,12 +136,14 @@ No use was found of:
 - runtime source/code downloads;
 - sockets, HTTP clients, or background web requests;
 - filesystem writes or deletion;
-- clipboard collection;
+- background or automatic clipboard collection;
 - automatic browser navigation;
 - automated gameplay actions.
 
 The only external destination is the user-clicked Discord support invite, opened
-with RuneLite's `LinkBrowser`.
+with RuneLite's `LinkBrowser`. Preset clipboard access occurs only after the
+player clicks **Copy preset** or **Import preset**; it is never polled in the
+background and no clipboard contents leave the client.
 
 Lifecycle review confirmed paired registration/removal for overlays and the
 sidebar navigation button. Bank widgets and filtered-view mappings are cleared
@@ -136,6 +155,8 @@ on bank close, logout/world transition, and plugin shutdown.
 - [x] Potion/cannon withdrawals retain stable click positions.
 - [x] Quantity controls and estimated supply withdrawals operate locally.
 - [x] Discord support icon opens the intended invite after a direct click.
+- [x] Preset codec, charge filtering, trip cost, withdrawal checklist, and
+      canonical-dose consumption tracking pass automated regression tests.
 
 ## Manual release-candidate matrix
 
@@ -171,6 +192,12 @@ Complete these checks in the developer client before publishing:
 - [ ] Reopen the bank and verify deployed/consumed supplies are required again
       for the next trip.
 - [ ] Disable bank highlights and the prep reminder from plugin settings.
+- [ ] Apply and restore a suggested Objective with the bank both open and closed.
+- [ ] Copy/import a task preset and verify a malformed token is rejected.
+- [ ] Complete a short task after drinking a potion and verify exactly one task
+      summary appears when the chat option is enabled.
+- [ ] Compare the trip-cost card on one crossbow setup and one powered-staff
+      setup against current GE guide prices.
 
 ## Documentation and packaging gate
 
