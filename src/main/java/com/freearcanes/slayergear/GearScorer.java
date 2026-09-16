@@ -59,12 +59,20 @@ class GearScorer
 
 	private final ItemManager itemManager;
 	private final SmartSupplyAdvisor supplyAdvisor;
+	private final SlayerGearAdvisorConfig config;
 
 	@Inject
-	GearScorer(ItemManager itemManager, SmartSupplyAdvisor supplyAdvisor)
+	GearScorer(ItemManager itemManager, SmartSupplyAdvisor supplyAdvisor,
+		SlayerGearAdvisorConfig config)
 	{
 		this.itemManager = itemManager;
 		this.supplyAdvisor = supplyAdvisor;
+		this.config = config;
+	}
+
+	GearScorer(ItemManager itemManager, SmartSupplyAdvisor supplyAdvisor)
+	{
+		this(itemManager, supplyAdvisor, null);
 	}
 
 	GearRecommendations score(String taskName, int taskAmount, SlayerTaskProfile profile,
@@ -212,7 +220,10 @@ class GearScorer
 
 		Set<String> pinned = parsePreferenceTokens(pinnedItems);
 		Set<String> excluded = parsePreferenceTokens(excludedItems);
-		List<GearRequirement> requirements = TaskSafetyRules.gearRequirements(profile.getKey(), selected, kourendEliteComplete);
+		List<GearRequirement> requirements = TaskSafetyRules.gearRequirements(
+			profile.getKey() + " " + NameMatcher.normalize(taskName),
+			selected,
+			kourendEliteComplete);
 		Map<EquipmentInventorySlot, List<BankEquipment>> candidates = buildCandidates(
 			equipment, selected, requirements, gearPriority, pinned, excluded, lowRiskMode, riskCapGp);
 
@@ -310,6 +321,12 @@ class GearScorer
 			? Collections.emptyMap() : loadoutTiers.get(0).getItems();
 		boolean bestUsesLoadedDizanasQuiver =
 			loadedDizanasQuiver && usesDizanasQuiver(best);
+		int selectedPrayerBonus = selectedPrayerBonus(best, equipmentByCanonicalId);
+		LoadoutOffenseEstimate selectedOffense = loadoutTiers.isEmpty()
+			? LoadoutOffenseEstimate.unavailable()
+			: loadoutTiers.get(0).getOffenseEstimate();
+		double secondsPerKill = selectedOffense.hasKillRate()
+			? selectedOffense.getMaximumSecondsPerKill() : 0;
 		// Rada's blessing occupies the ammunition slot. It is a coherent travel
 		// suggestion only when the selected Dizana's quiver already carries the
 		// ranged weapon's ammunition.
@@ -321,12 +338,19 @@ class GearScorer
 			bankItems,
 			packedSupplyItems,
 			bestUsesLoadedDizanasQuiver,
-			gearPriority);
+			gearPriority,
+			new PotionEstimationContext(taskName, combatLevels.getPrayer(),
+				selectedPrayerBonus, secondsPerKill));
 		// A protective off-hand already satisfies dragonfire protection. Do not
 		// simultaneously tell the player that antifire is still required.
-		if (hasDragonfireProtection(best))
+		if (hasDragonfireProtection(best) && !requiresLayeredDragonfire(taskName))
 		{
 			supplies = withoutCategory(supplies, "Antifire");
+		}
+		if (hasSelectedItem(best, "serpentine helm"))
+		{
+			supplies = withoutCategory(supplies, "Venom protection");
+			supplies = withoutCategory(supplies, "Poison protection");
 		}
 		ReadinessReport readiness = readiness(
 			best, requirements, supplies, selected, magicLevel,
@@ -341,6 +365,87 @@ class GearScorer
 		return GearRecommendations.ready(taskName, taskAmount, profile, selected, alternatives,
 			bySlot, loadoutTiers, weaponSwitches, supplies, readiness,
 			equipment.size(), gearPriority, objectiveComparisons);
+	}
+
+	private static int selectedPrayerBonus(
+		Map<EquipmentInventorySlot, GearRecommendation> loadout,
+		Map<Integer, BankEquipment> equipmentByCanonicalId)
+	{
+		int bonus = 0;
+		for (GearRecommendation recommendation : loadout.values())
+		{
+			BankEquipment equipment = equipmentByCanonicalId.get(
+				recommendation.getCanonicalItemId());
+			if (equipment != null && equipment.stats != null)
+			{
+				bonus += equipment.stats.getPrayer();
+			}
+		}
+		return Math.max(0, bonus);
+	}
+
+	List<OwnedMethodComparison> compareOwnedMethods(
+		GearRecommendations selectedRecommendations, String taskName, int taskAmount,
+		String assignedLocation, SlayerTaskProfile profile, Item[] gearPool,
+		Item[] bankItems, Item[] packedGearItems, Item[] packedSupplyItems,
+		int alternativesPerSlot, int magicLevel, int rangedLevel,
+		boolean kourendEliteComplete, boolean ancientSpellbookActive,
+		GearPriority gearPriority, String pinnedItems, String excludedItems,
+		boolean lowRiskMode, int riskCapGp, boolean loadedDizanasQuiver,
+		boolean arceuusSpellbookActive, int attackLevel, int strengthLevel,
+		CombatLevelContext combatLevels, int plannedKills)
+	{
+		if (selectedRecommendations == null || profile == null
+			|| selectedRecommendations.getState() != GearRecommendations.State.READY
+			|| selectedRecommendations.getStrategy() == null
+			|| selectedRecommendations.getAlternativeStrategies().isEmpty())
+		{
+			return Collections.emptyList();
+		}
+		Set<String> eligibleNames = new HashSet<>();
+		eligibleNames.add(selectedRecommendations.getStrategy().getName());
+		for (GearStrategy alternative : selectedRecommendations.getAlternativeStrategies())
+		{
+			eligibleNames.add(alternative.getName());
+		}
+		List<OwnedMethodComparison> comparisons = new ArrayList<>();
+		for (GearStrategy strategy : profile.getStrategies())
+		{
+			if (!eligibleNames.contains(strategy.getName())) continue;
+			boolean selected = strategy.getName().equals(
+				selectedRecommendations.getStrategy().getName());
+			GearRecommendations candidate = selected ? selectedRecommendations : score(
+				taskName, taskAmount, assignedLocation, profile, gearPool, bankItems,
+				packedGearItems, packedSupplyItems, alternativesPerSlot, magicLevel,
+				rangedLevel, kourendEliteComplete, ancientSpellbookActive,
+				strategy.getName(), gearPriority, pinnedItems, excludedItems,
+				lowRiskMode, riskCapGp, loadedDizanasQuiver,
+				arceuusSpellbookActive, attackLevel, strengthLevel, combatLevels);
+			LoadoutOffenseEstimate offense = candidate.getLoadoutTiers().isEmpty()
+				? LoadoutOffenseEstimate.unavailable()
+				: candidate.getLoadoutTiers().get(0).getOffenseEstimate();
+			TripCostEstimate cost = TripCostEstimator.estimate(candidate, itemManager, plannedKills);
+			comparisons.add(new OwnedMethodComparison(strategy.getName(),
+				strategy.getCombatStyle(), strategy.getLocation(), offense,
+				cost.getTotalGp(), cost.getGpPerKill(),
+				ObjectiveAdvisor.suggest(profile, strategy).getObjective(), selected, false));
+		}
+		int fastest = -1;
+		double fastestDps = 0;
+		for (int index = 0; index < comparisons.size(); index++)
+		{
+			double dps = comparisons.get(index).averageDps();
+			if (dps > fastestDps)
+			{
+				fastestDps = dps;
+				fastest = index;
+			}
+		}
+		if (fastest >= 0)
+		{
+			comparisons.set(fastest, comparisons.get(fastest).withFastest(true));
+		}
+		return MethodComparisonAdvisor.apply(comparisons, gearPriority);
 	}
 
 	private List<ObjectiveLoadoutComparison> objectiveComparisons(
@@ -530,8 +635,35 @@ class GearScorer
 		}
 		if (task.contains("araxxor"))
 		{
-			addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
-				"Spawn weapon", "noxious halberd", "heavy ballista", "dragon crossbow");
+			AraxxorSwitchPreference preference = araxxorSwitchPreference();
+			if (preference == AraxxorSwitchPreference.NOXIOUS_HALBERD)
+			{
+				addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+					"Araxyte weapon", "noxious halberd");
+			}
+			else if (preference == AraxxorSwitchPreference.HEAVY_BALLISTA)
+			{
+				if (ownsNamed(equipment, "heavy ballista")
+					&& ownsNamed(equipment, "dragon javelin"))
+					addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+						"Araxyte weapon", "heavy ballista");
+			}
+			else if (ownsNamed(equipment, "noxious halberd"))
+			{
+				addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+					"Araxyte weapon", "noxious halberd");
+			}
+			else if (ownsNamed(equipment, "heavy ballista")
+				&& ownsNamed(equipment, "dragon javelin"))
+			{
+				addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+					"Araxyte weapon", "heavy ballista");
+			}
+			else
+			{
+				addFirstOwnedSwitch(switches, equipment, selectedIds, strategy,
+					"Araxyte weapon", "dragon crossbow");
+			}
 		}
 		else if (task.contains("abyssal sire"))
 		{
@@ -570,8 +702,62 @@ class GearScorer
 				"Phase weapon", "tumeken's shadow", "sanguinesti staff", "trident of the swamp",
 				"bow of faerdhinen", "twisted bow", "toxic blowpipe");
 		}
-		return includeApplicableOffhands(
+		List<GearRecommendation> encounterSwitches = includeApplicableOffhands(
 			switches, equipment, best, requirements, gearPriority, pinned, excluded, strategy);
+		if (task.contains("cerberus"))
+		{
+			addFirstOwnedGearSwitch(encounterSwitches, equipment, selectedIds, strategy,
+				EquipmentInventorySlot.SHIELD, "Phase shield", "spectral spirit shield");
+		}
+		if (task.contains("zulrah"))
+		{
+			addFirstOwnedGearSwitch(encounterSwitches, equipment, selectedIds, strategy,
+				EquipmentInventorySlot.RING, "Snakeling recoil",
+				"ring of suffering (ri)", "ring of suffering", "ring of recoil");
+		}
+		if (task.contains("phantom muspah"))
+		{
+			addFirstOwnedGearSwitch(encounterSwitches, equipment, selectedIds, strategy,
+				EquipmentInventorySlot.AMMO, "Prayer-shield ammunition",
+				"sapphire dragon bolts (e)", "sapphire bolts (e)");
+		}
+		if (task.contains("vorkath") || task.contains("king black dragon"))
+		{
+			addFirstOwnedGearSwitch(encounterSwitches, equipment, selectedIds, strategy,
+				EquipmentInventorySlot.SHIELD, "Dragonfire protection",
+				"dragonfire ward", "anti-dragon shield", "dragonfire shield");
+		}
+		if (task.contains("vorkath"))
+		{
+			addFirstOwnedGearSwitch(encounterSwitches, equipment, selectedIds, strategy,
+				EquipmentInventorySlot.WEAPON, "Crumble Undead autocast",
+				"slayer's staff (e)", "slayer's staff");
+		}
+		if (task.contains("barrows"))
+		{
+			addFirstOwnedGearSwitch(encounterSwitches, equipment, selectedIds, strategy,
+				EquipmentInventorySlot.SHIELD, "Prayer-drain prevention",
+				"ghommal's hilt 6", "ghommal's hilt 5", "ghommal's hilt 4",
+				"ghommal's hilt 3", "ghommal's hilt 2");
+		}
+		return encounterSwitches;
+	}
+
+	private AraxxorSwitchPreference araxxorSwitchPreference()
+	{
+		AraxxorSwitchPreference preference = config == null
+			? null : config.araxxorSwitchPreference();
+		return preference == null ? AraxxorSwitchPreference.AUTOMATIC : preference;
+	}
+
+	private static boolean ownsNamed(List<BankEquipment> equipment, String token)
+	{
+		for (BankEquipment item : equipment)
+		{
+			if (EquipmentChargePolicy.isUsable(item.name)
+				&& NameMatcher.normalize(item.name).contains(token)) return true;
+		}
+		return false;
 	}
 
 	private List<GearRecommendation> includeApplicableOffhands(
@@ -671,6 +857,30 @@ class GearScorer
 			for (BankEquipment item : equipment)
 			{
 				if (item.slot != EquipmentInventorySlot.WEAPON
+					|| selectedIds.contains(item.canonicalItemId)
+					|| !EquipmentChargePolicy.isUsable(item.name)
+					|| !NameMatcher.normalize(item.name).contains(wanted)) continue;
+				result.add(recommendation(item, 1, strategy, item.score,
+					reason + " switch (best owned applicable tier)"));
+				return;
+			}
+		}
+	}
+
+	private void addFirstOwnedGearSwitch(
+		List<GearRecommendation> result,
+		List<BankEquipment> equipment,
+		Set<Integer> selectedIds,
+		GearStrategy strategy,
+		EquipmentInventorySlot slot,
+		String reason,
+		String... orderedNames)
+	{
+		for (String wanted : orderedNames)
+		{
+			for (BankEquipment item : equipment)
+			{
+				if (item.slot != slot
 					|| selectedIds.contains(item.canonicalItemId)
 					|| !EquipmentChargePolicy.isUsable(item.name)
 					|| !NameMatcher.normalize(item.name).contains(wanted)) continue;
@@ -2025,9 +2235,27 @@ class GearScorer
 		GearRecommendation shield = selected.get(EquipmentInventorySlot.SHIELD);
 		if (shield == null) return false;
 		String name = NameMatcher.normalize(shield.getItemName());
-		return name.contains("anti dragon shield")
+		return name.contains("anti-dragon shield")
+			|| name.contains("anti dragon shield")
 			|| name.contains("dragonfire shield")
 			|| name.contains("dragonfire ward");
+	}
+
+	private static boolean requiresLayeredDragonfire(String taskName)
+	{
+		String task = NameMatcher.normalize(taskName);
+		return task.contains("vorkath") || task.contains("king black dragon");
+	}
+
+	private static boolean hasSelectedItem(
+		Map<EquipmentInventorySlot, GearRecommendation> selected,
+		String itemToken)
+	{
+		for (GearRecommendation recommendation : selected.values())
+		{
+			if (NameMatcher.normalize(recommendation.getItemName()).contains(itemToken)) return true;
+		}
+		return false;
 	}
 
 	static String highestAncientAoe(int level)
@@ -2075,6 +2303,8 @@ class GearScorer
 		{
 			case MAGIC:
 				damage = effectiveMagicDamageBonus(strategy, normalizedItemName, stats) * 25.0;
+				damage += ElementalAmuletEffect.scoringBonus(
+					strategy, normalizedItemName, slot);
 				accuracy = stats.getAmagic() * .28;
 				break;
 			case RANGED:
@@ -2394,7 +2624,7 @@ class GearScorer
 			r.add("+10% Vampyre damage, +15% Vampyre accuracy");
 		}
 		for(String p:strategy.getPreferredItems())if(NameMatcher.normalize(name).contains(NameMatcher.normalize(p))){r.add("task-method priority");break;}
-		switch(strategy.getCombatStyle()){case MAGIC:add(r,effectiveMagicDamageBonus(strategy,NameMatcher.normalize(name),stats),"% magic dmg");add(r,stats.getAmagic(),"magic");break;case RANGED:add(r,stats.getRstr(),"ranged Str");add(r,stats.getArange(),"ranged");break;default:add(r,stats.getStr(),"melee Str");add(r,attackBonus(strategy.getAttackType(),stats),strategy.getAttackType().name().toLowerCase(Locale.ENGLISH));}
+		switch(strategy.getCombatStyle()){case MAGIC:if(ElementalAmuletEffect.applies(strategy,name)&&slot==EquipmentInventorySlot.AMULET)r.add("+2 elemental base max hit");add(r,effectiveMagicDamageBonus(strategy,NameMatcher.normalize(name),stats),"% magic dmg");add(r,stats.getAmagic(),"magic");break;case RANGED:add(r,stats.getRstr(),"ranged Str");add(r,stats.getArange(),"ranged");break;default:add(r,stats.getStr(),"melee Str");add(r,attackBonus(strategy.getAttackType(),stats),strategy.getAttackType().name().toLowerCase(Locale.ENGLISH));}
 		if (slot != EquipmentInventorySlot.WEAPON)
 		{
 			int totalDefence = stats.getDstab() + stats.getDslash() + stats.getDcrush()

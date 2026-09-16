@@ -274,6 +274,13 @@ final class TravelItemAdvisor
 					"Law rune reminder; ensure an Air and Earth rune source is also available",
 					"law rune"));
 				break;
+			case RUNE_POUCH:
+				rules.add(rule(
+					"Rune pouch",
+					"Preferred compact home teleport; verify Law, Air, and Earth runes are loaded",
+					"divine rune pouch",
+					"rune pouch"));
+				break;
 			case NONE:
 				break;
 			case TELEPORT_TO_HOUSE:

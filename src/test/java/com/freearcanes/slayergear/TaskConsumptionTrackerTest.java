@@ -9,6 +9,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +60,76 @@ public class TaskConsumptionTrackerTest
 		assertNotNull(summary);
 		assertEquals("Blue dragons", summary.getTaskName());
 		assertEquals(2, summary.getKills());
+	}
+
+	@Test
+	public void accumulatesFoodAcrossBankTripsOnlyWhenTaskCounterFalls()
+	{
+		ItemManager itemManager = simpleItemManager(200, "Shark");
+		SupplyRecommendation food = supply(200, "Shark", "Food", "items");
+		TaskConsumptionTracker tracker = new TaskConsumptionTracker();
+
+		tracker.start(ready(food), "Abyssal demons", 10,
+			new Item[]{new Item(200, 10)}, itemManager, 1_000);
+		tracker.observe(new Item[]{new Item(200, 8)}, itemManager, 10);
+		tracker.observe(new Item[]{new Item(200, 8)}, itemManager, 9);
+		tracker.resume(ready(food), "Abyssal demons", 9,
+			new Item[]{new Item(200, 10)}, itemManager, 5_000);
+		tracker.observe(new Item[]{new Item(200, 7)}, itemManager, 8);
+		TaskCompletionSummary summary = tracker.finish(8, 10_000);
+
+		assertEquals(2, summary.getKills());
+		assertEquals(Collections.singletonList("Food 5 items"), summary.getConsumed());
+		assertEquals(9, summary.getElapsedSeconds());
+	}
+
+	@Test
+	public void ignoresFoodUsedWithoutConfirmedTaskProgress()
+	{
+		ItemManager itemManager = simpleItemManager(200, "Shark");
+		SupplyRecommendation food = supply(200, "Shark", "Food", "items");
+		TaskConsumptionTracker tracker = new TaskConsumptionTracker();
+
+		tracker.start(ready(food), "Abyssal demons", 10,
+			new Item[]{new Item(200, 10)}, itemManager, 1_000);
+		tracker.observe(new Item[]{new Item(200, 5)}, itemManager, 10);
+		tracker.resume(ready(food), "Abyssal demons", 10,
+			new Item[]{new Item(200, 10)}, itemManager, 5_000);
+		TaskCompletionSummary summary = tracker.finish(10, 10_000);
+
+		assertTrue(summary.getConsumed().isEmpty());
+	}
+
+	@Test
+	public void finalTaskKillCommitsPendingFoodUse()
+	{
+		ItemManager itemManager = simpleItemManager(200, "Shark");
+		SupplyRecommendation food = supply(200, "Shark", "Food", "items");
+		TaskConsumptionTracker tracker = new TaskConsumptionTracker();
+
+		tracker.start(ready(food), "Abyssal demons", 1,
+			new Item[]{new Item(200, 10)}, itemManager, 1_000);
+		tracker.observe(new Item[]{new Item(200, 8)}, itemManager, 1);
+		TaskCompletionSummary summary = tracker.finish(0, 2_000);
+
+		assertEquals(Collections.singletonList("Food 2 items"), summary.getConsumed());
+	}
+
+	private static ItemManager simpleItemManager(int itemId, String name)
+	{
+		ItemManager itemManager = mock(ItemManager.class);
+		ItemComposition composition = mock(ItemComposition.class);
+		when(composition.getName()).thenReturn(name);
+		when(itemManager.canonicalize(itemId)).thenReturn(itemId);
+		when(itemManager.getItemComposition(itemId)).thenReturn(composition);
+		return itemManager;
+	}
+
+	private static SupplyRecommendation supply(
+		int itemId, String name, String category, String unit)
+	{
+		return new SupplyRecommendation(itemId, itemId, name, category, "test",
+			SupplyStatus.PACKED, true, 10, 10, 0, unit);
 	}
 
 	private static GearRecommendations ready(SupplyRecommendation supply)

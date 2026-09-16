@@ -109,6 +109,9 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private TaskPrepReminderOverlay prepReminderOverlay;
 
 	@Inject
+	private DpsEstimateOverlay dpsEstimateOverlay;
+
+	@Inject
 	private BankAdvisorButton bankButton;
 
 	@Inject
@@ -127,7 +130,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	private ClientToolbar clientToolbar;
 
 	private NavigationButton navigationButton;
-	private GearRecommendations recommendations = GearRecommendations.noTask();
+	private volatile GearRecommendations recommendations = GearRecommendations.noTask();
 	private Item[] lastBankItems;
 	private Item[] lastInventoryItems = EMPTY_ITEMS;
 	private Item[] lastWornItems = EMPTY_ITEMS;
@@ -162,6 +165,8 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		highlightsActive = config.highlightsEnabled();
 		panel.setTheme(config.panelTheme());
 		panel.setStrategyCycleHandler(this::queueCycleStrategy);
+		panel.setMethodSelectionHandler(this::queueSelectStrategy);
+		panel.setAraxxorSwitchHandler(this::selectAraxxorSwitch);
 		panel.setSupplyQuantityHandler(this::adjustSupplyQuantity);
 		panel.setLoadoutRefreshHandler(this::queueRefreshBankLoadout);
 		panel.setAdvisorToggleHandler(this::toggleAdvisor);
@@ -173,7 +178,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		turaelAyaSpeedMode = readTuraelAyaSpeedMode();
 		panel.setTuraelAyaSpeedMode(turaelAyaSpeedMode);
 
-		AsyncBufferedImage icon = itemManager.getImage(ItemID.SLAYER_HELM);
+		AsyncBufferedImage icon = itemManager.getImage(ItemID.SLAYER_HELM_I_TWISTED);
 		// RuneLite snapshots/resizes navigation icons as soon as they are added.
 		// Trim the item sprite's transparent inventory padding first so the helm
 		// fills more of RuneLite's fixed toolbar icon area.
@@ -193,6 +198,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		}));
 		overlayManager.add(bankOverlay);
 		overlayManager.add(prepReminderOverlay);
+		overlayManager.add(dpsEstimateOverlay);
 
 		clientThread.invoke(() ->
 		{
@@ -256,6 +262,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 		pluginRunning.set(false);
 		overlayManager.remove(bankOverlay);
 		overlayManager.remove(prepReminderOverlay);
+		overlayManager.remove(dpsEstimateOverlay);
 		NavigationButton nav = navigationButton;
 		navigationButton = null;
 		if (nav != null)
@@ -283,6 +290,11 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			recommendations = GearRecommendations.noTask();
 			panel.display(recommendations);
 		});
+	}
+
+	GearRecommendations currentRecommendations()
+	{
+		return recommendations;
 	}
 
 	@Subscribe
@@ -440,7 +452,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				snapshotLoadedQuiverAmmo(),
 				EMPTY_ITEMS),
 			itemManager::canonicalize);
-		consumptionTracker.start(recommendations, lastTaskName, lastTaskAmount,
+		consumptionTracker.resume(recommendations, lastTaskName, lastTaskAmount,
 			combineGearPool(
 				combineGearPool(EMPTY_ITEMS, lastInventoryItems, lastWornItems),
 				snapshotLoadedQuiverAmmo(), EMPTY_ITEMS),
@@ -497,10 +509,11 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				int canonicalItemId = itemId < 0 ? itemId : itemManager.canonicalize(itemId);
 				boolean placeholder = itemId >= 0
 					&& itemManager.getItemComposition(itemId).getPlaceholderTemplateId() != -1;
-				intStack[size - 2] = !placeholder
-					&& (itemId < 0 || recommendations.isBankViewItem(canonicalItemId))
-					? 1
-					: 0;
+				boolean nativeSearchMatch = intStack[size - 2] != 0;
+				boolean recommended = itemId < 0
+					|| recommendations.isBankViewItem(canonicalItemId);
+				intStack[size - 2] = BankViewSearchFilter.shouldShow(
+					itemId, placeholder, recommended, nativeSearchMatch) ? 1 : 0;
 				break;
 			}
 			case "bankBuildTab":
@@ -520,7 +533,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				if (objectStack != null && size >= 1)
 				{
 					objectStack[size - 1] =
-						"Best-in-Bank: " + recommendations.getTaskName();
+						"Search Slayer Best-in-Bank suggested items:";
 				}
 				break;
 			}
@@ -530,8 +543,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				int size = client.getObjectStackSize();
 				if (objectStack != null && size >= 1)
 				{
-					objectStack[size - 1] =
-						"T1 Equip → T1 Supplies → T2 → T3";
+					int[] intStack = client.getIntStack();
+					int intSize = client.getIntStackSize();
+					int matches = intStack != null && intSize >= 1
+						? Math.max(0, intStack[intSize - 1]) : 0;
+					objectStack[size - 1] = matches + " suggested item"
+						+ (matches == 1 ? "" : "s") + " found";
 				}
 				break;
 			}
@@ -622,6 +639,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			|| "lowRiskMode".equals(key)
 			|| "riskCapThousands".equals(key)
 			|| "bossWeaponSwitches".equals(key)
+			|| "araxxorSwitchPreference".equals(key)
 			|| "tripPlan".equals(key)
 			|| "customTripKills".equals(key)
 			|| "potionEstimatesEnabled".equals(key)
@@ -696,9 +714,10 @@ public class SlayerGearAdvisorPlugin extends Plugin
 						return;
 					}
 
-					client.setVarcStrValue(
-						VarClientID.MESLAYERINPUT,
-						"T1 Equip → T1 Supplies → T2 → T3");
+					// Leave the native bank-search query empty. The callback filter keeps
+					// this view limited to recommendations, while subsequent player input
+					// can now narrow those suggested items by name, value, or bank tag.
+					client.setVarcStrValue(VarClientID.MESLAYERINPUT, "");
 					bankSearch.layoutBank();
 				}
 				finally
@@ -804,6 +823,13 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			SlayerGearAdvisorConfig.GROUP, "gearPriority", objective);
 	}
 
+	private void selectAraxxorSwitch(AraxxorSwitchPreference preference)
+	{
+		if (preference == null || preference == config.araxxorSwitchPreference()) return;
+		configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+			"araxxorSwitchPreference", preference);
+	}
+
 	private void exportPreset()
 	{
 		try
@@ -822,6 +848,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			values.put("prayerSafety", config.prayerSafety().name());
 			values.put("lowRisk", Boolean.toString(config.lowRiskMode()));
 			values.put("riskCap", Integer.toString(config.riskCapThousands()));
+			values.put("araxxorSwitch", config.araxxorSwitchPreference().name());
 			String token = TaskPresetCodec.encode(values);
 			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
 				new StringSelection(token), null);
@@ -866,6 +893,12 @@ public class SlayerGearAdvisorPlugin extends Plugin
 					"lowRiskMode", Boolean.parseBoolean(values.get("lowRisk")));
 				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
 					"riskCapThousands", Integer.parseInt(values.get("riskCap")));
+				if (values.containsKey("araxxorSwitch"))
+				{
+					configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+						"araxxorSwitchPreference",
+						AraxxorSwitchPreference.valueOf(values.get("araxxorSwitch")));
+				}
 				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
 					strategyKey(recommendations.getTaskName()), values.get("strategy"));
 			}
@@ -886,11 +919,13 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	{
 		try
 		{
-			if (values == null || values.size() != 10) return false;
+			if (values == null || (values.size() != 10 && values.size() != 11)) return false;
 			GearPriority.valueOf(values.get("objective"));
 			TripPlan.valueOf(values.get("tripPlan"));
 			SupplyLevel.valueOf(values.get("foodSafety"));
 			SupplyLevel.valueOf(values.get("prayerSafety"));
+			if (values.containsKey("araxxorSwitch"))
+				AraxxorSwitchPreference.valueOf(values.get("araxxorSwitch"));
 			int kills = Integer.parseInt(values.get("customKills"));
 			int cap = Integer.parseInt(values.get("riskCap"));
 			if (kills < 10 || kills > 250 || cap < 50 || cap > 10000) return false;
@@ -1056,7 +1091,10 @@ public class SlayerGearAdvisorPlugin extends Plugin
 	{
 		String effectiveTaskName = selectedBoss.isEmpty() ? lastTaskName : selectedBoss;
 		String effectiveTaskLocation = selectedBoss.isEmpty() ? lastTaskLocation : "Boss lair";
-		int effectiveTaskAmount = selectedBoss.isEmpty() ? lastTaskAmount : 1;
+		// A selected boss alternative still consumes the underlying assignment one
+		// kill at a time. Preserve the remaining task amount so trip supplies (for
+		// example Kraken fishing explosives) cover the chosen trip plan.
+		int effectiveTaskAmount = lastTaskAmount;
 		if (!config.advisorEnabled()
 			|| effectiveTaskName == null || effectiveTaskName.isEmpty())
 		{
@@ -1140,6 +1178,22 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			client.getRealSkillLevel(Skill.ATTACK),
 			client.getRealSkillLevel(Skill.STRENGTH),
 			combatLevelContext());
+		int plannedKills = SmartSupplyAdvisor.plannedKillCount(
+			config.tripPlan(), effectiveTaskAmount, config.customTripKills());
+		panel.setMethodComparisons(gearScorer.compareOwnedMethods(
+			scored, effectiveTaskName, effectiveTaskAmount, effectiveTaskLocation,
+			profile.get(), scoringPool, scoringBankItems, livePackedItems,
+			packedSupplyItems, config.alternativesPerSlot(),
+			client.getRealSkillLevel(Skill.MAGIC),
+			client.getRealSkillLevel(Skill.RANGED),
+			client.getVarbitValue(VarbitID.KOUREND_DIARY_ELITE_COMPLETE) == 1,
+			client.getVarbitValue(VarbitID.SPELLBOOK) == 1,
+			config.gearPriority(), config.pinnedItems(), config.excludedItems(),
+			config.lowRiskMode(), config.riskCapThousands() * 1_000,
+			loadedQuiverAmmo.length > 0,
+			client.getVarbitValue(VarbitID.SPELLBOOK) == 3,
+			client.getRealSkillLevel(Skill.ATTACK),
+			client.getRealSkillLevel(Skill.STRENGTH), combatLevelContext(), plannedKills));
 		if (!config.bossWeaponSwitches()) scored = scored.withoutWeaponSwitches();
 		if (bankFlow.isBankOpen())
 		{
@@ -1171,6 +1225,7 @@ public class SlayerGearAdvisorPlugin extends Plugin
 			client.getBoostedSkillLevel(Skill.RANGED), rangedAttackPrayerMultiplier(),
 			rangedStrengthPrayerMultiplier(), client.getBoostedSkillLevel(Skill.MAGIC),
 			magicAttackPrayerMultiplier(), magicDamagePrayerPercent())
+			.withPrayer(client.getRealSkillLevel(Skill.PRAYER))
 			.withKandarinHardDiary(client.getVarbitValue(
 				VarbitID.KANDARIN_DIARY_HARD_COMPLETE) == 1);
 	}
@@ -1406,6 +1461,35 @@ public class SlayerGearAdvisorPlugin extends Plugin
 				{
 					bankFlow.completeStrategyCycle();
 				}
+				strategyCycleRequestQueued.set(false);
+			}
+		});
+	}
+
+	private void queueSelectStrategy(String strategyName)
+	{
+		if (strategyName == null || strategyName.trim().isEmpty()
+			|| !pluginRunning.get()
+			|| !strategyCycleRequestQueued.compareAndSet(false, true)) return;
+		clientThread.invokeLater(() ->
+		{
+			boolean started = false;
+			try
+			{
+				if (!pluginRunning.get() || !bankFlow.queueStrategyCycle()) return;
+				started = true;
+				boolean eligible = recommendations.getStrategy() != null
+					&& (strategyName.equals(recommendations.getStrategy().getName())
+					|| recommendations.getAlternativeStrategies().stream()
+						.anyMatch(candidate -> strategyName.equals(candidate.getName())));
+				if (!eligible) return;
+				configManager.setConfiguration(SlayerGearAdvisorConfig.GROUP,
+					strategyKey(recommendations.getTaskName()), strategyName);
+				recalculateOrMarkBankRefresh();
+			}
+			finally
+			{
+				if (started) bankFlow.completeStrategyCycle();
 				strategyCycleRequestQueued.set(false);
 			}
 		});

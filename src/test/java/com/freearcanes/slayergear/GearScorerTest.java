@@ -29,6 +29,25 @@ import static org.mockito.Mockito.when;
 public class GearScorerTest
 {
 	@Test
+	public void elementalAmuletsOnlyReceiveFlatMaxHitValueForMatchingSpells()
+	{
+		GearStrategy fire = GearStrategy.builder().combatStyle(CombatStyle.MAGIC)
+			.elementalWeakness(ElementalWeakness.FIRE, 50).build();
+		ItemEquipmentStats stats = ItemEquipmentStats.builder()
+			.slot(EquipmentInventorySlot.AMULET.getSlotIdx()).amagic(10).build();
+
+		double fireAmulet = GearScorer.scoreStats(
+			fire, "Amulet of fire", EquipmentInventorySlot.AMULET, stats);
+		double elementalAmulet = GearScorer.scoreStats(
+			fire, "Elemental amulet", EquipmentInventorySlot.AMULET, stats);
+		double waterAmulet = GearScorer.scoreStats(
+			fire, "Amulet of water", EquipmentInventorySlot.AMULET, stats);
+
+		assertEquals(fireAmulet, elementalAmulet, 0.0001);
+		assertTrue(fireAmulet > waterAmulet);
+	}
+
+	@Test
 	public void slayerHelmetGetsOnTaskMeleePriority()
 	{
 		GearStrategy strategy = TaskProfiles.find("Bloodveld")
@@ -1396,6 +1415,106 @@ public class GearScorerTest
 		assertTrue(switches.stream().anyMatch(item -> "Elder maul".equals(item.getItemName())));
 		assertFalse(switches.stream().anyMatch(item ->
 			item.getSlot() == EquipmentInventorySlot.SHIELD));
+	}
+
+	@Test
+	public void cerberusIncludesOwnedSpectralAlongsideMainAvernic()
+	{
+		GearStrategy strategy = TaskProfiles.find("Cerberus")
+			.orElseThrow().getStrategies().get(0);
+		List<GearScorer.BankEquipment> equipment = Arrays.asList(
+			riskItem(120, "Inquisitor's mace", EquipmentInventorySlot.WEAPON, 0, 500, false),
+			riskItem(121, "Avernic defender", EquipmentInventorySlot.SHIELD, 0, 100, false),
+			riskItem(122, "Spectral spirit shield", EquipmentInventorySlot.SHIELD, 0, 90, false));
+		Map<EquipmentInventorySlot, GearRecommendation> best =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		best.put(EquipmentInventorySlot.WEAPON, GearRecommendation.builder()
+			.itemId(120).canonicalItemId(120).itemName("Inquisitor's mace")
+			.slot(EquipmentInventorySlot.WEAPON).build());
+		best.put(EquipmentInventorySlot.SHIELD, GearRecommendation.builder()
+			.itemId(121).canonicalItemId(121).itemName("Avernic defender")
+			.slot(EquipmentInventorySlot.SHIELD).build());
+
+		List<GearRecommendation> switches = new GearScorer(null, null).bossWeaponSwitches(
+			"Cerberus", TaskProfiles.find("Cerberus").orElseThrow(), strategy,
+			equipment, best, Collections.emptyList(), GearPriority.BALANCED,
+			Collections.emptySet(), Collections.emptySet());
+
+		assertTrue(switches.stream().anyMatch(item ->
+			"Spectral spirit shield".equals(item.getItemName())
+				&& item.getSlot() == EquipmentInventorySlot.SHIELD
+				&& item.getReason().startsWith("Phase shield")));
+	}
+
+	@Test
+	public void bossSpecialtyGearIsPackedAsEncounterSwitches()
+	{
+		assertBossSpecialtySwitch("Zulrah", 130, "Ring of recoil", EquipmentInventorySlot.RING);
+		assertBossSpecialtySwitch("Phantom Muspah", 131, "Sapphire bolts (e)", EquipmentInventorySlot.AMMO);
+		assertBossSpecialtySwitch("Vorkath", 132, "Dragonfire ward", EquipmentInventorySlot.SHIELD);
+		assertBossSpecialtySwitch("Vorkath", 133, "Slayer's staff", EquipmentInventorySlot.WEAPON);
+		assertBossSpecialtySwitch("Barrows Brothers", 134, "Ghommal's hilt 2", EquipmentInventorySlot.SHIELD);
+	}
+
+	private void assertBossSpecialtySwitch(
+		String task, int itemId, String itemName, EquipmentInventorySlot slot)
+	{
+		SlayerTaskProfile profile = TaskProfiles.find(task).orElseThrow();
+		GearStrategy strategy = profile.getStrategies().get(0);
+		List<GearScorer.BankEquipment> equipment = Arrays.asList(
+			riskItem(129, "Test main weapon", EquipmentInventorySlot.WEAPON, 0, 500, false),
+			riskItem(itemId, itemName, slot, 0, 100, false));
+		Map<EquipmentInventorySlot, GearRecommendation> best =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		best.put(EquipmentInventorySlot.WEAPON, GearRecommendation.builder()
+			.itemId(129).canonicalItemId(129).itemName("Test main weapon")
+			.slot(EquipmentInventorySlot.WEAPON).build());
+
+		List<GearRecommendation> switches = new GearScorer(null, null).bossWeaponSwitches(
+			task, profile, strategy, equipment, best, Collections.emptyList(),
+			GearPriority.BALANCED, Collections.emptySet(), Collections.emptySet());
+
+		assertTrue(task + " should pack " + itemName, switches.stream().anyMatch(item ->
+			itemName.equals(item.getItemName()) && slot == item.getSlot()));
+	}
+
+	@Test
+	public void araxxorBallistaPreferenceRequiresOwnedDragonJavelinsAndExcludesHalberd()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public AraxxorSwitchPreference araxxorSwitchPreference()
+			{
+				return AraxxorSwitchPreference.HEAVY_BALLISTA;
+			}
+		};
+		GearStrategy strategy = TaskProfiles.find("Araxxor")
+			.orElseThrow().getStrategies().get(0);
+		List<GearScorer.BankEquipment> equipment = Arrays.asList(
+			riskItem(120, "Abyssal bludgeon", EquipmentInventorySlot.WEAPON, 0, 500, false, true),
+			riskItem(121, "Noxious halberd", EquipmentInventorySlot.WEAPON, 0, 100, false, true),
+			riskItem(122, "Heavy ballista", EquipmentInventorySlot.WEAPON, 0, 100, false, true),
+			riskItem(123, "Dragon javelin", EquipmentInventorySlot.AMMO, 0, 100, false));
+		Map<EquipmentInventorySlot, GearRecommendation> best = new EnumMap<>(EquipmentInventorySlot.class);
+		best.put(EquipmentInventorySlot.WEAPON, GearRecommendation.builder()
+			.itemId(120).canonicalItemId(120).itemName("Abyssal bludgeon")
+			.slot(EquipmentInventorySlot.WEAPON).twoHanded(true).build());
+
+		List<GearRecommendation> switches = new GearScorer(null, null, config)
+			.bossWeaponSwitches("Araxxor", TaskProfiles.find("Araxxor").orElseThrow(),
+				strategy, equipment, best, Collections.emptyList(), GearPriority.BALANCED,
+				Collections.emptySet(), Collections.emptySet());
+
+		assertTrue(switches.stream().anyMatch(item -> "Heavy ballista".equals(item.getItemName())));
+		assertFalse(switches.stream().anyMatch(item -> "Noxious halberd".equals(item.getItemName())));
+
+		List<GearScorer.BankEquipment> withoutAmmo = equipment.subList(0, 3);
+		List<GearRecommendation> incomplete = new GearScorer(null, null, config)
+			.bossWeaponSwitches("Araxxor", TaskProfiles.find("Araxxor").orElseThrow(),
+				strategy, withoutAmmo, best, Collections.emptyList(), GearPriority.BALANCED,
+				Collections.emptySet(), Collections.emptySet());
+		assertFalse(incomplete.stream().anyMatch(item -> "Heavy ballista".equals(item.getItemName())));
 	}
 
 	@Test

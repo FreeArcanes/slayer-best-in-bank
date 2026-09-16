@@ -14,14 +14,15 @@ final class PluginRelease
 
 	// Keep DEVELOPMENT locally. Change to PUBLIC only as part of publishing.
 	static final Channel CHANNEL = Channel.PUBLIC;
-	static final String DEV_VERSION = "V.28";
-	static final String PUBLIC_VERSION = "V1.82";
+	static final String DEV_VERSION = "V.32";
+	static final String PUBLIC_VERSION = "V1.83";
 
 	static final List<String> CHANGE_LINES = List.of(
-		"- Fixed Fossil Island wyvern methods and ranged weapon/ammo matching, including quiver variants.",
-		"- Added target-aware DPS, live boosts/prayers, combat effects, TTK, kills/hr, and readable comparisons.",
-		"- Added Why? explanations and task-aware Objectives with comparisons, switching, and supply policies.",
-		"- Added charge-safe gear, validated presets, trip/GP-per-kill costs, and observed task summaries.");
+		"- Added the new elemental amulets' hidden +2 base max hit to ranking and DPS estimates.",
+		"- Rebuilt potion doses around TTK, Prayer stats, durations, and every boss encounter.",
+		"- Added owned-method comparisons using each method's complete best bank loadout.",
+		"- Compare DPS, TTK, kills/hr, cost, and a transparent best-for-Objective verdict.",
+		"- Added rune-pouch travel, overlays, task summaries, themed selectors, searchable bank suggestions, and encounter access tools.");
 
 	private PluginRelease() {}
 

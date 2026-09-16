@@ -13,11 +13,12 @@ final class CombatLevelContext
 	private final int boostedRanged;
 	private final int magicDamagePrayerPercent;
 	private final boolean kandarinHardDiary;
+	private final int prayer;
 
 	private CombatLevelContext(int attack, int strength, int rangedAttack,
 		int rangedStrength, int atlatlStrength, int magicAttack,
 		int boostedMagic, int boostedRanged, int magicDamagePrayerPercent,
-		boolean kandarinHardDiary)
+		boolean kandarinHardDiary, int prayer)
 	{
 		this.attack = positive(attack);
 		this.strength = positive(strength);
@@ -29,6 +30,7 @@ final class CombatLevelContext
 		this.boostedRanged = positive(boostedRanged);
 		this.magicDamagePrayerPercent = Math.max(0, magicDamagePrayerPercent);
 		this.kandarinHardDiary = kandarinHardDiary;
+		this.prayer = positive(prayer);
 	}
 
 	static CombatLevelContext effective(int boostedAttack, double attackPrayer,
@@ -43,14 +45,21 @@ final class CombatLevelContext
 			effectiveLevel(boostedRanged, rangedStrengthPrayer),
 			effectiveLevel(boostedStrength, rangedStrengthPrayer),
 			effectiveMagicLevel(boostedMagic, magicPrayer), boostedMagic,
-			boostedRanged, magicDamagePrayerPercent, false);
+			boostedRanged, magicDamagePrayerPercent, false, 70);
+	}
+
+	CombatLevelContext withPrayer(int level)
+	{
+		return new CombatLevelContext(attack, strength, rangedAttack, rangedStrength,
+			atlatlStrength, magicAttack, boostedMagic, boostedRanged,
+			magicDamagePrayerPercent, kandarinHardDiary, level);
 	}
 
 	CombatLevelContext withKandarinHardDiary(boolean complete)
 	{
 		return new CombatLevelContext(attack, strength, rangedAttack, rangedStrength,
 			atlatlStrength, magicAttack, boostedMagic, boostedRanged,
-			magicDamagePrayerPercent, complete);
+			magicDamagePrayerPercent, complete, prayer);
 	}
 
 	static CombatLevelContext unboosted(int attack, int strength, int magic, int ranged)
@@ -81,4 +90,5 @@ final class CombatLevelContext
 	int getBoostedRanged() { return boostedRanged; }
 	int getMagicDamagePrayerPercent() { return magicDamagePrayerPercent; }
 	boolean hasKandarinHardDiary() { return kandarinHardDiary; }
+	int getPrayer() { return prayer; }
 }

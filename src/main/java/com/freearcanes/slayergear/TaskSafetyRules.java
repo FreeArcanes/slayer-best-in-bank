@@ -59,7 +59,7 @@ final class TaskSafetyRules
 			requirements.add(GearRequirement.anyOf("Insulated boots required",
 				GearRequirement.option(EquipmentInventorySlot.BOOTS, "insulated boots")));
 		}
-		if (!kourendEliteComplete && contains(key, "drakes", "wyrms", "hydras"))
+		if (!kourendEliteComplete && contains(key, "drakes", "wyrms", "hydra"))
 		{
 			requirements.add(GearRequirement.anyOf("Karuulm heat-protection boots required",
 				GearRequirement.option(EquipmentInventorySlot.BOOTS,

@@ -24,7 +24,8 @@ every withdrawal and gameplay decision in your hands.
 
 Target-aware estimates compare complete owned loadouts using current visible
 boosts, active prayers, equipment bonuses, attack speed, target defences, and
-supported weapon or set effects.
+supported weapon or set effects. For standard elemental spells, this includes
+the matching elemental amulets' hidden +2 base max hit.
 
 <p align="center">
   <img src="images/02-dps-ttk-estimates.png" alt="Expanded Slayer Best in Bank DPS, time-to-kill, and kills-per-hour estimate" width="260">

@@ -36,6 +36,7 @@ final class LoadoutOffenseEstimator
 		int strengthBonus = 0;
 		double magicDamagePercent = 0;
 		String headgearName = "";
+		String amuletName = "";
 		int speed = 4;
 		for (GearRecommendation recommendation : loadout.values())
 		{
@@ -45,6 +46,10 @@ final class LoadoutOffenseEstimator
 			if (recommendation.getSlot() == EquipmentInventorySlot.HEAD)
 			{
 				headgearName = item.name;
+			}
+			else if (recommendation.getSlot() == EquipmentInventorySlot.AMULET)
+			{
+				amuletName = item.name;
 			}
 			switch (strategy.getCombatStyle())
 			{
@@ -100,7 +105,11 @@ final class LoadoutOffenseEstimator
 					magicDamagePercent = Math.min(100,
 						magicDamagePercent * shadowMultiplier);
 				}
-				maximumHit = magicMaxHit(magicMethod.getBaseMaxHit(), magicDamagePercent,
+				int elementalAmuletBonus = magicMethod.isElemental()
+					&& ElementalAmuletEffect.applies(strategy, amuletName)
+					? ElementalAmuletEffect.MAX_HIT_BONUS : 0;
+				maximumHit = magicMaxHit(
+					magicMethod.getBaseMaxHit() + elementalAmuletBonus, magicDamagePercent,
 					levels.getMagicDamagePrayerPercent(), elementalWeaknessApplies
 						? strategy.getElementalWeaknessPercent() : 0);
 				averageHit = maximumHit / 2.0;

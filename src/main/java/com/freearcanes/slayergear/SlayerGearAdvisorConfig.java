@@ -134,6 +134,18 @@ public interface SlayerGearAdvisorConfig extends Config
 	default boolean bossWeaponSwitches() { return true; }
 
 	@ConfigItem(
+		keyName = "araxxorSwitchPreference",
+		name = "Araxxor minion switch",
+		description = "Choose the safe Mirrorback/Araxyte switch. Heavy ballista is paired with dragon javelins and may need Ranged boosts, Rigour, or additional Ranged gear to one-hit.",
+		position = 7,
+		section = preferenceSection
+	)
+	default AraxxorSwitchPreference araxxorSwitchPreference()
+	{
+		return AraxxorSwitchPreference.AUTOMATIC;
+	}
+
+	@ConfigItem(
 		keyName = "tripPlan",
 		name = "Trip length",
 		description = "Full assignment scales from the remaining task, Short trip plans for at most 40 kills, and Custom uses the configured kill count.",
@@ -154,8 +166,8 @@ public interface SlayerGearAdvisorConfig extends Config
 
 	@ConfigItem(
 		keyName = "potionEstimatesEnabled",
-		name = "Potion Estimate (BETA)",
-		description = "Shows estimated potion counts based on remaining kills, trip length, combat method, and supply preferences. Estimates are advisory only: actual use varies with stats, gear, location, Prayer use, damage taken, and kill speed. Disable this to keep potion recommendations without quantity targets.",
+		name = "Potion estimates",
+		description = "Estimate potion doses from the encounter, trip length, selected loadout, TTK, Prayer level/bonus, and effect durations. Disable this to keep potion recommendations without quantity targets.",
 		position = 3,
 		section = tripPlanningSection
 	)
@@ -281,7 +293,7 @@ public interface SlayerGearAdvisorConfig extends Config
 	@ConfigItem(
 		keyName = "homeTeleportPreference",
 		name = "Home teleport",
-		description = "Preferred way to carry a Teleport to House option. Runes uses a Law rune as the visible reminder.",
+		description = "Preferred way to carry a Teleport to House option. Rune pouch assumes the required runes are loaded; Runes uses a Law rune as the visible reminder.",
 		position = 2,
 		section = teleportSection
 	)
@@ -398,7 +410,7 @@ public interface SlayerGearAdvisorConfig extends Config
 	)
 	default PanelTheme panelTheme()
 	{
-		return PanelTheme.MIDNIGHT;
+		return PanelTheme.RUNELITE;
 	}
 
 	@ConfigItem(
@@ -412,6 +424,34 @@ public interface SlayerGearAdvisorConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "dpsOverlayEnabled",
+		name = "On-screen DPS",
+		description = "Show the current Tier 1 DPS estimate in a movable in-game overlay. Hold Alt and drag to reposition it.",
+		position = 3,
+		section = appearanceSection
+	)
+	default boolean dpsOverlayEnabled() { return false; }
+
+	@ConfigItem(
+		keyName = "dpsOverlayDetailed",
+		name = "Detailed DPS overlay",
+		description = "Also show estimated TTK, kills per hour, and the target used by the calculation.",
+		position = 4,
+		section = appearanceSection
+	)
+	default boolean dpsOverlayDetailed() { return true; }
+
+	@Range(min = 0, max = 255)
+	@ConfigItem(
+		keyName = "dpsOverlayOpacity",
+		name = "DPS background opacity",
+		description = "Controls the DPS overlay background. Zero is fully transparent and 255 is fully opaque.",
+		position = 5,
+		section = appearanceSection
+	)
+	default int dpsOverlayOpacity() { return 145; }
 
 	@ConfigItem(
 		keyName = "prepReminderEnabled",

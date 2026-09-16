@@ -130,7 +130,7 @@ final class SupplyRecommendation
 		{
 			return Math.max(1, SmartSupplyAdvisor.doseScore(itemName));
 		}
-		return "shots".equals(quantityUnit) ? Math.max(1, getQuantityStillNeeded()) : 1;
+		return isStackQuantity() ? Math.max(1, getQuantityStillNeeded()) : 1;
 	}
 	int getWithdrawalsStillNeeded()
 	{
@@ -142,7 +142,12 @@ final class SupplyRecommendation
 	{
 		if ("doses".equals(quantityUnit)) return Math.max(1, SmartSupplyAdvisor.doseScore(itemName));
 		if ("shots".equals(quantityUnit)) return 100;
+		if ("uses".equals(quantityUnit)) return 1;
 		return 1;
+	}
+	boolean isStackQuantity()
+	{
+		return "shots".equals(quantityUnit) || "uses".equals(quantityUnit);
 	}
 
 	SupplyRecommendation withCapacityQuantity(int quantity)

@@ -87,6 +87,32 @@ public class TravelItemAdvisorTest
 	}
 
 	@Test
+	public void runePouchIsAnExplicitHomeTeleportPreference()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public HomeTeleportPreference homeTeleportPreference()
+			{
+				return HomeTeleportPreference.RUNE_POUCH;
+			}
+		};
+
+		TravelItemAdvisor.TravelRule home = TravelItemAdvisor.recommend("", null, config).get(0);
+
+		assertEquals("Rune pouch", home.getFallback());
+		assertArrayEquals(new String[]{"divine rune pouch", "rune pouch"},
+			home.getPreferredNames());
+		assertTrue(home.getReason().contains("verify Law, Air, and Earth runes"));
+		assertTrue(SmartSupplyAdvisor.matchesPreferredSupply(
+			"divine rune pouch", "divine rune pouch"));
+		assertTrue(SmartSupplyAdvisor.matchesPreferredSupply(
+			"rune pouch", "rune pouch"));
+		assertFalse(SmartSupplyAdvisor.matchesPreferredSupply(
+			"divine rune pouch", "rune pouch"));
+	}
+
+	@Test
 	public void constructionCapeMatchesRuneLiteItemNames()
 	{
 		assertTrue(SmartSupplyAdvisor.matchesPreferredSupply(

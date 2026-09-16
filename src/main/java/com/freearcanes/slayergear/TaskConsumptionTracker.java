@@ -30,6 +30,55 @@ final class TaskConsumptionTracker
 		int assignmentAmount, Item[] packedItems, ItemManager itemManager, long nowMillis)
 	{
 		reset();
+		begin(recommendations, assignmentName, assignmentAmount,
+			packedItems, itemManager, nowMillis);
+	}
+
+	void resume(GearRecommendations recommendations, String assignmentName,
+		int assignmentAmount, Item[] packedItems, ItemManager itemManager, long nowMillis)
+	{
+		String nextTask = assignmentName == null ? "" : assignmentName.trim();
+		if (!isActive() || !NameMatcher.normalize(taskName).equals(
+			NameMatcher.normalize(nextTask)) || assignmentAmount > latestAmount)
+		{
+			reset();
+			begin(recommendations, nextTask, assignmentAmount,
+				packedItems, itemManager, nowMillis);
+			return;
+		}
+		if (recommendations == null
+			|| recommendations.getState() != GearRecommendations.State.READY) return;
+		latestAmount = Math.max(0, assignmentAmount);
+		// Banking starts a fresh inventory checkpoint for every previously tracked
+		// category, including one omitted from the newly selected trip plan.
+		for (TrackedSupply tracked : supplies.values())
+		{
+			int units = unitsFor(tracked.canonicalItemId, tracked.unit,
+				packedItems, itemManager);
+			tracked.resume(tracked.canonicalItemId, tracked.unit, units);
+		}
+		for (SupplyRecommendation supply : recommendations.getSupplies())
+		{
+			if (!trackable(supply)) continue;
+			int units = unitsFor(supply.getCanonicalItemId(), supply.getQuantityUnit(),
+				packedItems, itemManager);
+			TrackedSupply tracked = supplies.get(supply.getCategory());
+			if (tracked == null)
+			{
+				supplies.put(supply.getCategory(), new TrackedSupply(
+					supply.getCategory(), supply.getCanonicalItemId(),
+					supply.getQuantityUnit(), units));
+			}
+			else
+			{
+				tracked.resume(supply.getCanonicalItemId(), supply.getQuantityUnit(), units);
+			}
+		}
+	}
+
+	private void begin(GearRecommendations recommendations, String assignmentName,
+		int assignmentAmount, Item[] packedItems, ItemManager itemManager, long nowMillis)
+	{
 		if (recommendations == null
 			|| recommendations.getState() != GearRecommendations.State.READY) return;
 		taskName = assignmentName == null ? "" : assignmentName.trim();
@@ -39,8 +88,7 @@ final class TaskConsumptionTracker
 		startedAtMillis = Math.max(0, nowMillis);
 		for (SupplyRecommendation supply : recommendations.getSupplies())
 		{
-			if (!supply.isEnabledForTrip() || !supply.hasQuantityTarget()
-				|| supply.getCanonicalItemId() <= 0) continue;
+			if (!trackable(supply)) continue;
 			int units = unitsFor(supply.getCanonicalItemId(), supply.getQuantityUnit(),
 				packedItems, itemManager);
 			supplies.put(supply.getCategory(), new TrackedSupply(
@@ -51,22 +99,30 @@ final class TaskConsumptionTracker
 	void observe(Item[] packedItems, ItemManager itemManager, int remainingAmount)
 	{
 		if (!isActive()) return;
-		latestAmount = Math.max(0, remainingAmount);
+		int nextAmount = Math.max(0, remainingAmount);
+		boolean confirmedTaskProgress = nextAmount < latestAmount;
 		for (TrackedSupply supply : supplies.values())
 		{
-			supply.latestUnits = unitsFor(supply.canonicalItemId, supply.unit,
+			supply.observedUnits = unitsFor(supply.canonicalItemId, supply.unit,
 				packedItems, itemManager);
+			if (confirmedTaskProgress) supply.commitObservedUse();
 		}
+		latestAmount = nextAmount;
 	}
 
 	TaskCompletionSummary finish(int finalAmount, long nowMillis)
 	{
 		if (!isActive()) return null;
-		latestAmount = Math.max(0, finalAmount);
+		int nextAmount = Math.max(0, finalAmount);
+		if (nextAmount < latestAmount)
+		{
+			for (TrackedSupply supply : supplies.values()) supply.commitObservedUse();
+		}
+		latestAmount = nextAmount;
 		List<String> consumed = new ArrayList<>();
 		for (TrackedSupply supply : supplies.values())
 		{
-			int used = Math.max(0, supply.initialUnits - supply.latestUnits);
+			int used = supply.consumedUnits;
 			if (used > 0) consumed.add(supply.category + " " + used + " " + supply.unit);
 		}
 		TaskCompletionSummary summary = new TaskCompletionSummary(taskName,
@@ -86,6 +142,12 @@ final class TaskConsumptionTracker
 	}
 
 	boolean isActive() { return !taskName.isEmpty(); }
+
+	private static boolean trackable(SupplyRecommendation supply)
+	{
+		return supply != null && supply.isEnabledForTrip()
+			&& supply.hasQuantityTarget() && supply.getCanonicalItemId() > 0;
+	}
 
 	static int unitsFor(int canonicalItemId, String unit, Item[] items,
 		ItemManager itemManager)
@@ -111,17 +173,32 @@ final class TaskConsumptionTracker
 	private static final class TrackedSupply
 	{
 		private final String category;
-		private final int canonicalItemId;
-		private final String unit;
-		private final int initialUnits;
-		private int latestUnits;
+		private int canonicalItemId;
+		private String unit;
+		private int checkpointUnits;
+		private int observedUnits;
+		private int consumedUnits;
 		private TrackedSupply(String category, int canonicalItemId, String unit, int units)
 		{
 			this.category = category;
 			this.canonicalItemId = canonicalItemId;
 			this.unit = unit;
-			this.initialUnits = units;
-			this.latestUnits = units;
+			this.checkpointUnits = units;
+			this.observedUnits = units;
+		}
+
+		private void resume(int itemId, String quantityUnit, int units)
+		{
+			canonicalItemId = itemId;
+			unit = quantityUnit;
+			checkpointUnits = units;
+			observedUnits = units;
+		}
+
+		private void commitObservedUse()
+		{
+			consumedUnits += Math.max(0, checkpointUnits - observedUnits);
+			checkpointUnits = observedUnits;
 		}
 	}
 }

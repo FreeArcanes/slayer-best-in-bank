@@ -82,9 +82,13 @@ public class BossSlayerFeatureTest
 		SlayerTaskProfile araxxor = TaskProfiles.find("Araxxor").orElseThrow();
 		GearStrategy primary = araxxor.getStrategies().get(0);
 		GearStrategy spawnSwitch = araxxor.getStrategies().get(1);
+		GearStrategy ballistaSwitch = araxxor.getStrategies().get(2);
 
 		assertTrue(primary.getPreferredItems().contains("amulet of rancour"));
 		assertTrue(NameMatcher.matchesAnyToken("Noxious halberd", spawnSwitch.getRequiredWeapon()));
+		assertTrue(NameMatcher.matchesAnyToken("Heavy ballista", ballistaSwitch.getRequiredWeapon()));
+		assertEquals(CombatStyle.RANGED, ballistaSwitch.getCombatStyle());
+		assertTrue(ballistaSwitch.getRationale().contains("dragon javelins"));
 	}
 
 	@Test

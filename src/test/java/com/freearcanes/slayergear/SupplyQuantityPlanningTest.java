@@ -128,6 +128,77 @@ public class SupplyQuantityPlanningTest
 	}
 
 	@Test
+	public void fishingExplosivesScaleAsOneStackedUsePerKrakenKill()
+	{
+		assertEquals(150, SmartSupplyAdvisor.recommendedQuantity(
+			"Fishing explosives", 150));
+		assertEquals("uses", SmartSupplyAdvisor.quantityUnit("Fishing explosives"));
+	}
+
+	@Test
+	public void exactSupplyTokensDoNotAcceptMisleadingSpecialtyNames()
+	{
+		assertTrue(SmartSupplyAdvisor.matchesPreferredSupply("hammer", "=hammer"));
+		assertFalse(SmartSupplyAdvisor.matchesPreferredSupply("rock hammer", "=hammer"));
+		assertTrue(SmartSupplyAdvisor.matchesPreferredSupply("dragon warhammer", "warhammer"));
+	}
+
+	@Test
+	public void araxxorJavelinsPlanTenShotsPerKill()
+	{
+		assertEquals(10, SmartSupplyAdvisor.recommendedQuantity(
+			"Araxyte ammunition", 1));
+		assertEquals(80, SmartSupplyAdvisor.recommendedQuantity(
+			"Araxyte ammunition", 8));
+		assertEquals("shots", SmartSupplyAdvisor.quantityUnit(
+			"Araxyte ammunition"));
+	}
+
+	@Test
+	public void araxxorBallistaPreferenceAddsCoherentWeaponAmmoAndBoostRules()
+	{
+		SlayerGearAdvisorConfig config = new SlayerGearAdvisorConfig()
+		{
+			@Override
+			public AraxxorSwitchPreference araxxorSwitchPreference()
+			{
+				return AraxxorSwitchPreference.HEAVY_BALLISTA;
+			}
+		};
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, config);
+		List<SmartSupplyAdvisor.SupplyRule> rules = advisor.buildRules(
+			TaskProfiles.find("Araxxor").orElseThrow(),
+			TaskProfiles.find("Araxxor").orElseThrow().getStrategies().get(0));
+
+		Map<String, SmartSupplyAdvisor.SupplyRule> byCategory = rules.stream()
+			.collect(Collectors.toMap(SmartSupplyAdvisor.SupplyRule::getCategory,
+				rule -> rule, (first, ignored) -> first));
+		assertEquals(Arrays.asList("heavy ballista"),
+			byCategory.get("Araxyte switch").getPreferredNames());
+		assertEquals(Arrays.asList("dragon javelin"),
+			byCategory.get("Araxyte ammunition").getPreferredNames());
+		assertTrue(byCategory.containsKey("Araxyte ranged boost"));
+	}
+
+	@Test
+	public void araxxorBallistaHybridRequestsBothRangedAndMeleeBoosts()
+	{
+		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(
+			null, new SlayerGearAdvisorConfig() { });
+		SlayerTaskProfile araxxor = TaskProfiles.find("Araxxor").orElseThrow();
+		GearStrategy ballista = araxxor.getStrategies().stream()
+			.filter(strategy -> strategy.getName().contains("Heavy ballista"))
+			.findFirst().orElseThrow();
+
+		List<String> categories = advisor.buildRules(araxxor, ballista).stream()
+			.map(SmartSupplyAdvisor.SupplyRule::getCategory)
+			.collect(Collectors.toList());
+
+		assertTrue(categories.contains("Combat boost"));
+		assertTrue(categories.contains("Ranged boost"));
+	}
+
+	@Test
 	public void prayerPotionIsTheDefaultExclusivePrayerRestore()
 	{
 		SmartSupplyAdvisor advisor = new SmartSupplyAdvisor(null, new SlayerGearAdvisorConfig() {});
@@ -578,6 +649,8 @@ public class SupplyQuantityPlanningTest
 	public void recommendationRefreshPolicyIncludesProfileSupplyOverrides()
 	{
 		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey("tripPlan"));
+		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey(
+			"araxxorSwitchPreference"));
 		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey(
 			"prayerRestorePreference"));
 		assertTrue(SlayerGearAdvisorPlugin.isRecommendationConfigKey(

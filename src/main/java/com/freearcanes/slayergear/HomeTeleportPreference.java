@@ -5,6 +5,7 @@ public enum HomeTeleportPreference
 	TELEPORT_TO_HOUSE("Teleport to house tablet"),
 	CONSTRUCTION_CAPE("Construction cape"),
 	MAX_CAPE("Max cape"),
+	RUNE_POUCH("Rune pouch"),
 	RUNES("Runes"),
 	NONE("None");
 

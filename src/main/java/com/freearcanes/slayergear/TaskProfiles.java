@@ -161,9 +161,12 @@ final class TaskProfiles
 			"cave horrors", "cave horror");
 
 		register(profile("cave-kraken", "Cave kraken",
-				"Kraken can only be damaged effectively with Magic.",
-				"Magic defence is not a priority; maximize damage.",
-				magic("Magic", "Kraken Cove", "Prioritizes magic damage, then accuracy and prayer.")),
+				"The Kraken boss is the recommended assignment method; ordinary cave krakens remain available as a fallback.",
+				"Magic defence is not a priority; maximize damage. Pack one fishing explosive per planned Kraken kill.",
+				magic("Kraken boss", "Kraken's Lair",
+					"Prioritizes magic damage and uses fishing explosives to awaken the boss efficiently."),
+				magic("Cave krakens", "Kraken Cove",
+					"Ordinary-monster fallback that does not require fishing explosives.")),
 			"cave kraken", "cave krakens", "the cave kraken boss", "kraken");
 
 		register(profile("dagannoth", "Dagannoth",
@@ -1085,7 +1088,7 @@ final class TaskProfiles
 
 		registerBoss(profile("tormented-demons-boss", "Tormented Demons",
 				"Demonbane weapons and combat-style switches are required around their protection prayer.",
-				"Use Darklight once to remove the fire shield before the main Demonbane rotation.",
+				"After the fire shield drops, use one slow Crush, heavy-ranged, or spell hit before returning to the main Demonbane rotation.",
 				demonMelee("Tormented Demons - Demonbane melee", "Ancient Guthixian Temple",
 					"Ranks Emberlight/Arclight for the melee portion."),
 				GearStrategy.builder().name("Tormented Demons - Scorching bow").location("Ancient Guthixian Temple")
@@ -1095,8 +1098,8 @@ final class TaskProfiles
 			"tormented demons", "tormented demon");
 
 		registerBoss(profile("araxxor-boss", "Araxxor",
-				"Crush is Araxxor's primary weakness; Noxious halberd is kept as a separate encounter switch.",
-				"Use a Noxious halberd or another safe answer for hatched araxytes and mirrorbacks.",
+				"Crush is Araxxor's primary weakness; choose a Noxious halberd or Heavy ballista encounter switch.",
+				"Use either switch for hatched araxytes and mirrorbacks. Heavy ballista requires dragon javelins and may need a Ranged boost or gear switch to one-hit.",
 				GearStrategy.builder().name("Araxxor - Crush melee").location("Araxxor's lair")
 					.rationale("Ranks main-hand Crush DPS and models all three Scythe hits on Araxxor.")
 					.combatStyle(CombatStyle.MELEE).attackType(AttackType.CRUSH)
@@ -1104,9 +1107,15 @@ final class TaskProfiles
 					.preferredItem("amulet of rancour").preferredItem("amulet of torture")
 					.preferredItem("amulet of blood fury").build(),
 				GearStrategy.builder().name("Araxxor - Noxious halberd switch").location("Araxxor's lair")
-					.rationale("Dedicated Araxyte and mirrorback switch from the strategy guide.")
+					.rationale("Safe melee option for hatched araxytes and mirrorbacks; its extra reach keeps you out of melee distance and needs no ammunition.")
 					.combatStyle(CombatStyle.MELEE).attackType(AttackType.SLASH)
-					.requiredWeapon("noxious halberd").targetTrait(TargetTrait.ARAXXOR).build()),
+					.requiredWeapon("noxious halberd").targetTrait(TargetTrait.ARAXXOR).build(),
+				GearStrategy.builder().name("Araxxor - Heavy ballista switch").location("Araxxor's lair")
+					.rationale("Preferred ranged substitute for the halberd switch. Bring dragon javelins and verify that your Ranged level, boost, prayer, and gear reach the one-hit threshold.")
+					.combatStyle(CombatStyle.RANGED).attackType(AttackType.BALANCED)
+					.additionalCombatStyle(CombatStyle.MELEE)
+					.requiredWeapon("heavy ballista").minimumRanged(75)
+					.targetTrait(TargetTrait.ARAXXOR).build()),
 			"araxxor");
 
 		registerBoss(profile("cerberus-boss", "Cerberus",

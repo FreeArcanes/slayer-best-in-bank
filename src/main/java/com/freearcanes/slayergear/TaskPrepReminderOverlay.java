@@ -62,7 +62,7 @@ class TaskPrepReminderOverlay extends Overlay
 					String quantity = "";
 					if (supply.hasQuantityTarget())
 					{
-						quantity = "shots".equals(supply.getQuantityUnit())
+						quantity = supply.isStackQuantity()
 							? supply.getQuantityStillNeeded() + " "
 							: supply.getWithdrawalsStillNeeded() + "× ";
 					}

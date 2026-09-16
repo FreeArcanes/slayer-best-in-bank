@@ -217,7 +217,7 @@ class TieredBankLayout
 			}
 			if (firstWidget != null)
 			{
-				headingsByWidget.put(firstWidget, "Boss switches - specs and phase weapons");
+				headingsByWidget.put(firstWidget, "Boss switches - specs and phase gear");
 			}
 			int rows = rowsFor(bossSwitches.size(), EQUIP_PATH_ITEMS_PER_ROW);
 			cursorY = itemStartY + rows * (ITEM_HEIGHT + ITEM_Y_PADDING) + SECTION_PADDING;

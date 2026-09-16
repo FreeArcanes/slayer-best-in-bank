@@ -69,6 +69,8 @@ public class PluginDependencySmokeTest
 				.toInstance(mock(BankRecommendationOverlay.class));
 			binder.bind(TaskPrepReminderOverlay.class)
 				.toInstance(mock(TaskPrepReminderOverlay.class));
+			binder.bind(DpsEstimateOverlay.class)
+				.toInstance(mock(DpsEstimateOverlay.class));
 			binder.bind(BankAdvisorButton.class).toInstance(mock(BankAdvisorButton.class));
 			binder.bind(TieredBankLayout.class).toInstance(mock(TieredBankLayout.class));
 			binder.bind(BankSearch.class).toInstance(mock(BankSearch.class));

@@ -97,7 +97,24 @@ class SmartSupplyAdvisor
 		boolean allowRadasBlessing,
 		GearPriority objective)
 	{
-		List<SupplyRule> rules = buildRules(profile, strategy, assignedLocation);
+		return recommend(profile, strategy, assignedLocation, taskAmount,
+			bankItems, packedItems, allowRadasBlessing, objective, null);
+	}
+
+	List<SupplyRecommendation> recommend(
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		String assignedLocation,
+		int taskAmount,
+		Item[] bankItems,
+		Item[] packedItems,
+		boolean allowRadasBlessing,
+		GearPriority objective,
+		PotionEstimationContext potionContext)
+	{
+		String encounterName = potionContext == null ? "" : potionContext.getTaskName();
+		List<SupplyRule> rules = buildRules(
+			profile, strategy, assignedLocation, encounterName);
 		boolean wildernessTask = isWildernessTask(assignedLocation, strategy);
 		int plannedKills = plannedKillCount(taskAmount);
 		OwnedItems bank = collectOwnedItems(bankItems);
@@ -117,8 +134,10 @@ class SmartSupplyAdvisor
 		for (SupplyRule rule : rules)
 		{
 			boolean potionEstimateDisabled = !quantityTargetEnabled(config, rule.category);
+			int estimatedQuantity = potionEstimateDisabled ? 0 : PotionDoseEstimator.estimate(
+				rule.category, plannedKills, profile, strategy, potionContext, config);
 			int objectiveQuantity = potionEstimateDisabled ? 0 : applyObjectiveQuantity(
-				rule.category, recommendedQuantity(rule.category, plannedKills), objective);
+				rule.category, estimatedQuantity, objective);
 			int automaticQuantity = potionEstimateDisabled ? 0 : applySupplyLevel(
 				rule.category, objectiveQuantity);
 			int recommendedQuantity = potionEstimateDisabled
@@ -182,6 +201,15 @@ class SmartSupplyAdvisor
 					quantityUnit));
 			}
 		}
+		if (config.bossWeaponSwitches())
+		{
+			// The owned Araxyte weapon is already rendered in the dedicated boss-
+			// switch section. Retain only a missing required preference here; ammo
+			// and the optional Ranged boost remain normal trip supplies.
+			recommendations.removeIf(recommendation ->
+				"Araxyte switch".equals(recommendation.getCategory())
+					&& recommendation.getStatus() != SupplyStatus.MISSING);
+		}
 		return recommendations;
 	}
 
@@ -220,8 +248,20 @@ class SmartSupplyAdvisor
 		GearStrategy strategy,
 		String assignedLocation)
 	{
+		return buildRules(profile, strategy, assignedLocation, "");
+	}
+
+	List<SupplyRule> buildRules(
+		SlayerTaskProfile profile,
+		GearStrategy strategy,
+		String assignedLocation,
+		String encounterName)
+	{
 		List<SupplyRule> rules = new ArrayList<>();
-		String key = profile == null ? "" : profile.getKey().toLowerCase(Locale.ENGLISH);
+		String profileKey = profile == null
+			? "" : profile.getKey().toLowerCase(Locale.ENGLISH);
+		String encounterKey = NameMatcher.normalize(encounterName);
+		String key = profileKey + " " + encounterKey;
 		String location = NameMatcher.normalize(assignedLocation == null || assignedLocation.trim().isEmpty()
 			? strategy == null ? "" : strategy.getLocation()
 			: assignedLocation);
@@ -230,6 +270,7 @@ class SmartSupplyAdvisor
 		boolean wildernessTask = isWildernessTask(assignedLocation, strategy);
 		boolean turaelAyaSpeed = TuraelSpeedProfiles.isSpeedStrategy(strategy);
 		boolean bossPvm = key.contains("boss")
+			|| BossSlayerCatalog.contains(encounterName)
 			|| (profile != null && BossSlayerCatalog.contains(profile.getDisplayName()));
 
 		if (bossPvm && config.useBossThralls())
@@ -292,7 +333,7 @@ class SmartSupplyAdvisor
 			rules.add(suggestedRule("Rune pouch", "Compact Ancient Magicks rune storage; verify the required runes are loaded",
 				"Rune pouch", "divine rune pouch", "rune pouch"));
 		}
-		else if (strategy != null && strategy.getCombatStyle() == CombatStyle.MELEE)
+		if (!ancientAoe && usesCombatStyle(strategy, CombatStyle.MELEE))
 		{
 			rules.add(config.preferDivineBoosts()
 				? suggestedRule("Combat boost", "Improves melee task speed",
@@ -302,7 +343,7 @@ class SmartSupplyAdvisor
 					"Combat potion(4)", "super combat potion", "combat potion",
 					"divine super combat potion", "divine combat potion"));
 		}
-		else if (strategy != null && strategy.getCombatStyle() == CombatStyle.RANGED)
+		if (!ancientAoe && usesCombatStyle(strategy, CombatStyle.RANGED))
 		{
 			rules.add(config.preferDivineBoosts()
 				? suggestedRule("Ranged boost", "Improves ranged task speed",
@@ -312,25 +353,54 @@ class SmartSupplyAdvisor
 					"Ranging potion(4)", "bastion potion", "ranging potion",
 					"divine bastion potion", "divine ranging potion"));
 		}
-		else if (strategy != null && strategy.getCombatStyle() == CombatStyle.MAGIC)
+		if (!ancientAoe && usesCombatStyle(strategy, CombatStyle.MAGIC))
 		{
 			rules.add(suggestedRule("Magic boost", "Improves Magic task speed",
 				"Magic boost", "saturated heart", "imbued heart", "forgotten brew", "ancient brew", "magic potion"));
 		}
 
-		if (contains(key, "araxytes", "araxxor"))
+		if (contains(key, "araxytes", "araxxor", "zulrah", "vorkath"))
 		{
-			rules.add(0, rule("Venom protection", "Araxytes can inflict venom", true,
+			String venomReason = contains(key, "vorkath")
+				? "Vorkath's venomous dragonfire can inflict venom"
+				: contains(key, "zulrah")
+					? "Zulrah and its snakelings can inflict venom"
+					: "Araxytes can inflict venom";
+			rules.add(0, rule("Venom protection", venomReason, true,
 				"Anti-venom(4)", "extended anti-venom+", "anti-venom+", "anti-venom"));
 		}
+
 		if (contains(key, "araxxor") && strategy != null
-			&& NameMatcher.normalize(strategy.getName()).contains("crush melee"))
+			&& (NameMatcher.normalize(strategy.getName()).contains("crush melee")
+				|| NameMatcher.normalize(strategy.getName()).contains("heavy ballista switch")))
 		{
-			rules.add(suggestedRule("Araxyte switch",
-				"Noxious halberd is a safe hatched-araxyte and mirrorback switch, not the default main weapon",
-				"Noxious halberd", "noxious halberd"));
+			AraxxorSwitchPreference preference = config.araxxorSwitchPreference();
+			if (preference == AraxxorSwitchPreference.HEAVY_BALLISTA
+				|| NameMatcher.normalize(strategy.getName()).contains("heavy ballista switch"))
+			{
+				rules.add(rule("Araxyte switch",
+					"Chosen safe one-hit Mirrorback/Araxyte weapon; verify your Ranged max hit",
+					true, "Heavy ballista", "heavy ballista"));
+				rules.add(rule("Araxyte ammunition",
+					"Heavy ballista requires dragon javelins for the intended one-hit setup",
+					true, "Dragon javelin", "dragon javelin"));
+				rules.add(suggestedRule("Araxyte ranged boost",
+					"The one-hit threshold may require a Ranged potion, Rigour, or additional Ranged switches",
+					"Ranging potion(4)", "divine ranging potion", "divine bastion potion",
+					"ranging potion", "bastion potion"));
+			}
+			else
+			{
+				boolean required = preference == AraxxorSwitchPreference.NOXIOUS_HALBERD;
+				rules.add((required ? rule("Araxyte switch",
+					"Chosen safe hatched-araxyte and Mirrorback switch", true,
+					"Noxious halberd", "noxious halberd") : suggestedRule("Araxyte switch",
+					"Noxious halberd is a safe hatched-araxyte and mirrorback switch, not the default main weapon",
+					"Noxious halberd", "noxious halberd")));
+			}
 		}
-		if (contains(key, "kalphites", "cave-crawlers", "cave-slimes", "lizardmen"))
+		if (contains(key, "kalphite", "cave-crawlers", "cave-slimes", "lizardmen",
+			"king black dragon", "k'ril tsutsaroth", "kril tsutsaroth", "hydra"))
 		{
 			rules.add(0, suggestedRule("Poison protection",
 				poisonReason(key),
@@ -360,9 +430,10 @@ class SmartSupplyAdvisor
 		}
 		if (contains(key, "brine-rats"))
 		{
-			rules.add(suggestedRule("Cave access", "A spade is used to enter the Brine Rat Cavern",
+			rules.add(rule("Cave access", "A spade is required every time you enter the Brine Rat Cavern", true,
 				"Spade", "spade"));
 		}
+		addEncounterItems(rules, profileKey, encounterKey, strategy);
 		if (contains(key, "lizards") || location.contains("kharidian desert"))
 		{
 			rules.add(suggestedRule("Desert hydration", "Protection from desert heat while travelling and fighting",
@@ -403,6 +474,12 @@ class SmartSupplyAdvisor
 			rules.add(0, rule("Task tool", "A Slayer bell dislodges Molanisks before combat", true,
 				"Slayer bell", "slayer bell"));
 		}
+		if (contains(key, "grotesque guardians"))
+		{
+			rules.add(rule("Finisher",
+				"A rock hammer, rock thrownhammer, or granite hammer is required to finish the Guardians",
+				true, "Rock hammer", "rock hammer", "rock thrownhammer", "granite hammer"));
+		}
 		if (contains(key, "warped-creatures"))
 		{
 			rules.add(0, rule("Task tool",
@@ -415,10 +492,14 @@ class SmartSupplyAdvisor
 				"Cannonballs", "granite cannonball", "steel cannonball", "cannonball"));
 		}
 		if (contains(key, "blue-dragons", "black-dragons", "green-dragons", "red-dragons",
-			"metal-dragons", "frost-dragons", "lava-dragons"))
+			"metal-dragons", "frost-dragons", "lava-dragons", "dragon-boss"))
 		{
-			rules.add(rule("Antifire", "Dragonfire protection is required unless the selected off-hand provides it", true,
-				"Antifire potion(4)", "extended super antifire potion", "super antifire potion", "extended antifire", "antifire potion"));
+			boolean advancedDragonfire = contains(key, "vorkath", "king black dragon");
+			rules.add(rule("Antifire", advancedDragonfire
+					? "Boss dragonfire needs layered protection; use super antifire or combine antifire with a protective shield"
+					: "Dragonfire protection is required unless the selected off-hand provides it",
+				true, "Antifire potion(4)", "extended super antifire potion", "super antifire potion",
+				"extended antifire", "antifire potion"));
 		}
 
 		for (TravelItemAdvisor.TravelRule travel
@@ -462,6 +543,11 @@ class SmartSupplyAdvisor
 		rules.add(suggestedRule("Run energy", "Optional travel and repositioning sustain",
 			"Stamina potion(4)", "stamina potion", "super energy potion", "energy potion"));
 		return rules;
+	}
+
+	private static boolean usesCombatStyle(GearStrategy strategy, CombatStyle style)
+	{
+		return strategy != null && strategy.getCombatStyles().contains(style);
 	}
 
 	private static String poisonReason(String key)
@@ -626,6 +712,10 @@ class SmartSupplyAdvisor
 	static boolean matchesPreferredSupply(String normalizedName, String preferred)
 	{
 		if (normalizedName == null || preferred == null) return false;
+		if (preferred.startsWith("="))
+		{
+			return normalizedName.equals(preferred.substring(1));
+		}
 		// Only the base Max cape retains the Max cape utility teleports. Combat
 		// variants such as imbued god/max capes contain the same words but do not
 		// satisfy the selected home-teleport preference.
@@ -766,10 +856,14 @@ class SmartSupplyAdvisor
 	static int recommendedQuantity(String category, int taskAmount)
 	{
 		if (taskAmount <= 0) return 0;
-		switch (category)
-		{
+			switch (category)
+			{
+			case "Fishing explosives":
+				return taskAmount;
 			case "Cannon ammo":
 				return Math.max(100, taskAmount * 8);
+			case "Araxyte ammunition":
+				return Math.max(10, taskAmount * 10);
 			case "Food":
 				return clamp(2, 12, (taskAmount + 19) / 20);
 			case "Prayer":
@@ -825,7 +919,12 @@ class SmartSupplyAdvisor
 			: ("Prayer".equals(category) || "Prayer regen".equals(category))
 				? config.prayerSafety()
 				: SupplyLevel.NORMAL;
-		return applySupplyLevel(automaticQuantity, level, "Food".equals(category) ? 1 : 4);
+		// Quantities are expressed as doses, not whole four-dose bottles. The bank
+		// planner still withdraws the best owned dose variant and correctly treats
+		// one four-dose potion as satisfying up to four requested doses.
+		String unit = quantityUnit(category);
+		return applySupplyLevel(automaticQuantity, level,
+			"shots".equals(unit) ? 4 : 1);
 	}
 
 	static int applySupplyLevel(int automaticQuantity, SupplyLevel level, int unitSize)
@@ -876,7 +975,10 @@ class SmartSupplyAdvisor
 			case "Goading":
 				return "doses";
 			case "Cannon ammo":
+			case "Araxyte ammunition":
 				return "shots";
+			case "Fishing explosives":
+				return "uses";
 			default:
 				return "items";
 		}
@@ -910,7 +1012,7 @@ class SmartSupplyAdvisor
 			boolean matches = false;
 			for (String preferred : rule.preferredNames)
 			{
-				if (normalizedName.contains(preferred))
+				if (matchesPreferredSupply(normalizedName, preferred))
 				{
 					matches = true;
 					break;
@@ -953,6 +1055,119 @@ class SmartSupplyAdvisor
 		return new SupplyRule(category, reason, false, true, fallback, normalized);
 	}
 
+	private static void addEncounterItems(
+		List<SupplyRule> rules,
+		String profileKey,
+		String encounterKey,
+		GearStrategy strategy)
+	{
+		String method = NameMatcher.normalize(strategy == null ? "" : strategy.getName());
+		boolean krakenBoss = "kraken".equals(encounterKey)
+			|| (profileKey.contains("cave-kraken") && method.contains("kraken boss"));
+		if (krakenBoss)
+		{
+			rules.add(0, rule("Fishing explosives",
+				"One fishing explosive per kill instantly awakens the Kraken and all four tentacles",
+				true, "Fishing explosive", "fishing explosive"));
+		}
+
+		boolean kree = encounterKey.contains("kree'arra")
+			|| encounterKey.contains("kree arra");
+		boolean aviansies = profileKey.contains("aviansies")
+			|| encounterKey.contains("aviansie");
+		if (kree || aviansies)
+		{
+			String reason = kree
+				? "Armadyl's Eyrie requires a Mith grapple every time you cross"
+				: "Required only when using the Armadyl's Eyrie or Kree'arra route";
+			rules.add(kree
+				? rule("Armadyl access", reason, true, "Mith grapple", "mith grapple")
+				: suggestedRule("Armadyl access", reason, "Mith grapple", "mith grapple"));
+			String crossbowReason = kree
+				? "A crossbow is required to fire the Mith grapple into Armadyl's Eyrie"
+				: "Required with the Mith grapple only when entering Armadyl's Eyrie";
+			rules.add(kree
+				? rule("Armadyl access", crossbowReason, true, "Crossbow", "crossbow")
+				: suggestedRule("Armadyl access", crossbowReason, "Crossbow", "crossbow"));
+		}
+
+		if (encounterKey.contains("general graardor"))
+		{
+			rules.add(rule("Bandos access",
+				"Bandos' Stronghold door requires a hammer, warhammer, or Elder maul",
+				true, "Hammer", "elder maul", "imcando hammer", "warhammer", "=hammer"));
+		}
+		if (encounterKey.contains("skotizo"))
+		{
+			rules.add(rule("Boss access",
+				"A Dark totem is consumed when entering Skotizo's lair",
+				true, "Dark totem", "dark totem"));
+		}
+		if (encounterKey.contains("bryophyta"))
+		{
+			rules.add(rule("Boss access",
+				"A Mossy key is consumed when entering Bryophyta's lair",
+				true, "Mossy key", "mossy key"));
+			rules.add(rule("Encounter tool",
+				"A Woodcutting axe or magic secateurs finishes Bryophyta's growthlings",
+				true, "Woodcutting axe", "magic secateurs", "3rd age axe",
+				"crystal axe", "infernal axe", "dragon axe", "rune axe",
+				"adamant axe", "mithril axe", "black axe", "steel axe",
+				"iron axe", "bronze axe"));
+		}
+		if (encounterKey.contains("obor"))
+		{
+			rules.add(rule("Boss access",
+				"A Giant key is consumed when entering Obor's lair",
+				true, "Giant key", "giant key"));
+		}
+		if (encounterKey.contains("barrows"))
+		{
+			rules.add(rule("Encounter tool",
+				"A spade is required to enter the Barrows crypts",
+				true, "Spade", "spade"));
+			rules.add(suggestedRule("Crypt utility",
+				"A Strange old lockpick can shorten routes through the crypt",
+				"Strange old lockpick", "strange old lockpick"));
+		}
+		if (encounterKey.contains("duke sucellus"))
+		{
+			rules.add(suggestedRule("Encounter tool",
+				"A better pickaxe gathers Duke's salax salt faster; an iron pickaxe is available in the arena",
+				"Pickaxe", "crystal pickaxe", "infernal pickaxe", "dragon pickaxe",
+				"rune pickaxe", "adamant pickaxe", "mithril pickaxe", "black pickaxe",
+				"steel pickaxe", "iron pickaxe", "bronze pickaxe"));
+		}
+		if (encounterKey.contains("brutus"))
+		{
+			rules.add(suggestedRule("Encounter utility",
+				"The Cowbell amulet teleports to Brutus and shortens his respawn when rung",
+				"Cowbell amulet", "cowbell amulet"));
+		}
+		if (encounterKey.contains("branda") || encounterKey.contains("eldric"))
+		{
+			rules.add(suggestedRule("Boss travel",
+				"The Giantsoul amulet teleports directly outside the Royal Titans' tunnel",
+				"Giantsoul amulet", "giantsoul amulet"));
+		}
+		if (encounterKey.contains("sarachnis"))
+		{
+			rules.add(suggestedRule("Web cutter",
+				"A slash weapon cuts dungeon webs unless Aranea boots bypass them",
+				"Slash weapon", "wilderness sword", "knife", "scimitar", "longsword",
+				"whip", "claws", "halberd"));
+		}
+		if (encounterKey.contains("dagannoth kings"))
+		{
+			rules.add(suggestedRule("Waterbirth access",
+				"Needed on the standard route; the 85 Agility shortcut bypasses it",
+				"Pet rock", "pet rock"));
+			rules.add(suggestedRule("Waterbirth access",
+				"Needed on the standard route; the 85 Agility shortcut bypasses it",
+				"Rune thrownaxe", "rune thrownaxe"));
+		}
+	}
+
 	private static boolean contains(String key, String... values)
 	{
 		return Arrays.stream(values).anyMatch(key::contains);
@@ -990,6 +1205,8 @@ class SmartSupplyAdvisor
 
 		String getCategory() { return category; }
 		List<String> getPreferredNames() { return preferredNames; }
+		boolean isRequired() { return required; }
+		boolean isShownWhenMissing() { return showWhenMissing; }
 	}
 
 	private static final class OwnedItem

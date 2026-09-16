@@ -12,6 +12,7 @@ final class GearStrategy
 	private final String location;
 	private final String rationale;
 	private final CombatStyle combatStyle;
+	private final Set<CombatStyle> combatStyles;
 	private final AttackType attackType;
 	private final WeaponRule weaponRule;
 	private final Set<TargetTrait> targetTraits;
@@ -35,6 +36,9 @@ final class GearStrategy
 		this.location = builder.location;
 		this.rationale = builder.rationale;
 		this.combatStyle = builder.combatStyle;
+		EnumSet<CombatStyle> styles = EnumSet.of(builder.combatStyle);
+		styles.addAll(builder.additionalCombatStyles);
+		this.combatStyles = Collections.unmodifiableSet(styles);
 		this.attackType = builder.attackType;
 		this.weaponRule = builder.weaponRule;
 		this.targetTraits = Collections.unmodifiableSet(builder.targetTraits.isEmpty()
@@ -66,6 +70,7 @@ final class GearStrategy
 			.location(location)
 			.rationale(rationale)
 			.combatStyle(combatStyle)
+			.additionalCombatStyles(combatStyles)
 			.attackType(attackType)
 			.weaponRule(weaponRule)
 			.targetTraits(targetTraits)
@@ -88,6 +93,7 @@ final class GearStrategy
 	String getLocation() { return location; }
 	String getRationale() { return rationale; }
 	CombatStyle getCombatStyle() { return combatStyle; }
+	Set<CombatStyle> getCombatStyles() { return combatStyles; }
 	AttackType getAttackType() { return attackType; }
 	WeaponRule getWeaponRule() { return weaponRule; }
 	Set<TargetTrait> getTargetTraits() { return targetTraits; }
@@ -111,6 +117,8 @@ final class GearStrategy
 		private String location = "Task-dependent";
 		private String rationale = "Best owned gear for this strategy.";
 		private CombatStyle combatStyle = CombatStyle.MELEE;
+		private final EnumSet<CombatStyle> additionalCombatStyles =
+			EnumSet.noneOf(CombatStyle.class);
 		private AttackType attackType = AttackType.BALANCED;
 		private WeaponRule weaponRule = WeaponRule.ANY;
 		private final EnumSet<TargetTrait> targetTraits = EnumSet.noneOf(TargetTrait.class);
@@ -134,6 +142,16 @@ final class GearStrategy
 		Builder location(String value) { this.location = value; return this; }
 		Builder rationale(String value) { this.rationale = value; return this; }
 		Builder combatStyle(CombatStyle value) { this.combatStyle = value; return this; }
+		Builder additionalCombatStyle(CombatStyle value)
+		{
+			if (value != null) additionalCombatStyles.add(value);
+			return this;
+		}
+		Builder additionalCombatStyles(Iterable<CombatStyle> values)
+		{
+			if (values != null) for (CombatStyle value : values) additionalCombatStyle(value);
+			return this;
+		}
 		Builder attackType(AttackType value) { this.attackType = value; return this; }
 		Builder weaponRule(WeaponRule value) { this.weaponRule = value; return this; }
 		Builder targetTrait(TargetTrait value) { if (value != null) targetTraits.add(value); return this; }

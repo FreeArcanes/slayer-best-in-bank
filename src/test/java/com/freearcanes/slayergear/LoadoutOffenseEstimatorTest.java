@@ -114,6 +114,23 @@ public class LoadoutOffenseEstimatorTest
 	}
 
 	@Test
+	public void matchingElementalAmuletRaisesBaseHitBeforeDamageAndWeaknessBonuses()
+	{
+		GearStrategy fire = GearStrategy.builder().combatStyle(CombatStyle.MAGIC)
+			.elementalWeakness(ElementalWeakness.FIRE, 50).build();
+		double ordinary = elementalEstimate(fire, "Occult necklace", 5);
+		double matching = elementalEstimate(fire, "Amulet of fire", 0);
+		double combined = elementalEstimate(fire, "Elemental amulet", 0);
+		double wrongElement = elementalEstimate(fire, "Amulet of water", 0);
+
+		assertEquals(matching, combined, 0.000001);
+		assertTrue(matching > ordinary);
+		assertTrue(matching > wrongElement);
+		assertEquals(35, LoadoutOffenseEstimator.magicMaxHit(
+			20 + ElementalAmuletEffect.MAX_HIT_BONUS, 10, 0, 50));
+	}
+
+	@Test
 	public void taskHeadgearRecognizesImbuesAndCosmeticVariants()
 	{
 		assertEquals(7.0 / 6.0, SlayerTaskHeadgear.accuracyMultiplier(
@@ -187,6 +204,25 @@ public class LoadoutOffenseEstimatorTest
 	{
 		return GearRecommendation.builder().itemId(id).canonicalItemId(id)
 			.itemName(name).slot(slot).build();
+	}
+
+	private static double elementalEstimate(
+		GearStrategy strategy, String amuletName, int magicDamagePercent)
+	{
+		Map<EquipmentInventorySlot, GearRecommendation> loadout =
+			new EnumMap<>(EquipmentInventorySlot.class);
+		loadout.put(EquipmentInventorySlot.WEAPON,
+			recommendation(1, "Mystic fire staff", EquipmentInventorySlot.WEAPON));
+		loadout.put(EquipmentInventorySlot.AMULET,
+			recommendation(2, amuletName, EquipmentInventorySlot.AMULET));
+		Map<Integer, GearScorer.BankEquipment> equipment = Map.of(
+			1, bankEquipment(1, "Mystic fire staff", EquipmentInventorySlot.WEAPON,
+				ItemEquipmentStats.builder().amagic(14).aspeed(5).build()),
+			2, bankEquipment(2, amuletName, EquipmentInventorySlot.AMULET,
+				ItemEquipmentStats.builder().amagic(10).mdmg(magicDamagePercent).build()));
+		return LoadoutOffenseEstimator.estimate(loadout, equipment, strategy,
+			new TargetDefence("Weak target", 100, 50, 0, 0, 0, 0, 0, 0, 0),
+			CombatLevelContext.unboosted(80, 80, 80, 80));
 	}
 
 	private static GearScorer.BankEquipment bankEquipment(

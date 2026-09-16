@@ -37,7 +37,7 @@ class BankAdvisorButton
 		}
 
 		button = parent.createChild(-1, WidgetType.GRAPHIC);
-		button.setItemId(ItemID.SLAYER_HELM);
+		button.setItemId(ItemID.SLAYER_HELM_I_TWISTED);
 		button.setItemQuantity(1);
 		button.setItemQuantityMode(ItemQuantityMode.NEVER);
 		button.setOriginalWidth(BUTTON_WIDTH);

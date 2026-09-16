@@ -78,7 +78,7 @@ class SlayerGearPanel extends PluginPanel
 
 	static
 	{
-		applyThemeColors(PanelTheme.MIDNIGHT);
+		applyThemeColors(PanelTheme.RUNELITE);
 	}
 
 	private static final List<EquipmentInventorySlot> SLOT_ORDER = Arrays.asList(
@@ -99,6 +99,8 @@ class SlayerGearPanel extends PluginPanel
 	private final SlayerGearAdvisorConfig config;
 	private final JPanel content = transparentPanel();
 	private Runnable strategyCycleHandler = () -> { };
+	private Consumer<String> methodSelectionHandler = method -> { };
+	private Consumer<AraxxorSwitchPreference> araxxorSwitchHandler = preference -> { };
 	private BiConsumer<SupplyRecommendation, SupplyQuantityAction> supplyQuantityHandler =
 		(supply, action) -> { };
 	private Runnable loadoutRefreshHandler = () -> { };
@@ -120,13 +122,15 @@ class SlayerGearPanel extends PluginPanel
 	private boolean showDpsDetails;
 	private boolean showRecommendationExplanations;
 	private boolean showObjectiveComparison;
+	private boolean showMethodComparison;
+	private List<OwnedMethodComparison> methodComparisons = new ArrayList<>();
 	private boolean showTaskDetails;
 	private GearPriority previousObjective;
 	private String presetStatus = "";
 	private TaskCompletionSummary completionSummary;
 	private PrepFocusMode prepFocusMode = PrepFocusMode.ALL;
 	private GearRecommendations lastRecommendations;
-	private PanelTheme panelTheme = PanelTheme.MIDNIGHT;
+	private PanelTheme panelTheme = PanelTheme.RUNELITE;
 
 	@Inject
 	SlayerGearPanel(ItemManager itemManager, SlayerGearAdvisorConfig config)
@@ -152,6 +156,22 @@ class SlayerGearPanel extends PluginPanel
 	void setStrategyCycleHandler(Runnable handler)
 	{
 		this.strategyCycleHandler = handler == null ? () -> { } : handler;
+	}
+
+	void setMethodSelectionHandler(Consumer<String> handler)
+	{
+		methodSelectionHandler = handler == null ? method -> { } : handler;
+	}
+
+	void setAraxxorSwitchHandler(Consumer<AraxxorSwitchPreference> handler)
+	{
+		araxxorSwitchHandler = handler == null ? preference -> { } : handler;
+	}
+
+	void setMethodComparisons(List<OwnedMethodComparison> comparisons)
+	{
+		methodComparisons = comparisons == null
+			? new ArrayList<>() : new ArrayList<>(comparisons);
 	}
 
 	void setSupplyQuantityHandler(
@@ -243,7 +263,7 @@ class SlayerGearPanel extends PluginPanel
 
 	void setTheme(PanelTheme theme)
 	{
-		PanelTheme selected = theme == null ? PanelTheme.MIDNIGHT : theme;
+		PanelTheme selected = theme == null ? PanelTheme.RUNELITE : theme;
 		SwingUtilities.invokeLater(() -> setThemeOnEdt(selected));
 	}
 
@@ -314,7 +334,7 @@ class SlayerGearPanel extends PluginPanel
 		JLabel icon = new JLabel();
 		icon.setHorizontalAlignment(SwingConstants.CENTER);
 		icon.setPreferredSize(new Dimension(46, 42));
-		AsyncBufferedImage helmImage = itemManager.getImage(ItemID.SLAYER_HELM);
+		AsyncBufferedImage helmImage = itemManager.getImage(ItemID.SLAYER_HELM_I_TWISTED);
 		helmImage.onLoaded(() -> SwingUtilities.invokeLater(() ->
 			icon.setIcon(new ImageIcon(ImageUtil.resizeImage(helmImage, 44, 40)))));
 		identity.add(icon, BorderLayout.WEST);
@@ -374,6 +394,7 @@ class SlayerGearPanel extends PluginPanel
 		bossSelector.setMinimumSize(new Dimension(80, 30));
 		bossSelector.setAlignmentX(Component.LEFT_ALIGNMENT);
 		bossSelector.setFont(FontManager.getRunescapeSmallFont());
+		SlayerComboBoxUI.installOn(bossSelector, panelTheme);
 		bossSelector.setToolTipText("Choose a boss to build an owned Best-in-Bank boss loadout");
 		bossSelector.addActionListener(event ->
 		{
@@ -506,7 +527,7 @@ class SlayerGearPanel extends PluginPanel
 			if (!missingOnly || !item.isPacked()) switches.add(item);
 		}
 		if (switches.isEmpty()) return;
-		content.add(sectionHeading("BOSS WEAPON SWITCHES", "Best owned applicable options"));
+		content.add(sectionHeading("BOSS SWITCHES", "Best owned applicable options"));
 		content.add(Box.createVerticalStrut(5));
 		for (GearRecommendation item : switches)
 		{
@@ -576,6 +597,7 @@ class SlayerGearPanel extends PluginPanel
 			JLabel method = new JLabel(strategy.getName());
 			method.setFont(FontManager.getRunescapeBoldFont());
 			method.setForeground(GOLD);
+			method.setToolTipText(strategyTooltip(strategy));
 			method.setAlignmentX(Component.LEFT_ALIGNMENT);
 			hero.add(method);
 
@@ -587,6 +609,12 @@ class SlayerGearPanel extends PluginPanel
 				location.setToolTipText(strategy.getLocation());
 				location.setAlignmentX(Component.LEFT_ALIGNMENT);
 				hero.add(location);
+			}
+
+			if (isAraxxor(recommendations))
+			{
+				hero.add(Box.createVerticalStrut(7));
+				hero.add(araxxorSwitchChooser());
 			}
 
 			hero.add(Box.createVerticalStrut(7));
@@ -680,13 +708,32 @@ class SlayerGearPanel extends PluginPanel
 			if (!recommendations.getAlternativeStrategies().isEmpty())
 			{
 				hero.add(Box.createVerticalStrut(8));
-				RoundedButton switchMethod = new RoundedButton();
-				switchMethod.setText("Change method   ·   " + recommendations.getAlternativeStrategies().size() + " available");
-				switchMethod.setForeground(SOFT_TEXT);
-				switchMethod.setAlignmentX(Component.LEFT_ALIGNMENT);
-				switchMethod.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
-				switchMethod.addActionListener(event -> strategyCycleHandler.run());
-				hero.add(switchMethod);
+				JPanel methodButtons = transparentPanel(new GridLayout(1, 2, 6, 0));
+				methodButtons.setAlignmentX(Component.LEFT_ALIGNMENT);
+				methodButtons.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+				RoundedButton compareMethods = new RoundedButton();
+				compareMethods.setText(showMethodComparison ? "Hide methods" : "Compare methods");
+				compareMethods.setForeground(showMethodComparison ? TEAL : SOFT_TEXT);
+				compareMethods.addActionListener(event ->
+				{
+					showMethodComparison = !showMethodComparison;
+					refreshLastRecommendations();
+				});
+				methodButtons.add(compareMethods);
+				RoundedButton nextMethod = new RoundedButton();
+				nextMethod.setText("Next method");
+				nextMethod.setForeground(MUTED_TEXT);
+				nextMethod.addActionListener(event -> strategyCycleHandler.run());
+				methodButtons.add(nextMethod);
+				hero.add(methodButtons);
+				if (showMethodComparison)
+				{
+					for (OwnedMethodComparison comparison : methodComparisons)
+					{
+						hero.add(Box.createVerticalStrut(6));
+						hero.add(methodComparisonCard(comparison));
+					}
+				}
 			}
 
 			if (recommendations.isBankRefreshPending())
@@ -714,6 +761,119 @@ class SlayerGearPanel extends PluginPanel
 
 		content.add(hero);
 		content.add(Box.createVerticalStrut(8));
+	}
+
+	private JPanel araxxorSwitchChooser()
+	{
+		JPanel chooser = transparentPanel(new GridLayout(1, 2, 6, 0));
+		chooser.setAlignmentX(Component.LEFT_ALIGNMENT);
+		chooser.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+		AraxxorSwitchPreference selected = config.araxxorSwitchPreference();
+		chooser.add(araxxorSwitchButton("Noxious halberd",
+			AraxxorSwitchPreference.NOXIOUS_HALBERD, selected));
+		chooser.add(araxxorSwitchButton("Heavy ballista",
+			AraxxorSwitchPreference.HEAVY_BALLISTA, selected));
+		return chooser;
+	}
+
+	private RoundedButton araxxorSwitchButton(String label,
+		AraxxorSwitchPreference preference, AraxxorSwitchPreference selected)
+	{
+		RoundedButton button = new RoundedButton();
+		button.setText(label);
+		button.setForeground(preference == selected ? GOLD : MUTED_TEXT);
+		button.setToolTipText(araxxorSwitchTooltip("Araxxor - " + label + " switch"));
+		button.addActionListener(event -> araxxorSwitchHandler.accept(preference));
+		return button;
+	}
+
+	private static boolean isAraxxor(GearRecommendations recommendations)
+	{
+		return recommendations != null
+			&& NameMatcher.normalize(recommendations.getTaskName()).contains("araxxor");
+	}
+
+	private JPanel methodComparisonCard(OwnedMethodComparison comparison)
+	{
+		RoundedPanel card = new RoundedPanel(SURFACE_RAISED, ROW_RADIUS,
+			comparison.isSelected() ? GOLD : BORDER);
+		card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+		card.setBorder(new EmptyBorder(7, 8, 7, 8));
+		card.setAlignmentX(Component.LEFT_ALIGNMENT);
+		card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+		String methodTooltip = araxxorSwitchTooltip(comparison.getStrategyName());
+		if (methodTooltip != null) card.setToolTipText(methodTooltip);
+		card.add(wrappedLabel(comparison.getStrategyName(),
+			comparison.isSelected() ? GOLD : comparison.isFastest() ? TEAL : SOFT_TEXT,
+			WRAP_WIDTH - 16));
+		String marker = comparison.isSelected() ? "SELECTED" : "";
+		if (comparison.isObjectiveBest()) marker += marker.isEmpty()
+			? "BEST FOR OBJECTIVE" : " · BEST FOR OBJECTIVE";
+		else if (comparison.isFastest()) marker += marker.isEmpty()
+			? "FASTEST OWNED" : " · FASTEST OWNED";
+		if (!marker.isEmpty())
+		{
+			card.add(smallCaps(marker, comparison.isObjectiveBest() ? GOLD : TEAL));
+		}
+		card.add(wrappedLabel(comparisonMetricsText(comparison), TEAL, WRAP_WIDTH - 16));
+		card.add(wrappedLabel("Suggested Objective: " + comparison.getSuggestedObjective(),
+			MUTED_TEXT, WRAP_WIDTH - 16));
+		if (comparison.isObjectiveBest() && !comparison.getObjectiveReason().isEmpty())
+		{
+			card.add(wrappedLabel(comparison.getObjectiveReason(), GOLD, WRAP_WIDTH - 16));
+		}
+		if (!comparison.getLocation().isEmpty())
+		{
+			card.add(wrappedLabel(comparison.getLocation(), FAINT_TEXT, WRAP_WIDTH - 16));
+		}
+		RoundedButton select = new RoundedButton();
+		select.setText(comparison.isSelected() ? "Selected" : "Use this method");
+		select.setEnabled(!comparison.isSelected());
+		select.setAlignmentX(Component.LEFT_ALIGNMENT);
+		select.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+		if (methodTooltip != null) select.setToolTipText(methodTooltip);
+		select.addActionListener(event ->
+			methodSelectionHandler.accept(comparison.getStrategyName()));
+		card.add(Box.createVerticalStrut(4));
+		card.add(select);
+		return card;
+	}
+
+	private static String strategyTooltip(GearStrategy strategy)
+	{
+		String switchTooltip = araxxorSwitchTooltip(strategy.getName());
+		if (switchTooltip != null) return switchTooltip;
+		String explanation = strategy.getRationale();
+		return explanation == null || explanation.trim().isEmpty()
+			? null : "<html><body style='width:240px'>" + escape(explanation) + "</body></html>";
+	}
+
+	private static String araxxorSwitchTooltip(String strategyName)
+	{
+		String normalized = NameMatcher.normalize(strategyName);
+		if (normalized.contains("araxxor") && normalized.contains("noxious halberd"))
+		{
+			return "<html><body style='width:240px'>Noxious halberd is the safe melee switch for hatched araxytes and mirrorbacks. Its extra reach avoids melee distance and it does not consume ammunition.</body></html>";
+		}
+		if (normalized.contains("araxxor") && normalized.contains("heavy ballista"))
+		{
+			return "<html><body style='width:240px'>Heavy ballista is a ranged substitute for the halberd switch. It requires dragon javelins; verify your Ranged level, boost, prayer, and gear can reach the one-hit threshold.</body></html>";
+		}
+		return null;
+	}
+
+	static String comparisonMetricsText(OwnedMethodComparison comparison)
+	{
+		String metrics = comparison.getOffenseEstimate().isAvailable()
+			? formatDps(comparison.getOffenseEstimate()) + " · "
+				+ killRateText(comparison.getOffenseEstimate())
+			: "DPS unavailable";
+		if (comparison.getGpPerKill() > 0)
+		{
+			metrics += " · " + TripCostEstimator.compactGp(comparison.getGpPerKill())
+				+ "/kill · " + TripCostEstimator.compactGp(comparison.getTripGp()) + " trip";
+		}
+		return metrics;
 	}
 
 	private void addReadiness(GearRecommendations recommendations)
@@ -1476,7 +1636,7 @@ class SlayerGearPanel extends PluginPanel
 		}
 		if (supply.hasQuantityTarget() && supply.getStatus() != SupplyStatus.MISSING)
 		{
-			boolean countUnits = "shots".equals(supply.getQuantityUnit());
+			boolean countUnits = supply.isStackQuantity();
 			int needed = countUnits
 				? supply.getQuantityStillNeeded()
 				: supply.getWithdrawalsStillNeeded();

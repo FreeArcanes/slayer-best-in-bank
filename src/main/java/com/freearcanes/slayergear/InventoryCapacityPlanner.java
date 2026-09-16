@@ -124,7 +124,7 @@ final class InventoryCapacityPlanner
 		{
 			return 0;
 		}
-		if ("shots".equals(supply.getQuantityUnit()))
+		if (supply.isStackQuantity())
 		{
 			return supply.getPackedQuantity() > 0 ? 0 : 1;
 		}
@@ -175,7 +175,7 @@ final class InventoryCapacityPlanner
 	{
 		int safeSlots = Math.max(0, additionalSlots);
 		int packed = supply.getPackedQuantity();
-		if ("shots".equals(supply.getQuantityUnit()))
+		if (supply.isStackQuantity())
 		{
 			return safeSlots == 0 ? packed : supply.getRecommendedQuantity();
 		}

@@ -1,4 +1,23 @@
-# Slayer Best in Bank — SBIB V1.82
+# Slayer Best in Bank — SBIB V1.83
+
+## September 2026 gameplay sync
+
+- Added explicit scoring and target-aware DPS support for the Amulets of Air,
+  Water, Earth, and Fire and the combined Elemental amulet. Their hidden +2
+  base max hit is applied only to matching elemental spells and before Magic
+  damage and elemental-weakness modifiers, matching the live game behavior.
+- Confirmed the Necklace of Fangs requires no plugin-specific override: its
+  +12 Ranged Accuracy and +1 Ranged Strength flow through RuneLite's current
+  equipment stats and existing Ranged scoring.
+- Confirmed the consumable Ghommal's Lucky Penny unlock does not require a
+  wearable-item recommendation. The plugin does not infer account unlock
+  state or incorrectly reserve the ring slot for the consumed passive.
+- Audited the September 16 pet update. Its pet behavior, reduced low-level
+  energy-potion drops, Mortimer Partner Slayer fix, Arkan Blade reclaim option,
+  Medallion of the Deep equipment change, and capitalization fixes do not
+  change SBIB's gear, supply, task, or travel recommendation rules.
+
+# Previous public release — SBIB V1.82
 
 This release candidate consolidates the current loadout, supply-planning,
 bank-layout, customization, and support improvements into one reviewable update.
